@@ -1,156 +1,155 @@
 <script lang="ts">
-  import { invoke } from "@tauri-apps/api/core";
+    import MetricCard from "$components/MetricCard.svelte";
+    import Toggle from "$components/Toggle.svelte";
+    import BrightnessSlider from "$components/BrightnessSlider.svelte";
 
-  let name = $state("");
-  let greetMsg = $state("");
+    let cpu = 34;
+    let ram = 61;
+    let disk = 72;
 
-  async function greet(event: Event) {
-    event.preventDefault();
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    greetMsg = await invoke("greet", { name });
-  }
+    let cpuDisplay = `${cpu}%`;
+    let ramDisplay = `6.1 GB`;
+    let diskDisplay = `${disk}%`;
+
+    let windowManager = false;
+    let clipboardHistory = false;
+    let brightness = 80;
 </script>
 
-<main class="container">
-  <h1>Welcome to Tauri + Svelte</h1>
+<div class="page">
+    <div class="shell">
+        <section class="metrics">
+            <MetricCard
+                icon="󰻠"
+                label="CPU"
+                value={cpu}
+                displayValue={cpuDisplay}
+            />
+            <MetricCard
+                icon="󰍛"
+                label="RAM"
+                value={ram}
+                displayValue={ramDisplay}
+            />
+            <MetricCard
+                icon="󰋊"
+                label="Disk"
+                value={disk}
+                displayValue={diskDisplay}
+            />
+        </section>
 
-  <div class="row">
-    <a href="https://vite.dev" target="_blank">
-      <img src="/vite.svg" class="logo vite" alt="Vite Logo" />
-    </a>
-    <a href="https://tauri.app" target="_blank">
-      <img src="/tauri.svg" class="logo tauri" alt="Tauri Logo" />
-    </a>
-    <a href="https://svelte.dev" target="_blank">
-      <img src="/svelte.svg" class="logo svelte-kit" alt="SvelteKit Logo" />
-    </a>
-  </div>
-  <p>Click on the Tauri, Vite, and SvelteKit logos to learn more.</p>
+        <div class="divider"></div>
 
-  <form class="row" onsubmit={greet}>
-    <input id="greet-input" placeholder="Enter a name..." bind:value={name} />
-    <button type="submit">Greet</button>
-  </form>
-  <p>{greetMsg}</p>
-</main>
+        <section class="switches">
+            <Toggle
+                id="wm"
+                label="Window Manager"
+                bind:checked={windowManager}
+            />
+            <Toggle
+                id="cb"
+                label="Clipboard History"
+                bind:checked={clipboardHistory}
+            />
+        </section>
+
+        <div class="divider"></div>
+
+        <section class="brightness-section">
+            <BrightnessSlider bind:value={brightness} />
+        </section>
+    </div>
+
+    <button class="prefs-btn" type="button">Preferences</button>
+</div>
 
 <style>
-.logo.vite:hover {
-  filter: drop-shadow(0 0 2em #747bff);
-}
+    :global(*, *::before, *::after) {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
 
-.logo.svelte-kit:hover {
-  filter: drop-shadow(0 0 2em #ff3e00);
-}
+    :global(html) {
+        background: transparent;
+    }
 
-:root {
-  font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
-  font-size: 16px;
-  line-height: 24px;
-  font-weight: 400;
+    :global(body) {
+        background: transparent;
+        overflow: hidden;
+        font-family:
+            "SF Pro Display",
+            -apple-system,
+            "Segoe UI Variable",
+            "Segoe UI",
+            sans-serif;
+        -webkit-font-smoothing: antialiased;
+    }
 
-  color: #0f0f0f;
-  background-color: #f6f6f6;
+    .page {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 0;
+        background: transparent;
+    }
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  -webkit-text-size-adjust: 100%;
-}
+    .shell {
+        background: var(--color-main-bg);
+        backdrop-filter: blur(var(--blur-glass));
+        border-radius: var(--radius-md);
+        border: 1px solid var(--color-border-subtle);
+        display: flex;
+        flex-direction: column;
+        padding: 20px 18px;
+        gap: 16px;
+        color: white;
+    }
 
-.container {
-  margin: 0;
-  padding-top: 10vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  text-align: center;
-}
+    .metrics {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+    }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: 0.75s;
-}
+    .divider {
+        height: 1px;
+        background: var(--color-border-subtle);
+        flex-shrink: 0;
+        margin-left: -18px;
+        margin-right: -18px;
+    }
 
-.logo.tauri:hover {
-  filter: drop-shadow(0 0 2em #24c8db);
-}
+    .switches {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+    }
 
-.row {
-  display: flex;
-  justify-content: center;
-}
+    .brightness-section {
+        padding: 0 2px;
+    }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
+    .prefs-btn {
+        width: 100%;
+        padding: 12px 18px;
+        border: 1px solid var(--color-border-subtle);
+        border-radius: var(--radius-md);
+        background: var(--color-main-bg);
+        backdrop-filter: blur(var(--blur-glass));
+        color: var(--color-text-tertiary);
+        font-size: 12.5px;
+        font-weight: 500;
+        font-family: inherit;
+        letter-spacing: 0.02em;
+        text-align: left;
+        cursor: pointer;
+        transition: var(--transition-medium);
+    }
 
-a:hover {
-  color: #535bf2;
-}
-
-h1 {
-  text-align: center;
-}
-
-input,
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  color: #0f0f0f;
-  background-color: #ffffff;
-  transition: border-color 0.25s;
-  box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
-}
-
-button {
-  cursor: pointer;
-}
-
-button:hover {
-  border-color: #396cd8;
-}
-button:active {
-  border-color: #396cd8;
-  background-color: #e8e8e8;
-}
-
-input,
-button {
-  outline: none;
-}
-
-#greet-input {
-  margin-right: 5px;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    color: #f6f6f6;
-    background-color: #2f2f2f;
-  }
-
-  a:hover {
-    color: #24c8db;
-  }
-
-  input,
-  button {
-    color: #ffffff;
-    background-color: #0f0f0f98;
-  }
-  button:active {
-    background-color: #0f0f0f69;
-  }
-}
-
+    .prefs-btn:hover {
+        background: var(--color-button-bg-hover);
+        color: var(--color-text-secondary);
+    }
 </style>

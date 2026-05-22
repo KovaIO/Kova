@@ -1,0 +1,75 @@
+:root {
+    /* Main app background */
+    --color-main-bg: rgba(20, 20, 24, 1);
+
+    /* Elevated surfaces */
+    --color-surface-elevated: rgba(28, 28, 34, 1);
+
+    /* Interactive backgrounds */
+    --color-button-bg: rgba(34, 34, 40, 1);
+    --color-button-bg-hover: rgba(44, 44, 52, 1);
+    --color-button-bg-active: rgba(58, 58, 68, 1);
+
+    /* Input / track surfaces */
+    --color-track-bg: rgba(255, 255, 255, 0.06);
+    --color-track-base: rgba(255, 255, 255, 0.04);
+    --color-track-fill: rgba(255, 255, 255, 0.12);
+
+    /* Accent */
+    --color-accent: #6eb3ff;
+
+    --color-accent-hover: #8ac2ff;
+
+    --color-accent-soft: rgba(110, 179, 255, 0.15);
+
+    --color-accent-strong: rgba(110, 179, 255, 0.3);
+
+    --color-accent-border: rgba(110, 179, 255, 0.35);
+
+    /* Accent semantics */
+    --color-success: #57d38c;
+    --color-success-soft: rgba(87, 211, 140, 0.14);
+
+    --color-warning: #f0b35a;
+    --color-warning-soft: rgba(240, 179, 90, 0.14);
+
+    --color-danger: #ff6b6b;
+    --color-danger-soft: rgba(255, 107, 107, 0.14);
+
+    /* Border */
+    --color-border-subtle: rgba(255, 255, 255, 0.05);
+    --color-border-medium: rgba(255, 255, 255, 0.08);
+    --color-border-strong: rgba(255, 255, 255, 0.12);
+
+    /* Accent borders */
+    --color-border-accent: rgba(94, 161, 255, 0.22);
+
+    /* Typography */
+    --color-text-primary: #f5f7fa;
+    --color-text-secondary: #a8b0bd;
+    --color-text-tertiary: #7e8795;
+    --color-text-muted: #6b7280;
+    --color-text-dim: #555d6a;
+
+    /* Icons */
+    --color-text-icon: rgba(255, 255, 255, 0.72);
+
+    /* Inputs */
+    --color-input: rgba(255, 255, 255, 0.82);
+    --color-input-hover: rgba(255, 255, 255, 0.92);
+    --color-input-active: #ffffff;
+
+    /* Blur */
+    --blur-glass: 24px;
+
+    /* Radius */
+    --radius-sm: 10px;
+    --radius-md: 14px;
+    --radius-lg: 18px;
+    --radius-xl: 24px;
+
+    /* Motion */
+    --transition-fast: 120ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    --transition-medium: 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    --transition-slow: 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
