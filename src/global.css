@@ -1,14 +1,14 @@
 :root {
     /* Main app background */
-    --color-main-bg: rgba(20, 20, 24, 1);
+    --color-main-bg: rgba(20, 19, 24, 1);
 
     /* Elevated surfaces */
-    --color-surface-elevated: rgba(28, 28, 34, 1);
+    --color-surface-elevated: rgba(26, 25, 32, 1);
 
     /* Interactive backgrounds */
-    --color-button-bg: rgba(34, 34, 40, 1);
-    --color-button-bg-hover: rgba(44, 44, 52, 1);
-    --color-button-bg-active: rgba(58, 58, 68, 1);
+    --color-button-bg: rgba(32, 31, 38, 1);
+    --color-button-bg-hover: rgba(40, 39, 48, 1);
+    --color-button-bg-active: rgba(50, 49, 60, 1);
 
     /* Input / track surfaces */
     --color-track-bg: rgba(255, 255, 255, 0.06);
@@ -16,15 +16,15 @@
     --color-track-fill: rgba(255, 255, 255, 0.12);
 
     /* Accent */
-    --color-accent: #6eb3ff;
+    --color-accent: #9b7cf0;
 
-    --color-accent-hover: #8ac2ff;
+    --color-accent-hover: #b594fa;
 
-    --color-accent-soft: rgba(110, 179, 255, 0.15);
+    --color-accent-soft: rgba(155, 124, 240, 0.1);
 
-    --color-accent-strong: rgba(110, 179, 255, 0.3);
+    --color-accent-strong: rgba(155, 124, 240, 0.35);
 
-    --color-accent-border: rgba(110, 179, 255, 0.35);
+    --color-accent-border: rgba(155, 124, 240, 0.25);
 
     /* Accent semantics */
     --color-success: #57d38c;
@@ -37,19 +37,19 @@
     --color-danger-soft: rgba(255, 107, 107, 0.14);
 
     /* Border */
-    --color-border-subtle: rgba(255, 255, 255, 0.05);
-    --color-border-medium: rgba(255, 255, 255, 0.08);
-    --color-border-strong: rgba(255, 255, 255, 0.12);
+    --color-border-subtle: rgba(255, 255, 255, 0.04);
+    --color-border-medium: rgba(255, 255, 255, 0.06);
+    --color-border-strong: rgba(255, 255, 255, 0.1);
 
     /* Accent borders */
-    --color-border-accent: rgba(94, 161, 255, 0.22);
+    --color-border-accent: rgba(155, 124, 240, 0.2);
 
     /* Typography */
-    --color-text-primary: #f5f7fa;
-    --color-text-secondary: #a8b0bd;
-    --color-text-tertiary: #7e8795;
-    --color-text-muted: #6b7280;
-    --color-text-dim: #555d6a;
+    --color-text-primary: #ebebf0;
+    --color-text-secondary: #a3abb8;
+    --color-text-tertiary: #7a8390;
+    --color-text-muted: #636a75;
+    --color-text-dim: #4e5460;
 
     /* Icons */
     --color-text-icon: rgba(255, 255, 255, 0.72);

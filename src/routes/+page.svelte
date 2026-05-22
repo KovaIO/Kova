@@ -65,28 +65,6 @@
 </div>
 
 <style>
-    :global(*, *::before, *::after) {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-    }
-
-    :global(html) {
-        background: transparent;
-    }
-
-    :global(body) {
-        background: transparent;
-        overflow: hidden;
-        font-family:
-            "SF Pro Display",
-            -apple-system,
-            "Segoe UI Variable",
-            "Segoe UI",
-            sans-serif;
-        -webkit-font-smoothing: antialiased;
-    }
-
     .page {
         display: flex;
         flex-direction: column;
@@ -105,6 +83,7 @@
         padding: 20px 18px;
         gap: 16px;
         color: white;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
     }
 
     .metrics {

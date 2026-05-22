@@ -73,10 +73,11 @@
         top: 0;
         left: 0;
         bottom: 0;
-        background: var(--color-accent);
+        background: linear-gradient(to right, var(--color-accent), var(--color-accent-hover));
         border-radius: 999px;
         pointer-events: none;
         transition: width 60ms linear;
+        opacity: 0.9;
     }
 
     .track-wrap::before {
@@ -101,5 +102,6 @@
         pointer-events: none;
         transition: left 60ms linear;
         z-index: 1;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
     }
 </style>

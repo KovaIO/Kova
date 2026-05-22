@@ -42,6 +42,7 @@
         overflow: hidden;
         cursor: default;
         flex-shrink: 0;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
     }
 
     .fill {
@@ -49,9 +50,10 @@
         bottom: 0;
         left: 0;
         right: 0;
-        background: var(--color-accent);
+        background: linear-gradient(to top, var(--color-accent), var(--color-accent-hover));
         transition: height 600ms cubic-bezier(0.4, 0, 0.2, 1);
         border-radius: 0 0 12px 12px;
+        opacity: 0.9;
     }
 
     .content {
@@ -101,8 +103,9 @@
 
     .icon {
         font-size: 20px;
-        opacity: 0.75;
-        color: var(--color-text-icon);
+        opacity: 0.85;
+        color: var(--color-text-primary);
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
     }
 
     .val {
@@ -119,7 +122,8 @@
         font-size: 10px;
         font-weight: 500;
         letter-spacing: 0.04em;
-        color: var(--color-text-muted);
+        color: var(--color-text-secondary);
         text-transform: uppercase;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
     }
 </style>

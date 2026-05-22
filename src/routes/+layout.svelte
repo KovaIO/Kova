@@ -25,4 +25,20 @@
         background: transparent;
         overflow: hidden;
     }
+
+    :global(*, *::before, *::after) {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    :global(body) {
+        font-family:
+            "SF Pro Display",
+            -apple-system,
+            "Segoe UI Variable",
+            "Segoe UI",
+            sans-serif;
+        -webkit-font-smoothing: antialiased;
+    }
 </style>

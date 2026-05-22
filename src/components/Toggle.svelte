@@ -49,6 +49,7 @@
         background: var(--color-track-bg);
         border: 1px solid var(--color-border-medium);
         transition: var(--transition-medium);
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
     }
 
     input:checked ~ .track {
@@ -67,6 +68,7 @@
         transition:
             transform 200ms cubic-bezier(0.4, 0, 0.2, 1),
             background 200ms ease;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
     }
 
     input:checked ~ .track .thumb {
