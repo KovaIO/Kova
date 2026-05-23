@@ -1,3 +1,5 @@
+mod commands;
+
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
@@ -14,6 +16,8 @@ pub fn run() {
         .plugin(tauri_plugin_positioner::init())
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
+            commands::start_metrics_loop(app.handle().clone());
+
             let is_open = Arc::new(AtomicBool::new(false));
             let close_pending = Arc::new(AtomicBool::new(false));
 
@@ -32,7 +36,7 @@ pub fn run() {
                             ..
                         } = event
                         {
-                            let window = tray.app_handle().get_webview_window("kova").unwrap();
+                            let window = tray.app_handle().get_webview_window("home").unwrap();
 
                             if is_open.load(Ordering::Relaxed) {
                                 close_pending.store(false, Ordering::Relaxed);
@@ -51,7 +55,7 @@ pub fn run() {
                 })
                 .build(app)?;
 
-            let window = app.get_webview_window("kova").unwrap();
+            let window = app.get_webview_window("home").unwrap();
 
             window.on_window_event({
                 let window = window.clone();

@@ -42,7 +42,6 @@
         overflow: hidden;
         cursor: default;
         flex-shrink: 0;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
     }
 
     .fill {
@@ -76,9 +75,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        transition:
-            opacity 180ms ease,
-            transform 180ms ease;
+        transition: var(--transition-slow);
     }
 
     .icon-wrap {

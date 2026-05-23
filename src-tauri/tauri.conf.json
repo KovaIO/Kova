@@ -12,8 +12,8 @@
   "app": {
     "windows": [
       {
-        "title": "kova",
-        "label": "kova",
+        "title": "home",
+        "label": "home",
         "width": 280,
         "height": 330,
         "decorations": false,

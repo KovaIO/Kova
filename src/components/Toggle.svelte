@@ -53,7 +53,7 @@
     }
 
     input:checked ~ .track {
-        background: var(--color-accent-strong);
+        background: var(--color-accent);
         border-color: var(--color-accent-border);
     }
 
@@ -65,9 +65,7 @@
         height: 12px;
         border-radius: 50%;
         background: var(--color-input);
-        transition:
-            transform 200ms cubic-bezier(0.4, 0, 0.2, 1),
-            background 200ms ease;
+        transition: var(--transition-medium);
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
     }
 

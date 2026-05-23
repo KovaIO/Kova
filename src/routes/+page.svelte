@@ -1,15 +1,52 @@
 <script lang="ts">
+    import { onMount, onDestroy } from "svelte";
+    import { listen, type UnlistenFn } from "@tauri-apps/api/event";
     import MetricCard from "$components/MetricCard.svelte";
     import Toggle from "$components/Toggle.svelte";
     import BrightnessSlider from "$components/BrightnessSlider.svelte";
 
-    let cpu = 34;
-    let ram = 61;
-    let disk = 72;
+    interface Metrics {
+        cpu_percent: number;
+        ram_used: number;
+        ram_total: number;
+        ram_percent: number;
+        disk_used: number;
+        disk_total: number;
+        disk_percent: number;
+    }
 
-    let cpuDisplay = `${cpu}%`;
-    let ramDisplay = `6.1 GB`;
-    let diskDisplay = `${disk}%`;
+    let cpu = 0;
+    let ram = 0;
+    let disk = 0;
+    let cpuDisplay = "—";
+    let ramDisplay = "—";
+    let diskDisplay = "—";
+
+    function formatBytes(bytes: number): string {
+        const gb = bytes / 1024 / 1024 / 1024;
+        return gb >= 1
+            ? `${gb.toFixed(1)} GB`
+            : `${(bytes / 1024 / 1024).toFixed(0)} MB`;
+    }
+
+    function applyMetrics(m: Metrics) {
+        cpu = Math.round(m.cpu_percent);
+        ram = Math.round(m.ram_percent);
+        disk = Math.round(m.disk_percent);
+        cpuDisplay = `${cpu}%`;
+        ramDisplay = formatBytes(m.ram_used);
+        diskDisplay = `${disk}%`;
+    }
+
+    let unlisten: UnlistenFn;
+
+    onMount(async () => {
+        unlisten = await listen<Metrics>("metrics", (event) => {
+            applyMetrics(event.payload);
+        });
+    });
+
+    onDestroy(() => unlisten?.());
 
     let windowManager = false;
     let clipboardHistory = false;
@@ -19,39 +56,16 @@
 <div class="page">
     <div class="shell">
         <section class="metrics">
-            <MetricCard
-                icon="󰻠"
-                label="CPU"
-                value={cpu}
-                displayValue={cpuDisplay}
-            />
-            <MetricCard
-                icon="󰍛"
-                label="RAM"
-                value={ram}
-                displayValue={ramDisplay}
-            />
-            <MetricCard
-                icon="󰋊"
-                label="Disk"
-                value={disk}
-                displayValue={diskDisplay}
-            />
+            <MetricCard icon="󰻠" label="CPU"  value={cpu}  displayValue={cpuDisplay} />
+            <MetricCard icon="󰍛" label="RAM"  value={ram}  displayValue={ramDisplay} />
+            <MetricCard icon="󰋊" label="Disk" value={disk} displayValue={diskDisplay} />
         </section>
 
         <div class="divider"></div>
 
         <section class="switches">
-            <Toggle
-                id="wm"
-                label="Window Manager"
-                bind:checked={windowManager}
-            />
-            <Toggle
-                id="cb"
-                label="Clipboard History"
-                bind:checked={clipboardHistory}
-            />
+            <Toggle id="wm" label="Window Manager"    bind:checked={windowManager} />
+            <Toggle id="cb" label="Clipboard History" bind:checked={clipboardHistory} />
         </section>
 
         <div class="divider"></div>
@@ -77,13 +91,12 @@
         background: var(--color-main-bg);
         backdrop-filter: blur(var(--blur-glass));
         border-radius: var(--radius-md);
-        border: 1px solid var(--color-border-subtle);
+        border: 2px solid var(--color-border-subtle);
         display: flex;
         flex-direction: column;
         padding: 20px 18px;
         gap: 16px;
         color: white;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
     }
 
     .metrics {
@@ -113,7 +126,7 @@
     .prefs-btn {
         width: 100%;
         padding: 12px 18px;
-        border: 1px solid var(--color-border-subtle);
+        border: 2px solid var(--color-border-subtle);
         border-radius: var(--radius-md);
         background: var(--color-main-bg);
         backdrop-filter: blur(var(--blur-glass));

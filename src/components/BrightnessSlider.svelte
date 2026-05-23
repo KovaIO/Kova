@@ -76,7 +76,7 @@
         background: linear-gradient(to right, var(--color-accent), var(--color-accent-hover));
         border-radius: 999px;
         pointer-events: none;
-        transition: width 60ms linear;
+        transition: width var(--transition-fast);
         opacity: 0.9;
     }
 
@@ -100,7 +100,7 @@
         border-radius: 50%;
         background: var(--color-input);
         pointer-events: none;
-        transition: left 60ms linear;
+        transition: left var(--transition-fast);
         z-index: 1;
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
     }
