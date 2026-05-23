@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { invoke } from "@tauri-apps/api/core";
     import { onMount, onDestroy } from "svelte";
     import { listen, type UnlistenFn } from "@tauri-apps/api/event";
     import MetricCard from "$components/MetricCard.svelte";
@@ -51,21 +52,48 @@
     let windowManager = false;
     let clipboardHistory = false;
     let brightness = 80;
+
+    async function openPreferences() {
+        await invoke("open_preferences");
+    }
 </script>
 
 <div class="page">
     <div class="shell">
         <section class="metrics">
-            <MetricCard icon="󰻠" label="CPU"  value={cpu}  displayValue={cpuDisplay} />
-            <MetricCard icon="󰍛" label="RAM"  value={ram}  displayValue={ramDisplay} />
-            <MetricCard icon="󰋊" label="Disk" value={disk} displayValue={diskDisplay} />
+            <MetricCard
+                icon="󰻠"
+                label="CPU"
+                value={cpu}
+                displayValue={cpuDisplay}
+            />
+            <MetricCard
+                icon="󰍛"
+                label="RAM"
+                value={ram}
+                displayValue={ramDisplay}
+            />
+            <MetricCard
+                icon="󰋊"
+                label="Disk"
+                value={disk}
+                displayValue={diskDisplay}
+            />
         </section>
 
         <div class="divider"></div>
 
         <section class="switches">
-            <Toggle id="wm" label="Window Manager"    bind:checked={windowManager} />
-            <Toggle id="cb" label="Clipboard History" bind:checked={clipboardHistory} />
+            <Toggle
+                id="wm"
+                label="Window Manager"
+                bind:checked={windowManager}
+            />
+            <Toggle
+                id="cb"
+                label="Clipboard History"
+                bind:checked={clipboardHistory}
+            />
         </section>
 
         <div class="divider"></div>
@@ -75,7 +103,9 @@
         </section>
     </div>
 
-    <button class="prefs-btn" type="button">Preferences</button>
+    <button class="prefs-btn" type="button" on:click={openPreferences}
+        >Preferences</button
+    >
 </div>
 
 <style>

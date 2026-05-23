@@ -1,4 +1,5 @@
 mod commands;
+mod windows;
 
 use std::sync::{
     atomic::{AtomicBool, Ordering},
@@ -9,12 +10,16 @@ use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent}
 use tauri::{Manager, WindowEvent};
 use tauri_plugin_positioner::{Position, WindowExt};
 
+use commands::open_preferences;
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_positioner::init())
         .plugin(tauri_plugin_opener::init())
+        .invoke_handler(tauri::generate_handler![open_preferences])
         .setup(|app| {
             commands::start_metrics_loop(app.handle().clone());
 
