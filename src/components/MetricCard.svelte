@@ -1,7 +1,8 @@
 <script lang="ts">
     import { invoke } from "@tauri-apps/api/core";
+    import type { Component } from "svelte";
 
-    export let icon: string;
+    export let icon: Component;
     export let label: string;
     export let value: number;
     export let displayValue: string;
@@ -28,7 +29,7 @@
 
         <div class="content">
             <div class="icon-wrap" class:hidden={hovered}>
-                <span class="icon">{icon}</span>
+                <svelte:component this={icon} size={18} strokeWidth={1.5} />
             </div>
             <div class="value-wrap" class:visible={hovered}>
                 <span class="val">{displayValue}</span>
@@ -109,12 +110,13 @@
         opacity: 1;
         transform: translateY(-60%) scale(1);
     }
-
-    .icon {
-        font-size: 20px;
-        opacity: 0.85;
+    
+    .icon-wrap {
+        opacity: 1;
+        transform: translateY(-60%) scale(1);
         color: var(--color-text-primary);
-        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        opacity: 0.85;
+        filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
     }
 
     .val {

@@ -5,6 +5,7 @@
     import MetricCard from "$components/MetricCard.svelte";
     import Toggle from "$components/Toggle.svelte";
     import BrightnessSlider from "$components/BrightnessSlider.svelte";
+    import { Cpu, MemoryStick, HardDrive } from "@lucide/svelte";
 
     interface Metrics {
         cpu_percent: number;
@@ -62,21 +63,21 @@
     <div class="shell">
         <section class="metrics">
             <MetricCard
-                icon="󰻠"
+                icon={Cpu}
                 label="CPU"
                 value={cpu}
                 displayValue={cpuDisplay}
                 tab="cpu"
             />
             <MetricCard
-                icon="󰍛"
+                icon={MemoryStick}
                 label="RAM"
                 value={ram}
                 displayValue={ramDisplay}
                 tab="ram"
             />
             <MetricCard
-                icon="󰋊"
+                icon={HardDrive}
                 label="Disk"
                 value={disk}
                 displayValue={diskDisplay}
