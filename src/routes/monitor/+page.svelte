@@ -4,6 +4,7 @@
     import { page } from "$app/state";
     import { listen, type UnlistenFn } from "@tauri-apps/api/event";
     import MetricGraph from "$components/MetricGraph.svelte";
+    import { Search } from "@lucide/svelte";
 
     type Tab = "cpu" | "ram" | "disk";
     let activeTab: Tab = "cpu";
@@ -102,20 +103,7 @@
     />
 
     <div class="card search-card">
-        <svg
-            class="search-icon"
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-        >
-            <circle cx="11" cy="11" r="8" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-        </svg>
+        <Search class="search-icon" size={14} />
         <input
             class="search-input"
             type="text"
@@ -169,11 +157,6 @@
         gap: 10px;
         padding: 0 14px;
         height: 42px;
-        flex-shrink: 0;
-    }
-
-    .search-icon {
-        color: var(--color-text-dim);
         flex-shrink: 0;
     }
 

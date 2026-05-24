@@ -8,9 +8,6 @@
 </script>
 
 <nav class="sidebar">
-    <div class="sidebar-header">
-        <h2>Preferences</h2>
-    </div>
     <ul class="section-list">
         {#each sections as section}
             <li>
@@ -34,24 +31,10 @@
         overflow-x: hidden;
     }
 
-    .sidebar-header {
-        padding: 0 20px 16px;
-        border-bottom: 1px solid var(--color-border-subtle);
-        margin-bottom: 8px;
-    }
-
-    .sidebar-header h2 {
-        font-size: 13px;
-        font-weight: 600;
-        letter-spacing: 0.02em;
-        color: var(--color-text-primary);
-        margin: 0;
-    }
-
     .section-list {
         list-style: none;
         margin: 0;
-        padding: 0;
+        padding: 4px 10px;
     }
 
     .section-button {
@@ -59,7 +42,7 @@
         display: flex;
         align-items: center;
         gap: 10px;
-        padding: 10px 20px;
+        padding: 10px 12px;
         border: none;
         background: transparent;
         color: var(--color-text-secondary);
@@ -69,7 +52,7 @@
         transition: all 150ms ease;
         text-align: left;
         border-radius: 6px;
-        margin: 2px 12px;
+        margin: 0;
     }
 
     .section-button:hover {
@@ -80,6 +63,7 @@
     .section-button.active {
         background: var(--color-accent-soft);
         color: var(--color-accent);
+        font-weight: 600;
     }
 
     .label {

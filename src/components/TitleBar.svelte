@@ -1,6 +1,7 @@
 <script lang="ts">
     import { getCurrentWindow } from "@tauri-apps/api/window";
     import { platform } from "@tauri-apps/plugin-os";
+    import { X } from "@lucide/svelte";
 
     const isMac = platform() === "macos";
     let hovered = false;
@@ -23,26 +24,7 @@
                 on:mouseleave={() => (hovered = false)}
                 aria-label="Close"
             >
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                    <line
-                        x1="1"
-                        y1="1"
-                        x2="9"
-                        y2="9"
-                        stroke="currentColor"
-                        stroke-width="1.5"
-                        stroke-linecap="round"
-                    />
-                    <line
-                        x1="9"
-                        y1="1"
-                        x2="1"
-                        y2="9"
-                        stroke="currentColor"
-                        stroke-width="1.5"
-                        stroke-linecap="round"
-                    />
-                </svg>
+                <X size={14} />
             </button>
         {/if}
     </div>
@@ -57,26 +39,7 @@
                 on:mouseleave={() => (hovered = false)}
                 aria-label="Close"
             >
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                    <line
-                        x1="1"
-                        y1="1"
-                        x2="9"
-                        y2="9"
-                        stroke="currentColor"
-                        stroke-width="1.5"
-                        stroke-linecap="round"
-                    />
-                    <line
-                        x1="9"
-                        y1="1"
-                        x2="1"
-                        y2="9"
-                        stroke="currentColor"
-                        stroke-width="1.5"
-                        stroke-linecap="round"
-                    />
-                </svg>
+                <X size={14} />
             </button>
         {/if}
     </div>
