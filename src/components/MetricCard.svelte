@@ -1,18 +1,26 @@
 <script lang="ts">
+    import { invoke } from "@tauri-apps/api/core";
+
     export let icon: string;
     export let label: string;
     export let value: number;
     export let displayValue: string;
     export let show: boolean = true;
 
+    export let tab: string;
+
     let hovered = false;
+
+    async function openMonitor() {
+        await invoke("open_monitor", { tab });
+    }
 </script>
 
 {#if show}
-    <div
+    <button
         class="card"
-        role="group"
         aria-label="{label} metric"
+        on:click={openMonitor}
         on:mouseenter={() => (hovered = true)}
         on:mouseleave={() => (hovered = false)}
     >
@@ -27,7 +35,7 @@
             </div>
             <span class="label">{label}</span>
         </div>
-    </div>
+    </button>
 {/if}
 
 <style>
@@ -49,7 +57,11 @@
         bottom: 0;
         left: 0;
         right: 0;
-        background: linear-gradient(to top, var(--color-accent), var(--color-accent-hover));
+        background: linear-gradient(
+            to top,
+            var(--color-accent),
+            var(--color-accent-hover)
+        );
         transition: height 600ms cubic-bezier(0.4, 0, 0.2, 1);
         border-radius: 0 0 12px 12px;
         opacity: 0.9;

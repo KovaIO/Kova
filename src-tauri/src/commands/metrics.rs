@@ -1,3 +1,4 @@
+use crate::app_state::SharedHistory;
 use serde::Serialize;
 use std::path::Path;
 use std::time::Duration;
@@ -15,9 +16,12 @@ pub struct Metrics {
     pub disk_used: u64,
     pub disk_total: u64,
     pub disk_percent: u8,
+
+    pub cpu_history: Vec<u8>,
+    pub ram_history: Vec<u8>,
 }
 
-pub fn start_metrics_loop(app: AppHandle) {
+pub fn start_metrics_loop(app: AppHandle, history: SharedHistory) {
     tauri::async_runtime::spawn(async move {
         let mut sys = System::new();
         let mut disks = Disks::new_with_refreshed_list();
@@ -30,6 +34,8 @@ pub fn start_metrics_loop(app: AppHandle) {
 
         #[cfg(not(target_os = "windows"))]
         let target = std::path::PathBuf::from("/");
+
+        let disk_index = find_disk_index(&disks, &target);
 
         loop {
             sys.refresh_cpu_all();
@@ -47,7 +53,16 @@ pub fn start_metrics_loop(app: AppHandle) {
                 0
             };
 
-            let (disk_used, disk_total, disk_percent) = primary_disk_metrics(&disks, &target);
+            let (disk_used, disk_total, disk_percent) = primary_disk_metrics(&disks, disk_index);
+
+            let (cpu_history, ram_history) = {
+                let mut h = history.lock().unwrap();
+                h.push(cpu_percent, ram_percent);
+                (
+                    h.cpu.iter().copied().collect::<Vec<_>>(),
+                    h.ram.iter().copied().collect::<Vec<_>>(),
+                )
+            };
 
             let metrics = Metrics {
                 cpu_percent,
@@ -57,6 +72,8 @@ pub fn start_metrics_loop(app: AppHandle) {
                 disk_used,
                 disk_total,
                 disk_percent,
+                cpu_history,
+                ram_history,
             };
 
             if let Err(err) = app.emit("metrics", &metrics) {
@@ -68,27 +85,47 @@ pub fn start_metrics_loop(app: AppHandle) {
     });
 }
 
-fn primary_disk_metrics(disks: &Disks, target: &Path) -> (u64, u64, u8) {
-    for disk in disks.list() {
-        if disk.mount_point() == target {
-            let total = disk.total_space();
-            let available = disk.available_space();
-            let used = total.saturating_sub(available);
+fn find_disk_index(disks: &Disks, target: &Path) -> Option<usize> {
+    disks.list().iter().position(|d| d.mount_point() == target)
+}
 
+fn primary_disk_metrics(disks: &Disks, index: Option<usize>) -> (u64, u64, u8) {
+    let disk = index.and_then(|i| disks.list().get(i));
+    match disk {
+        Some(disk) => {
+            let total = disk.total_space();
+            let used = total.saturating_sub(disk.available_space());
             let percent = if total > 0 {
                 ((used as f32 / total as f32) * 100.0).round() as u8
             } else {
                 0
             };
-
-            return (used, total, percent);
+            (used, total, percent)
         }
+        None => (0, 0, 0),
     }
-
-    (0, 0, 0)
 }
 
 #[cfg(target_os = "windows")]
 fn windows_system_drive() -> String {
     std::env::var("SystemDrive").unwrap_or_else(|_| "C:".to_string()) + "\\"
+}
+
+#[tauri::command]
+pub fn get_current_metrics(history: tauri::State<SharedHistory>) -> Option<Metrics> {
+    let h = history.lock().unwrap();
+    if h.cpu.is_empty() {
+        return None;
+    }
+    Some(Metrics {
+        cpu_percent: *h.cpu.back().unwrap_or(&0),
+        ram_percent: *h.ram.back().unwrap_or(&0),
+        ram_used: 0,
+        ram_total: 0,
+        disk_used: 0,
+        disk_total: 0,
+        disk_percent: 0,
+        cpu_history: h.cpu.iter().copied().collect(),
+        ram_history: h.ram.iter().copied().collect(),
+    })
 }

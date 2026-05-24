@@ -66,18 +66,21 @@
                 label="CPU"
                 value={cpu}
                 displayValue={cpuDisplay}
+                tab="cpu"
             />
             <MetricCard
                 icon="󰍛"
                 label="RAM"
                 value={ram}
                 displayValue={ramDisplay}
+                tab="ram"
             />
             <MetricCard
                 icon="󰋊"
                 label="Disk"
                 value={disk}
                 displayValue={diskDisplay}
+                tab="disk"
             />
         </section>
 
