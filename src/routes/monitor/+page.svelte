@@ -6,12 +6,12 @@
     import MetricGraph from "$components/MetricGraph.svelte";
     import { Search } from "@lucide/svelte";
 
-    type Tab = "cpu" | "ram" | "disk";
+    type Tab = "cpu" | "ram" | "disk" | "network";
     let activeTab: Tab = "cpu";
 
     $: {
         const t = page.url.searchParams.get("tab");
-        if (t === "cpu" || t === "ram" || t === "disk") {
+        if (t === "cpu" || t === "ram" || t === "disk" || t === "network") {
             activeTab = t;
         }
     }
@@ -24,37 +24,44 @@
         disk_used: number;
         disk_total: number;
         disk_percent: number;
+        network_bps: number;
         cpu_history: number[];
         ram_history: number[];
+        network_history: number[];
     }
 
     let cpuHistory: number[] = [];
     let ramHistory: number[] = [];
     let diskHistory: number[] = [];
-
+    let networkHistory: number[] = [];
     let cpuValue = 0;
     let ramValue = 0;
     let diskValue = 0;
+    let networkBps = 0;
 
     let unlisten: UnlistenFn;
 
     onMount(async () => {
         const snapshot = await invoke<Metrics | null>("get_current_metrics");
         if (snapshot) {
-            cpuValue   = snapshot.cpu_percent;
-            ramValue   = snapshot.ram_percent;
-            diskValue  = snapshot.disk_percent;
+            cpuValue = snapshot.cpu_percent;
+            ramValue = snapshot.ram_percent;
+            diskValue = snapshot.disk_percent;
+            networkBps = snapshot.network_bps;
             cpuHistory = snapshot.cpu_history;
             ramHistory = snapshot.ram_history;
+            networkHistory = snapshot.network_history;
         }
-        
+
         unlisten = await listen<Metrics>("metrics", (event) => {
             const m = event.payload;
-            cpuValue   = m.cpu_percent;
-            ramValue   = m.ram_percent;
-            diskValue  = m.disk_percent;
+            cpuValue = m.cpu_percent;
+            ramValue = m.ram_percent;
+            diskValue = m.disk_percent;
+            networkBps = m.network_bps;
             cpuHistory = m.cpu_history;
             ramHistory = m.ram_history;
+            networkHistory = m.network_history;
         });
     });
 
@@ -68,6 +75,7 @@
         cpu: number;
         ram: number;
         disk: number;
+        network: number;
     }
 
     let processes: Process[] = [];
@@ -77,7 +85,9 @@
             ? b.cpu - a.cpu
             : activeTab === "ram"
               ? b.ram - a.ram
-              : b.disk - a.disk,
+              : activeTab === "network"
+                ? b.network - a.network
+                : b.disk - a.disk,
     );
 
     $: filtered = sorted.filter((p) =>
@@ -87,6 +97,7 @@
     function metricLabel(p: Process): string {
         if (activeTab === "cpu") return `${p.cpu.toFixed(1)}%`;
         if (activeTab === "ram") return `${p.ram.toFixed(1)} MB`;
+        if (activeTab === "network") return `${p.network.toFixed(0)} KB/s`;
         return `${p.disk.toFixed(1)} MB/s`;
     }
 </script>
@@ -97,9 +108,11 @@
         {cpuHistory}
         {ramHistory}
         {diskHistory}
+        {networkHistory}
         {cpuValue}
         {ramValue}
         {diskValue}
+        {networkBps}
     />
 
     <div class="card search-card">

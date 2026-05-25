@@ -1,33 +1,52 @@
 <script lang="ts">
-    export let activeTab: "cpu" | "ram" | "disk";
+    export let activeTab: "cpu" | "ram" | "disk" | "network";
     export let cpuHistory: number[];
     export let ramHistory: number[];
     export let diskHistory: number[];
+    export let networkHistory: number[];
     export let cpuValue: number;
     export let ramValue: number;
     export let diskValue: number;
+    export let networkBps: number;
+
+    function formatBps(bps: number): string {
+        if (bps >= 1_000_000) return `${(bps / 1_000_000).toFixed(1)} MB/s`;
+        if (bps >= 1_000) return `${(bps / 1_000).toFixed(0)} KB/s`;
+        return `${bps} B/s`;
+    }
+
+    $: networkMax = Math.max(...networkHistory, 1);
 
     $: history =
-        activeTab === "cpu" ? cpuHistory
-        : activeTab === "ram" ? ramHistory
-        : diskHistory;
+        activeTab === "cpu"
+            ? cpuHistory
+            : activeTab === "ram"
+              ? ramHistory
+              : activeTab === "disk"
+                ? diskHistory
+                : networkHistory.map((v) => (v / networkMax) * 100);
 
-    $: currentValue =
-        activeTab === "cpu" ? cpuValue
-        : activeTab === "ram" ? ramValue
-        : diskValue;
+    $: peakLabel =
+        activeTab === "network"
+            ? formatBps(networkBps)
+            : `${activeTab === "cpu" ? cpuValue : activeTab === "ram" ? ramValue : diskValue}%`;
 
     function buildPath(data: number[]): string {
+        if (data.length < 2) return "";
         const step = 100 / (data.length - 1);
-        return data.map((v, i) => {
-            const x = i * step;
-            const y = 100 - v;
-            return `${i === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
-        }).join(" ");
+        return data
+            .map((v, i) => {
+                const x = i * step;
+                const y = 100 - v;
+                return `${i === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
+            })
+            .join(" ");
     }
 
     function buildFill(data: number[]): string {
-        return `${buildPath(data)} L 100 100 L 0 100 Z`;
+        const line = buildPath(data);
+        if (!line) return "";
+        return `${line} L 100 100 L 0 100 Z`;
     }
 
     $: linePath = buildPath(history);
@@ -36,18 +55,39 @@
 
 <div class="card">
     <div class="tabs">
-        <button class="tab" class:active={activeTab === "cpu"}  on:click={() => (activeTab = "cpu")}>CPU</button>
-        <button class="tab" class:active={activeTab === "ram"}  on:click={() => (activeTab = "ram")}>Memory</button>
-        <button class="tab" class:active={activeTab === "disk"} on:click={() => (activeTab = "disk")}>Disk</button>
+        <button
+            class="tab"
+            class:active={activeTab === "cpu"}
+            on:click={() => (activeTab = "cpu")}>CPU</button
+        >
+        <button
+            class="tab"
+            class:active={activeTab === "ram"}
+            on:click={() => (activeTab = "ram")}>Memory</button
+        >
+        <button
+            class="tab"
+            class:active={activeTab === "network"}
+            on:click={() => (activeTab = "network")}>Network</button
+        >
+        <button
+            class="tab"
+            class:active={activeTab === "disk"}
+            on:click={() => (activeTab = "disk")}>Disk</button
+        >
     </div>
 
     <div class="graph-wrap">
-        <div class="peak-label">{currentValue}%</div>
+        <div class="peak-label">{peakLabel}</div>
         <svg viewBox="0 0 100 100" preserveAspectRatio="none" class="graph-svg">
             <defs>
                 <linearGradient id="fill-grad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%"   stop-color="var(--color-accent-strong)" />
-                    <stop offset="100%" stop-color="var(--color-accent)" stop-opacity="0" />
+                    <stop offset="0%" stop-color="var(--color-accent-strong)" />
+                    <stop
+                        offset="100%"
+                        stop-color="var(--color-accent)"
+                        stop-opacity="0"
+                    />
                 </linearGradient>
             </defs>
             <path d={fillPath} fill="url(#fill-grad)" />
