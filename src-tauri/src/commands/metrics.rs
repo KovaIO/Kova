@@ -1,6 +1,9 @@
 use crate::{
     app_state::SharedHistory,
-    commands::processes::{aggregate_process_metrics, collect_processes, FlatProcess, ProcessMeta},
+    commands::{
+        net_tracker::NetTracker,
+        processes::{aggregate_process_metrics, collect_processes, FlatProcess, ProcessMeta},
+    },
 };
 use serde::Serialize;
 use std::{
@@ -42,6 +45,7 @@ pub fn start_metrics_loop(app: AppHandle, history: SharedHistory) {
         let mut sys = System::new();
         let mut disks = Disks::new_with_refreshed_list();
         let mut networks = Networks::new_with_refreshed_list();
+        let mut net_tracker = NetTracker::new();
 
         let mut metadata_cache = HashMap::<u32, ProcessMeta>::new();
 
@@ -57,12 +61,12 @@ pub fn start_metrics_loop(app: AppHandle, history: SharedHistory) {
         let disk_index = find_disk_index(&disks, &target);
 
         let mut prev_network_total: u64 = 0;
-        const INTERVAL_SECS: u64 = 2;
+        const INTERVAL_SECS: u64 = 5;
 
         loop {
             sys.refresh_cpu_all();
             sys.refresh_memory();
-            sys.refresh_processes(ProcessesToUpdate::All, false);
+            sys.refresh_processes(ProcessesToUpdate::All, true);
 
             networks.refresh(false);
             disks.refresh(false);
@@ -87,7 +91,9 @@ pub fn start_metrics_loop(app: AppHandle, history: SharedHistory) {
             let network_bps = current_total.saturating_sub(prev_network_total) / INTERVAL_SECS;
             prev_network_total = current_total;
 
-            let mut processes = collect_processes(&sys, &mut metadata_cache);
+            let net_map = net_tracker.update(network_bps);
+
+            let mut processes = collect_processes(&sys, &net_map, &mut metadata_cache);
             aggregate_process_metrics(&mut processes);
 
             let historical = HistoricalSnapshot {

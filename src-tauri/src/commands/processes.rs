@@ -30,6 +30,7 @@ pub struct FlatProcess {
 
 pub fn collect_processes(
     sys: &System,
+    net_map: &HashMap<u32, u64>,
     metadata_cache: &mut HashMap<u32, ProcessMeta>,
 ) -> Vec<FlatProcess> {
     let mut alive = HashMap::<u32, bool>::new();
@@ -54,6 +55,8 @@ pub fn collect_processes(
                 }
             });
 
+            let net_bps = net_map.get(&pid).copied().unwrap_or(0);
+
             FlatProcess {
                 pid,
                 parent_pid: proc.parent().map(|p| p.as_u32()),
@@ -62,11 +65,11 @@ pub fn collect_processes(
 
                 self_cpu_percent: proc.cpu_usage(),
                 self_ram_bytes: proc.memory(),
-                self_net_bps: 0,
+                self_net_bps: net_bps,
 
                 cpu_percent: proc.cpu_usage(),
                 ram_bytes: proc.memory(),
-                net_bps: 0,
+                net_bps,
 
                 icon: meta.icon.clone(),
             }
