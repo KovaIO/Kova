@@ -1,4 +1,6 @@
 pub mod metrics;
+mod process_icons;
+mod processes;
 pub mod windows;
 
 pub use metrics::{get_current_metrics, start_metrics_loop};

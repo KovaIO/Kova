@@ -4,30 +4,35 @@
     import { page } from "$app/state";
     import { listen, type UnlistenFn } from "@tauri-apps/api/event";
     import MetricGraph from "$components/MetricGraph.svelte";
-    import { Search } from "@lucide/svelte";
+    import {
+        Search,
+        ChevronRight,
+        ChevronDown,
+        Terminal,
+        Cpu,
+    } from "@lucide/svelte";
+    import type { FlatProcess, Metrics, ProcessNode, Tab } from "./types";
+    import {
+        buildTree,
+        cloneTree,
+        matchesSearch,
+        sortTreeBy,
+    } from "./utils/process-tree";
+    import { metricLabel } from "./utils/format";
 
-    type Tab = "cpu" | "ram" | "disk" | "network";
     let activeTab: Tab = "cpu";
 
     $: {
-        const t = page.url.searchParams.get("tab");
-        if (t === "cpu" || t === "ram" || t === "disk" || t === "network") {
-            activeTab = t;
-        }
-    }
+        const tab = page.url.searchParams.get("tab");
 
-    interface Metrics {
-        cpu_percent: number;
-        ram_used: number;
-        ram_total: number;
-        ram_percent: number;
-        disk_used: number;
-        disk_total: number;
-        disk_percent: number;
-        network_bps: number;
-        cpu_history: number[];
-        ram_history: number[];
-        network_history: number[];
+        if (
+            tab === "cpu" ||
+            tab === "ram" ||
+            tab === "disk" ||
+            tab === "network"
+        ) {
+            activeTab = tab;
+        }
     }
 
     let cpuHistory: number[] = [];
@@ -38,73 +43,90 @@
     let ramValue = 0;
     let diskValue = 0;
     let networkBps = 0;
+    let liveProcesses: FlatProcess[] = [];
 
     let unlisten: UnlistenFn;
 
     onMount(async () => {
-        const snapshot = await invoke<Metrics | null>("get_current_metrics");
-        if (snapshot) {
-            cpuValue = snapshot.cpu_percent;
-            ramValue = snapshot.ram_percent;
-            diskValue = snapshot.disk_percent;
-            networkBps = snapshot.network_bps;
-            cpuHistory = snapshot.cpu_history;
-            ramHistory = snapshot.ram_history;
-            networkHistory = snapshot.network_history;
-        }
+        const snap = await invoke<Metrics | null>("get_current_metrics");
+        if (snap) applyMetrics(snap);
 
-        unlisten = await listen<Metrics>("metrics", (event) => {
-            const m = event.payload;
-            cpuValue = m.cpu_percent;
-            ramValue = m.ram_percent;
-            diskValue = m.disk_percent;
-            networkBps = m.network_bps;
-            cpuHistory = m.cpu_history;
-            ramHistory = m.ram_history;
-            networkHistory = m.network_history;
-        });
+        unlisten = await listen<Metrics>("metrics", (e) =>
+            applyMetrics(e.payload),
+        );
     });
 
     onDestroy(() => unlisten?.());
 
+    function applyMetrics(m: Metrics) {
+        cpuValue = m.cpu_percent;
+        ramValue = m.ram_percent;
+        diskValue = m.disk_percent;
+        networkBps = m.network_bps;
+        cpuHistory = m.cpu_history;
+        ramHistory = m.ram_history;
+        networkHistory = m.network_history;
+        liveProcesses = m.processes;
+    }
+
+    function metricIsActive(p: ProcessNode): boolean {
+        if (activeTab === "cpu") return p.cpu_percent > 0;
+        if (activeTab === "ram") return p.ram_bytes > 0;
+        if (activeTab === "network") return p.net_bps > 0;
+        return false;
+    }
+
     let search = "";
+    let expandedPids = new Set<number>();
 
-    interface Process {
-        name: string;
-        icon: string;
-        cpu: number;
-        ram: number;
-        disk: number;
-        network: number;
+    function toggleExpand(pid: number) {
+        const next = new Set(expandedPids);
+
+        if (next.has(pid)) {
+            next.delete(pid);
+        } else {
+            next.add(pid);
+        }
+
+        expandedPids = next;
     }
 
-    let processes: Process[] = [];
+    $: searchLower = search.trim().toLowerCase();
 
-    $: sorted = [...processes].sort((a, b) =>
+    let cpuTree: ProcessNode[] = [];
+    let ramTree: ProcessNode[] = [];
+    let networkTree: ProcessNode[] = [];
+
+    $: {
+        const rawTree = buildTree(liveProcesses);
+
+        cpuTree = cloneTree(rawTree);
+        sortTreeBy(cpuTree, "cpu");
+
+        ramTree = cloneTree(rawTree);
+        sortTreeBy(ramTree, "ram");
+
+        networkTree = cloneTree(rawTree);
+        sortTreeBy(networkTree, "network");
+    }
+
+    $: processTree =
         activeTab === "cpu"
-            ? b.cpu - a.cpu
+            ? cpuTree
             : activeTab === "ram"
-              ? b.ram - a.ram
-              : activeTab === "network"
-                ? b.network - a.network
-                : b.disk - a.disk,
+              ? ramTree
+              : networkTree;
+
+    $: displayProcesses = processTree.filter((p) =>
+        matchesSearch(p, searchLower),
     );
 
-    $: filtered = sorted.filter((p) =>
-        p.name.toLowerCase().includes(search.toLowerCase()),
-    );
-
-    function metricLabel(p: Process): string {
-        if (activeTab === "cpu") return `${p.cpu.toFixed(1)}%`;
-        if (activeTab === "ram") return `${p.ram.toFixed(1)} MB`;
-        if (activeTab === "network") return `${p.network.toFixed(0)} KB/s`;
-        return `${p.disk.toFixed(1)} MB/s`;
-    }
+    $: showProcessList = activeTab !== "disk";
 </script>
 
 <div class="page">
     <MetricGraph
-        {activeTab}
+        bind:activeTab
         {cpuHistory}
         {ramHistory}
         {diskHistory}
@@ -115,28 +137,90 @@
         {networkBps}
     />
 
-    <div class="card search-card">
-        <Search class="search-icon" size={14} />
-        <input
-            class="search-input"
-            type="text"
-            placeholder="Search process"
-            bind:value={search}
-        />
-    </div>
+    {#if showProcessList}
+        <div class="card search-card">
+            <Search class="search-icon" size={14} />
+            <input
+                class="search-input"
+                type="text"
+                placeholder="Search process"
+                bind:value={search}
+            />
+        </div>
 
-    <div class="card list-card">
-        {#each filtered as p (p.name)}
-            <div class="process-row">
-                <span class="process-icon">{p.icon}</span>
-                <span class="process-name">{p.name}</span>
-                <span class="process-metric">{metricLabel(p)}</span>
-            </div>
-        {:else}
-            <p class="empty">No processes found</p>
-        {/each}
-    </div>
+        <div class="card list-card">
+            {#if displayProcesses.length === 0}
+                <p class="empty">
+                    {search ? `No results for "${search}"` : "No data yet"}
+                </p>
+            {:else}
+                {#each displayProcesses as proc (`${proc.pid}-${activeTab}`)}
+                    {@render row(proc, 0)}
+                {/each}
+            {/if}
+        </div>
+    {/if}
 </div>
+
+{#snippet row(proc: ProcessNode, depth: number)}
+    {@const hasKids = proc.children.length > 0}
+    {@const open = expandedPids.has(proc.pid)}
+    {@const active = metricIsActive(proc)}
+
+    <button
+        type="button"
+        class="process-row"
+        class:clickable={hasKids}
+        class:expandable={hasKids}
+        style:padding-left="{16 + depth * 16}px"
+        onclick={() => {
+            if (hasKids) toggleExpand(proc.pid);
+        }}
+    >
+        <span class="chevron" aria-hidden="true">
+            {#if hasKids}
+                {#if open}
+                    <ChevronDown size={11} />
+                {:else}
+                    <ChevronRight size={11} />
+                {/if}
+            {/if}
+        </span>
+        {#if proc.icon === "system"}
+            <div class="proc-icon fallback-icon">
+                <Cpu size={13} />
+            </div>
+        {:else if proc.icon === "terminal"}
+            <div class="proc-icon fallback-icon">
+                <Terminal size={13} />
+            </div>
+        {:else if proc.icon}
+            <img
+                class="proc-icon"
+                src={`data:image/png;base64,${proc.icon}`}
+                alt=""
+            />
+        {:else}
+            <div class="proc-icon fallback"></div>
+        {/if}
+
+        <span class="proc-name" class:active>{proc.name}</span>
+
+        {#if hasKids}
+            <span class="child-badge">{proc.children.length}</span>
+        {/if}
+
+        <span class="proc-metric" class:active
+            >{metricLabel(proc, activeTab)}</span
+        >
+    </button>
+
+    {#if hasKids && open}
+        {#each proc.children as child (`${child.pid}-${activeTab}`)}
+            {@render row(child, depth + 1)}
+        {/each}
+    {/if}
+{/snippet}
 
 <style>
     :global(html, body) {
@@ -150,9 +234,9 @@
         display: flex;
         flex-direction: column;
         gap: 8px;
-        background: transparent;
         height: 100vh;
         overflow: hidden;
+        background: transparent;
     }
 
     .card {
@@ -188,10 +272,13 @@
     }
 
     .list-card {
+        contain: strict;
         flex: 1;
         overflow-y: auto;
         padding: 6px 0;
         min-height: 0;
+        overscroll-behavior: contain;
+        will-change: scroll-position;
     }
 
     .list-card::-webkit-scrollbar {
@@ -208,38 +295,101 @@
     .process-row {
         display: flex;
         align-items: center;
-        gap: 10px;
-        padding: 8px 16px;
-        transition: var(--transition-fast);
+        gap: 8px;
+
+        width: 100%;
+        min-height: 40px;
+        box-sizing: border-box;
+
+        border: none;
+        background: transparent;
+        font: inherit;
+        text-align: left;
+
+        padding-top: 7px;
+        padding-bottom: 7px;
+        padding-right: 16px;
+
+        transition: background 0.12s;
     }
 
-    .process-row:hover {
+    .process-row:focus {
+        outline: none;
+    }
+
+    .process-row:focus-visible {
         background: var(--color-button-bg-hover);
     }
 
-    .process-icon {
-        font-size: 16px;
-        width: 22px;
-        text-align: center;
+    .chevron {
+        width: 14px;
         flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        color: var(--color-text-dim);
     }
 
-    .process-name {
-        flex: 1;
-        font-size: 12.5px;
-        font-weight: 450;
+    .proc-icon {
+        width: 20px;
+        height: 20px;
+        flex-shrink: 0;
+        border-radius: 4px;
+        object-fit: contain;
+    }
+
+    img.proc-icon {
+        object-fit: contain;
+    }
+
+    .fallback-icon {
+        display: grid;
+        place-items: center;
+
+        background: rgba(255, 255, 255, 0.08);
         color: var(--color-text-secondary);
+
+        line-height: 0;
+    }
+    .fallback-icon :global(svg) {
+        transform: translate(-0.5px, -0.5px);
+    }
+
+    .proc-name {
+        flex: 1;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--color-text-dim);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
     }
 
-    .process-metric {
+    .proc-name.active {
+        color: var(--color-text-secondary);
+    }
+
+    .child-badge {
         font-size: 12px;
-        font-weight: 500;
-        color: var(--color-text-muted);
-        letter-spacing: 0.01em;
+        color: var(--color-text-dim);
+        background: rgba(255, 255, 255, 0.07);
+        border-radius: 99px;
+        padding: 1px 6px;
         flex-shrink: 0;
+    }
+
+    .proc-metric {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--color-text-dim);
+        letter-spacing: 0.02em;
+        flex-shrink: 0;
+        min-width: 60px;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .proc-metric.active {
+        color: var(--color-text-secondary);
     }
 
     .empty {

@@ -1,5 +1,7 @@
 <script lang="ts">
-    export let activeTab: "cpu" | "ram" | "disk" | "network";
+    type Tab = "cpu" | "ram" | "disk" | "network";
+
+    export let activeTab: Tab;
     export let cpuHistory: number[];
     export let ramHistory: number[];
     export let diskHistory: number[];

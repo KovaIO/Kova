@@ -1,8 +1,14 @@
-use crate::app_state::SharedHistory;
+use crate::{
+    app_state::SharedHistory,
+    commands::processes::{aggregate_process_metrics, collect_processes, FlatProcess, ProcessMeta},
+};
 use serde::Serialize;
-use std::path::Path;
-use std::time::Duration;
-use sysinfo::{Disks, Networks, System};
+use std::{
+    collections::HashMap,
+    path::Path,
+    time::{Duration, SystemTime, UNIX_EPOCH},
+};
+use sysinfo::{Disks, Networks, ProcessesToUpdate, System};
 use tauri::{AppHandle, Emitter};
 
 #[derive(Serialize)]
@@ -22,6 +28,13 @@ pub struct Metrics {
     pub cpu_history: Vec<u8>,
     pub ram_history: Vec<u8>,
     pub network_history: Vec<u64>,
+    pub processes: Vec<FlatProcess>,
+}
+
+#[derive(Serialize, Clone)]
+pub struct HistoricalSnapshot {
+    pub timestamp: u64,
+    pub processes: Vec<FlatProcess>,
 }
 
 pub fn start_metrics_loop(app: AppHandle, history: SharedHistory) {
@@ -29,6 +42,8 @@ pub fn start_metrics_loop(app: AppHandle, history: SharedHistory) {
         let mut sys = System::new();
         let mut disks = Disks::new_with_refreshed_list();
         let mut networks = Networks::new_with_refreshed_list();
+
+        let mut metadata_cache = HashMap::<u32, ProcessMeta>::new();
 
         sys.refresh_cpu_all();
         tokio::time::sleep(sysinfo::MINIMUM_CPU_UPDATE_INTERVAL).await;
@@ -47,6 +62,7 @@ pub fn start_metrics_loop(app: AppHandle, history: SharedHistory) {
         loop {
             sys.refresh_cpu_all();
             sys.refresh_memory();
+            sys.refresh_processes(ProcessesToUpdate::All, false);
 
             networks.refresh(false);
             disks.refresh(false);
@@ -71,9 +87,23 @@ pub fn start_metrics_loop(app: AppHandle, history: SharedHistory) {
             let network_bps = current_total.saturating_sub(prev_network_total) / INTERVAL_SECS;
             prev_network_total = current_total;
 
+            let mut processes = collect_processes(&sys, &mut metadata_cache);
+            aggregate_process_metrics(&mut processes);
+
+            let historical = HistoricalSnapshot {
+                timestamp: SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap()
+                    .as_secs(),
+
+                processes: processes.clone(),
+            };
+
             let (cpu_history, ram_history, network_history) = {
                 let mut h = history.lock().unwrap();
-                h.push(cpu_percent, ram_percent, network_bps);
+
+                h.push(cpu_percent, ram_percent, network_bps, historical);
+
                 (
                     h.cpu.iter().copied().collect::<Vec<_>>(),
                     h.ram.iter().copied().collect::<Vec<_>>(),
@@ -93,15 +123,45 @@ pub fn start_metrics_loop(app: AppHandle, history: SharedHistory) {
                 cpu_history,
                 ram_history,
                 network_history,
+                processes,
             };
 
             if let Err(err) = app.emit("metrics", &metrics) {
                 eprintln!("failed to emit metrics: {err}");
             }
 
-            tokio::time::sleep(Duration::from_secs(2)).await;
+            tokio::time::sleep(Duration::from_secs(INTERVAL_SECS)).await;
         }
     });
+}
+
+#[tauri::command]
+pub fn get_current_metrics(history: tauri::State<SharedHistory>) -> Option<Metrics> {
+    let h = history.lock().unwrap();
+    if h.cpu.is_empty() {
+        return None;
+    }
+
+    let processes: Vec<FlatProcess> = h
+        .process_history
+        .back()
+        .map(|s| s.processes.clone())
+        .unwrap_or_default();
+
+    Some(Metrics {
+        cpu_percent: *h.cpu.back().unwrap_or(&0),
+        ram_percent: *h.ram.back().unwrap_or(&0),
+        network_bps: *h.network.back().unwrap_or(&0),
+        ram_used: 0,
+        ram_total: 0,
+        disk_used: 0,
+        disk_total: 0,
+        disk_percent: 0,
+        cpu_history: h.cpu.iter().copied().collect(),
+        ram_history: h.ram.iter().copied().collect(),
+        network_history: h.network.iter().copied().collect(),
+        processes,
+    })
 }
 
 fn find_disk_index(disks: &Disks, target: &Path) -> Option<usize> {
@@ -128,25 +188,4 @@ fn primary_disk_metrics(disks: &Disks, index: Option<usize>) -> (u64, u64, u8) {
 #[cfg(target_os = "windows")]
 fn windows_system_drive() -> String {
     std::env::var("SystemDrive").unwrap_or_else(|_| "C:".to_string()) + "\\"
-}
-
-#[tauri::command]
-pub fn get_current_metrics(history: tauri::State<SharedHistory>) -> Option<Metrics> {
-    let h = history.lock().unwrap();
-    if h.cpu.is_empty() {
-        return None;
-    }
-    Some(Metrics {
-        cpu_percent: *h.cpu.back().unwrap_or(&0),
-        ram_percent: *h.ram.back().unwrap_or(&0),
-        network_bps: *h.network.back().unwrap_or(&0),
-        ram_used: 0,
-        ram_total: 0,
-        disk_used: 0,
-        disk_total: 0,
-        disk_percent: 0,
-        cpu_history: h.cpu.iter().copied().collect(),
-        ram_history: h.ram.iter().copied().collect(),
-        network_history: h.network.iter().copied().collect(),
-    })
 }

@@ -1,6 +1,8 @@
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 
+use crate::commands::metrics::HistoricalSnapshot;
+
 pub const HISTORY_SIZE: usize = 60;
 
 #[derive(Clone, Default)]
@@ -8,13 +10,19 @@ pub struct MetricsHistory {
     pub cpu: VecDeque<u8>,
     pub ram: VecDeque<u8>,
     pub network: VecDeque<u64>,
+    pub process_history: VecDeque<HistoricalSnapshot>,
 }
 
 impl MetricsHistory {
-    pub fn push(&mut self, cpu: u8, ram: u8, network: u64) {
+    pub fn push(&mut self, cpu: u8, ram: u8, network: u64, snapshot: HistoricalSnapshot) {
         push_capped_u8(&mut self.cpu, cpu);
         push_capped_u8(&mut self.ram, ram);
         push_capped_u64(&mut self.network, network);
+        if self.process_history.len() >= HISTORY_SIZE {
+            self.process_history.pop_front();
+        }
+
+        self.process_history.push_back(snapshot);
     }
 }
 
