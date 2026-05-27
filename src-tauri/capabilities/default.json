@@ -2,13 +2,14 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Capability for the main window",
-  "windows": ["home", "prefs", "monitor", "process"],
+  "windows": ["home", "prefs", "monitor", "process", "clipboard"],
   "permissions": [
     "core:default",
     "core:event:default",
     "core:window:allow-hide",
     "shell:allow-open",
     "opener:default",
-    "os:default"
+    "os:default",
+    "dialog:allow-open"
   ]
 }
