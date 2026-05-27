@@ -11,7 +11,7 @@ use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent}
 use tauri::{Manager, WindowEvent};
 use tauri_plugin_positioner::{Position, WindowExt};
 
-use commands::{get_current_metrics, open_monitor, open_preferences};
+use commands::{get_current_metrics, get_running_processes, open_monitor, open_preferences};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -20,10 +20,12 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_positioner::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             get_current_metrics,
             open_preferences,
-            open_monitor
+            open_monitor,
+            get_running_processes
         ])
         .setup(|app| {
             let history = app_state::new_shared_history();
@@ -110,6 +112,10 @@ pub fn run() {
 
             if let Some(monitor) = app.get_webview_window("monitor") {
                 windows::attach_focus_hide(monitor);
+            }
+            
+            if let Some(clippy) = app.get_webview_window("clipboard") {
+                windows::attach_focus_hide(clippy);
             }
 
             Ok(())
