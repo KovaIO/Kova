@@ -37,7 +37,6 @@
 
     let cpuHistory: number[] = [];
     let ramHistory: number[] = [];
-    let diskHistory: number[] = [];
     let networkHistory: number[] = [];
     let cpuValue = 0;
     let ramValue = 0;
@@ -98,15 +97,15 @@
     let networkTree: ProcessNode[] = [];
 
     $: {
-        const rawTree = buildTree(liveProcesses);
+        const { roots } = buildTree(liveProcesses);
 
-        cpuTree = cloneTree(rawTree);
+        cpuTree = cloneTree(roots);
         sortTreeBy(cpuTree, "cpu");
 
-        ramTree = cloneTree(rawTree);
+        ramTree = cloneTree(roots);
         sortTreeBy(ramTree, "ram");
 
-        networkTree = cloneTree(rawTree);
+        networkTree = cloneTree(roots);
         sortTreeBy(networkTree, "network");
     }
 
@@ -122,6 +121,13 @@
     );
 
     $: showProcessList = activeTab !== "disk";
+
+    function openProcess(pid: number) {
+        invoke("open_process", {
+            pid,
+            tab: activeTab,
+        });
+    }
 </script>
 
 <div class="page">
@@ -129,7 +135,6 @@
         bind:activeTab
         {cpuHistory}
         {ramHistory}
-        {diskHistory}
         {networkHistory}
         {cpuValue}
         {ramValue}
@@ -168,16 +173,23 @@
     {@const active = metricIsActive(proc)}
 
     <button
-        type="button"
         class="process-row"
         class:clickable={hasKids}
         class:expandable={hasKids}
         style:padding-left="{16 + depth * 16}px"
-        onclick={() => {
-            if (hasKids) toggleExpand(proc.pid);
-        }}
+        onclick={() => openProcess(proc.pid)}
     >
-        <span class="chevron" aria-hidden="true">
+        <span
+            class="chevron"
+            aria-hidden="true"
+            onclick={(e) => {
+                e.stopPropagation();
+
+                if (hasKids) {
+                    toggleExpand(proc.pid);
+                }
+            }}
+        >
             {#if hasKids}
                 {#if open}
                     <ChevronDown size={11} />

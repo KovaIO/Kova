@@ -4,7 +4,6 @@
     export let activeTab: Tab;
     export let cpuHistory: number[];
     export let ramHistory: number[];
-    export let diskHistory: number[];
     export let networkHistory: number[];
     export let cpuValue: number;
     export let ramValue: number;
@@ -24,9 +23,7 @@
             ? cpuHistory
             : activeTab === "ram"
               ? ramHistory
-              : activeTab === "disk"
-                ? diskHistory
-                : networkHistory.map((v) => (v / networkMax) * 100);
+              : networkHistory.map((v) => (v / networkMax) * 100);
 
     $: peakLabel =
         activeTab === "network"

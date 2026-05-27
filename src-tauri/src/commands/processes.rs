@@ -8,6 +8,8 @@ use crate::commands::process_icons::get_process_icon;
 pub struct ProcessMeta {
     pub name: String,
     pub icon: Option<String>,
+    pub exe_path: Option<String>,
+    pub started_at: u64,
 }
 
 #[derive(Serialize, Clone)]
@@ -16,6 +18,9 @@ pub struct FlatProcess {
     pub parent_pid: Option<u32>,
 
     pub name: String,
+
+    pub exe_path: Option<String>,
+    pub started_at: u64,
 
     pub self_cpu_percent: f32,
     pub self_ram_bytes: u64,
@@ -52,6 +57,8 @@ pub fn collect_processes(
                 ProcessMeta {
                     name: proc.name().to_string_lossy().into_owned(),
                     icon,
+                    started_at: proc.start_time(),
+                    exe_path: proc.exe().map(|p| p.to_string_lossy().to_string()),
                 }
             });
 
@@ -62,6 +69,9 @@ pub fn collect_processes(
                 parent_pid: proc.parent().map(|p| p.as_u32()),
 
                 name: meta.name.clone(),
+
+                exe_path: meta.exe_path.clone(),
+                started_at: meta.started_at,
 
                 self_cpu_percent: proc.cpu_usage(),
                 self_ram_bytes: proc.memory(),

@@ -19,6 +19,9 @@ export interface FlatProcess {
   pid: number;
   parent_pid?: number | null;
 
+  started_at: number;
+  exe_path: string;
+
   name: string;
 
   cpu_percent: number;

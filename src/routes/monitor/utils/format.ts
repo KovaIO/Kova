@@ -1,6 +1,6 @@
-import type { ProcessNode, Tab } from "../types";
+import type { FlatProcess, Tab } from "../types";
 
-export function metricLabel(p: ProcessNode, activeTab: Tab): string {
+export function metricLabel(p: FlatProcess, activeTab: Tab): string {
   if (activeTab === "cpu") {
     if (p.cpu_percent <= 0) {
       return "0%";
@@ -22,7 +22,7 @@ export function metricLabel(p: ProcessNode, activeTab: Tab): string {
   return "—";
 }
 
-function formatBytes(bytes: number): string {
+export function formatBytes(bytes: number): string {
   if (bytes >= 1_073_741_824) return `${(bytes / 1_073_741_824).toFixed(2)} GB`;
   if (bytes >= 1_048_576) return `${(bytes / 1_048_576).toFixed(1)} MB`;
   if (bytes >= 1_024) return `${(bytes / 1_024).toFixed(1)} KB`;

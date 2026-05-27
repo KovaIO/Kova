@@ -1,6 +1,6 @@
 import type { FlatProcess, ProcessNode } from "../types";
 
-export function buildTree(processes: FlatProcess[]): ProcessNode[] {
+export function buildTree(processes: FlatProcess[]) {
   const map = new Map<number, ProcessNode>();
 
   for (const proc of processes) {
@@ -25,7 +25,44 @@ export function buildTree(processes: FlatProcess[]): ProcessNode[] {
     }
   }
 
-  return roots;
+  return { roots, map };
+}
+
+export function getProcessHierarchy(processes: FlatProcess[], pid: number) {
+  const { map } = buildTree(processes);
+
+  const target = map.get(pid);
+
+  if (!target) {
+    return {
+      target: null,
+      ancestors: [],
+      rootNode: null,
+    };
+  }
+
+  const ancestors: ProcessNode[] = [];
+
+  let current: ProcessNode | undefined = target;
+
+  while (current) {
+    ancestors.unshift(current);
+
+    const parent: any =
+      current.parent_pid != null ? map.get(current.parent_pid) : undefined;
+
+    if (parent?.name.toLowerCase() === "explorer.exe") {
+      break;
+    }
+
+    current = parent;
+  }
+
+  return {
+    target,
+    ancestors,
+    rootNode: target,
+  };
 }
 
 export function cloneTree(nodes: ProcessNode[]): ProcessNode[] {
