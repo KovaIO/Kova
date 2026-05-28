@@ -12,9 +12,9 @@
     } from "@lucide/svelte";
     import MetricGraph from "$components/MetricGraph.svelte";
 
-    import type { FlatProcess, Metrics, ProcessNode } from "../types";
-    import { metricLabel } from "../utils/format";
-    import { getProcessHierarchy } from "../utils/process-tree";
+    import type { FlatProcess, Metrics, ProcessNode } from "$types/metrics";
+    import { metricLabel } from "$utils/format";
+    import { getProcessHierarchy } from "$utils/process-tree";
 
     const pid: number = Number(page.url.searchParams.get("pid"));
 

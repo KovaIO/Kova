@@ -1,4 +1,4 @@
-import type { FlatProcess, ProcessNode } from "../types";
+import type { FlatProcess, ProcessNode } from "$types/metrics";
 
 export function buildTree(processes: FlatProcess[]) {
   const map = new Map<number, ProcessNode>();

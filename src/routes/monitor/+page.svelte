@@ -11,14 +11,19 @@
         Terminal,
         Cpu,
     } from "@lucide/svelte";
-    import type { FlatProcess, Metrics, ProcessNode, Tab } from "./types";
+    import type {
+        FlatProcess,
+        Metrics,
+        ProcessNode,
+        Tab,
+    } from "$types/metrics";
     import {
         buildTree,
         cloneTree,
         matchesSearch,
         sortTreeBy,
-    } from "./utils/process-tree";
-    import { metricLabel } from "./utils/format";
+    } from "$utils/process-tree";
+    import { metricLabel } from "$utils/format";
 
     let activeTab: Tab = "cpu";
 

@@ -1,4 +1,4 @@
-import type { FlatProcess, Tab } from "../types";
+import type { FlatProcess, Tab } from "$types/metrics";
 
 export function metricLabel(p: FlatProcess, activeTab: Tab): string {
   if (activeTab === "cpu") {
