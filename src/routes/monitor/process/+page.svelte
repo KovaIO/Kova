@@ -99,6 +99,7 @@
             {ramValue}
             {diskValue}
             {networkBps}
+            showDiskTab={false}
         />
 
         <div class="details-scroll">

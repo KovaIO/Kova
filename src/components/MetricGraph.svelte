@@ -2,6 +2,8 @@
     type Tab = "cpu" | "ram" | "disk" | "network";
 
     export let activeTab: Tab;
+    export let showDiskTab = true;
+
     export let cpuHistory: number[];
     export let ramHistory: number[];
     export let networkHistory: number[];
@@ -69,11 +71,15 @@
             class:active={activeTab === "network"}
             on:click={() => (activeTab = "network")}>Network</button
         >
-        <button
-            class="tab"
-            class:active={activeTab === "disk"}
-            on:click={() => (activeTab = "disk")}>Disk</button
-        >
+        {#if showDiskTab}
+            <button
+                class="tab"
+                class:active={activeTab === "disk"}
+                on:click={() => (activeTab = "disk")}
+            >
+                Disk
+            </button>
+        {/if}
     </div>
 
     <div class="graph-wrap">
