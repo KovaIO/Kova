@@ -68,13 +68,6 @@
         liveProcesses = m.processes;
     }
 
-    function metricIsActive(p: ProcessNode): boolean {
-        if (activeTab === "cpu") return p.cpu_percent > 0;
-        if (activeTab === "ram") return p.ram_bytes > 0;
-        if (activeTab === "network") return p.net_bps > 0;
-        return false;
-    }
-
     let search = "";
     let expandedPids = new Set<number>();
 
@@ -131,16 +124,18 @@
 </script>
 
 <div class="page">
-    <MetricGraph
-        bind:activeTab
-        {cpuHistory}
-        {ramHistory}
-        {networkHistory}
-        {cpuValue}
-        {ramValue}
-        {diskValue}
-        {networkBps}
-    />
+    <div class="graph">
+        <MetricGraph
+            bind:activeTab
+            {cpuHistory}
+            {ramHistory}
+            {networkHistory}
+            {cpuValue}
+            {ramValue}
+            {diskValue}
+            {networkBps}
+        />
+    </div>
 
     {#if showProcessList}
         <div class="card search-card">
@@ -170,21 +165,13 @@
 {#snippet row(proc: ProcessNode, depth: number)}
     {@const hasKids = proc.children.length > 0}
     {@const open = expandedPids.has(proc.pid)}
-    {@const active = metricIsActive(proc)}
 
-    <button
-        class="process-row"
-        class:clickable={hasKids}
-        class:expandable={hasKids}
-        style:padding-left="{16 + depth * 16}px"
-        onclick={() => openProcess(proc.pid)}
-    >
-        <span
+    <div class="process-row" style:padding-left="{16 + depth * 16}px">
+        <button
+            type="button"
             class="chevron"
-            aria-hidden="true"
-            onclick={(e) => {
-                e.stopPropagation();
-
+            aria-label={open ? "Collapse" : "Expand"}
+            onclick={() => {
                 if (hasKids) {
                     toggleExpand(proc.pid);
                 }
@@ -192,40 +179,49 @@
         >
             {#if hasKids}
                 {#if open}
-                    <ChevronDown size={11} />
+                    <ChevronDown size={14} strokeWidth={3} />
                 {:else}
-                    <ChevronRight size={11} />
+                    <ChevronRight size={14} strokeWidth={3} />
                 {/if}
             {/if}
-        </span>
-        {#if proc.icon === "system"}
-            <div class="proc-icon fallback-icon">
-                <Cpu size={13} />
-            </div>
-        {:else if proc.icon === "terminal"}
-            <div class="proc-icon fallback-icon">
-                <Terminal size={13} />
-            </div>
-        {:else if proc.icon}
-            <img
-                class="proc-icon"
-                src={`data:image/png;base64,${proc.icon}`}
-                alt=""
-            />
-        {:else}
-            <div class="proc-icon fallback"></div>
-        {/if}
-
-        <span class="proc-name" class:active>{proc.name}</span>
-
-        {#if hasKids}
-            <span class="child-badge">{proc.children.length}</span>
-        {/if}
-
-        <span class="proc-metric" class:active
-            >{metricLabel(proc, activeTab)}</span
+        </button>
+        <button
+            type="button"
+            class="process-main"
+            onclick={() => openProcess(proc.pid)}
         >
-    </button>
+            {#if proc.icon === "system"}
+                <div class="proc-icon fallback-icon">
+                    <Cpu size={13} />
+                </div>
+            {:else if proc.icon === "terminal"}
+                <div class="proc-icon fallback-icon">
+                    <Terminal size={13} />
+                </div>
+            {:else if proc.icon}
+                <img
+                    class="proc-icon"
+                    src={`data:image/png;base64,${proc.icon}`}
+                    alt=""
+                />
+            {:else}
+                <div class="proc-icon fallback"></div>
+            {/if}
+
+            <div class="proc-main-info">
+                <span class="proc-name">{proc.name}</span>
+
+                {#if hasKids}
+                    <span class="child-badge">
+                        <span class="plus">+</span>
+                        <span>{proc.children.length}</span>
+                    </span>
+                {/if}
+            </div>
+
+            <span class="proc-metric">{metricLabel(proc, activeTab)}</span>
+        </button>
+    </div>
 
     {#if hasKids && open}
         {#each proc.children as child (`${child.pid}-${activeTab}`)}
@@ -235,11 +231,11 @@
 {/snippet}
 
 <style>
-    :global(html, body) {
-        margin: 0;
-        padding: 0;
-        background: transparent !important;
-        overflow: hidden;
+    .graph {
+        background: var(--color-main-bg);
+        backdrop-filter: blur(var(--blur-glass));
+        border: 2px solid var(--color-border-subtle);
+        border-radius: var(--radius-md);
     }
 
     .page {
@@ -300,7 +296,7 @@
         background: transparent;
     }
     .list-card::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255, 0.1);
+        background: var(--color-border-strong);
         border-radius: 999px;
     }
 
@@ -322,7 +318,7 @@
         padding-bottom: 7px;
         padding-right: 16px;
 
-        transition: background 0.12s;
+        transition: var(--transition-fast);
     }
 
     .process-row:focus {
@@ -334,11 +330,30 @@
     }
 
     .chevron {
-        width: 14px;
+        width: 26px;
         flex-shrink: 0;
+        border: none;
+        background: transparent;
         display: flex;
         align-items: center;
-        color: var(--color-text-dim);
+        justify-content: center;
+        color: var(--color-text-tertiary);
+    }
+
+    .process-main {
+        flex: 1;
+
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        box-sizing: border-box;
+
+        border: none;
+        background: transparent;
+
+        font: inherit;
+        text-align: left;
     }
 
     .proc-icon {
@@ -357,7 +372,7 @@
         display: grid;
         place-items: center;
 
-        background: rgba(255, 255, 255, 0.08);
+        background: var(--color-track-fill);
         color: var(--color-text-secondary);
 
         line-height: 0;
@@ -366,42 +381,55 @@
         transform: translate(-0.5px, -0.5px);
     }
 
-    .proc-name {
+    .proc-main-info {
         flex: 1;
+
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        min-width: 0;
+    }
+
+    .proc-name {
         font-size: 14px;
         font-weight: 500;
-        color: var(--color-text-dim);
+        color: var(--color-text-secondary);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
     }
 
-    .proc-name.active {
-        color: var(--color-text-secondary);
-    }
-
     .child-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+
         font-size: 12px;
-        color: var(--color-text-dim);
-        background: rgba(255, 255, 255, 0.07);
-        border-radius: 99px;
+        color: var(--color-text-secondary);
+        background: var(--color-track-fill);
+        border-radius: var(--radius-md);
         padding: 1px 6px;
         flex-shrink: 0;
+    }
+
+    .plus {
+        position: relative;
+        top: -0.5px;
+
+        font-size: 11px;
+        font-weight: 600;
     }
 
     .proc-metric {
         font-size: 13px;
         font-weight: 500;
-        color: var(--color-text-dim);
+        color: var(--color-text-secondary);
         letter-spacing: 0.02em;
         flex-shrink: 0;
         min-width: 60px;
         text-align: right;
         font-variant-numeric: tabular-nums;
-    }
-
-    .proc-metric.active {
-        color: var(--color-text-secondary);
     }
 
     .empty {

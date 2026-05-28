@@ -107,7 +107,6 @@
     .card {
         background: var(--color-main-bg);
         backdrop-filter: blur(var(--blur-glass));
-        border: 2px solid var(--color-border-subtle);
         border-radius: var(--radius-md);
         color: white;
         overflow: hidden;

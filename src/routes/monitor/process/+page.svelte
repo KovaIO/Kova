@@ -83,74 +83,82 @@
 </script>
 
 <div class="page">
-    <button type="button" class="back-button" onclick={openMonitor}>
-        <ArrowLeft size={14} />
-        <span>Monitor</span>
-    </button>
+    <div class="card unified-card">
+        <div class="topbar">
+            <button type="button" class="back-button" onclick={openMonitor}>
+                <ArrowLeft size={14} />
+            </button>
+        </div>
 
-    <MetricGraph
-        bind:activeTab
-        {cpuHistory}
-        {ramHistory}
-        {networkHistory}
-        {cpuValue}
-        {ramValue}
-        {diskValue}
-        {networkBps}
-    />
+        <MetricGraph
+            bind:activeTab
+            {cpuHistory}
+            {ramHistory}
+            {networkHistory}
+            {cpuValue}
+            {ramValue}
+            {diskValue}
+            {networkBps}
+        />
 
-    <div class="card details-card">
-        {#if proc}
-            <div class="main-row">
-                {@render procIcon(proc)}
-                <div class="proc-info">
+        <div class="details-scroll">
+            {#if proc}
+                <div class="main-row">
+                    {@render procIcon(proc)}
+
                     <div class="proc-name">{proc.name}</div>
-                    <div class="proc-sub">PID {proc.pid}</div>
                 </div>
-                <div class="proc-metric-main">
-                    {metricLabel(proc, activeTab)}
-                </div>
-            </div>
 
-            <div class="divider"></div>
-
-            <div class="meta-block">
-                <div class="meta-label">Started at</div>
-                <div class="meta-value">
-                    {new Date(proc.started_at * 1000).toLocaleString()}
-                </div>
-            </div>
-
-            {#if proc.exe_path}
                 <div class="meta-block">
-                    <div class="meta-label">Path</div>
-                    <div class="meta-value path">{proc.exe_path}</div>
-                </div>
-            {/if}
-
-            <div class="meta-block">
-                <div class="meta-label">Process hierarchy</div>
-            </div>
-
-            <div class="hierarchy-section">
-                {#each ancestors.slice(0, -1) as anc, i (anc.pid)}
-                    <div class="anc-row" style:padding-left="{i * 14 + 16}px">
-                        <span class="connector" aria-hidden="true"
-                            >{i > 0 ? "╰" : ""}</span
-                        >
-                        {@render procIcon(anc)}
-                        <span class="anc-name">{anc.name}</span>
-                        <span class="anc-pid">{anc.pid}</span>
+                    <div class="meta-label">Started at</div>
+                    <div class="meta-value">
+                        {new Date(proc.started_at * 1000).toLocaleString()}
                     </div>
-                {/each}
+                </div>
 
-                {#if rootNode}
-                    {@render treeRow(rootNode, (ancestors.length - 1) * 14)}
+                {#if proc.exe_path}
+                    <div class="meta-block">
+                        <div class="meta-label">Path</div>
+                        <div class="meta-value path">
+                            {proc.exe_path}
+                        </div>
+                    </div>
                 {/if}
-            </div>
-        {:else}
-            <p class="empty">Waiting for process data…</p>
-        {/if}
+
+                <div class="meta-block">
+                    <div class="meta-label">Process hierarchy</div>
+                </div>
+
+                <div class="hierarchy-section">
+                    {#each ancestors.slice(0, -1) as anc, i (anc.pid)}
+                        <div
+                            class="anc-row"
+                            style:padding-left="{i * 14 + 16}px"
+                        >
+                            <span class="connector">
+                                {i > 0 ? "╰" : ""}
+                            </span>
+
+                            {@render procIcon(anc)}
+
+                            <span class="anc-name">
+                                {anc.name}
+                            </span>
+
+                            <span class="anc-pid">
+                                {anc.pid}
+                            </span>
+                        </div>
+                    {/each}
+
+                    {#if rootNode}
+                        {@render treeRow(rootNode, (ancestors.length - 1) * 14)}
+                    {/if}
+                </div>
+            {:else}
+                <p class="empty">Waiting for process data…</p>
+            {/if}
+        </div>
     </div>
 </div>
 
@@ -188,9 +196,9 @@
             }}
         >
             {#if hasKids}
-                {#if open}<ChevronDown size={11} />{:else}<ChevronRight
-                        size={11}
-                    />{/if}
+                {#if open}<ChevronDown size={14} strokeWidth={3} />
+                {:else}<ChevronRight size={14} strokeWidth={3} />
+                {/if}
             {:else}
                 <span class="chevron-spacer"></span>
             {/if}
@@ -198,13 +206,20 @@
 
         {@render procIcon(node)}
 
-        <span class="proc-name" class:is-target={isTarget}>{node.name}</span>
+        <div class="proc-main-info">
+            <span class="proc-name">
+                {node.name}
+            </span>
 
-        {#if hasKids}
-            <span class="child-badge">{node.children.length}</span>
-        {/if}
+            {#if hasKids}
+                <span class="child-badge">
+                    <span class="plus">+</span>
+                    <span>{node.children.length}</span>
+                </span>
+            {/if}
+        </div>
 
-        <span class="proc-metric" class:is-target={isTarget}>
+        <span class="proc-metric">
             {metricLabel(node, activeTab)}
         </span>
     </button>
@@ -224,41 +239,7 @@
         overflow: hidden;
     }
 
-    .back-button {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        align-self: flex-start;
-        padding: 4px 10px 4px 8px;
-        border: none;
-        background: rgba(255, 255, 255, 0.07);
-        border-radius: var(--radius-sm, 6px);
-        color: var(--color-text-dim);
-        font: inherit;
-        font-size: 12px;
-        cursor: pointer;
-        transition:
-            background 0.12s,
-            color 0.12s;
-    }
-
-    .back-button:hover {
-        background: rgba(255, 255, 255, 0.12);
-        color: var(--color-text-secondary);
-    }
-
-    .back-button:focus {
-        outline: none;
-    }
-    .back-button:focus-visible {
-        background: rgba(255, 255, 255, 0.12);
-        color: var(--color-text-secondary);
-    }
-
     .page {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
         height: 100vh;
         overflow: hidden;
         background: transparent;
@@ -273,78 +254,133 @@
         overflow: hidden;
     }
 
-    .details-card {
-        flex: 1;
-        min-height: 0;
+    .unified-card {
+        height: 100%;
         display: flex;
         flex-direction: column;
+    }
+
+    .topbar {
+        display: flex;
+        align-items: center;
+        padding: 12px 12px 0;
+        flex-shrink: 0;
+    }
+
+    .back-button {
+        display: flex;
+        align-items: center;
+
+        padding: 8px;
+
+        border: none;
+        border-radius: var(--radius-md);
+
+        background: var(--color-main-bg);
+
+        color: var(--color-text-secondary);
+
+        font: inherit;
+        font-size: 14px;
+
+        transition: var(--transition-fast);
+    }
+
+    .back-button:hover {
+        background: var(--color-button-bg-hover);
+        color: var(--color-text-secondary);
+    }
+
+    .back-button:focus {
+        outline: none;
+    }
+
+    .back-button:focus-visible {
+        background: var(--color-button-bg-hover);
+        color: var(--color-text-secondary);
+    }
+
+    .back-button:active {
+        transform: scale(0.98);
+    }
+
+    .details-scroll {
+        flex: 1;
+        min-height: 0;
+
         overflow-y: auto;
-        padding: 4px 0 12px;
+        overflow-x: hidden;
+
+        padding: 10px 0 12px;
+
         contain: strict;
         overscroll-behavior: contain;
     }
 
-    .details-card::-webkit-scrollbar {
+    .details-scroll::-webkit-scrollbar {
         width: 3px;
     }
-    .details-card::-webkit-scrollbar-track {
+
+    .details-scroll::-webkit-scrollbar-track {
         background: transparent;
     }
-    .details-card::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255, 0.1);
+
+    .details-scroll::-webkit-scrollbar-thumb {
+        background: var(--color-border-strong);
         border-radius: 999px;
     }
 
     .main-row {
         display: flex;
         align-items: center;
-        gap: 10px;
-        padding: 12px 16px 10px;
+        gap: 14px;
+
+        padding: 14px 16px 12px;
     }
 
-    .divider {
-        height: 1px;
-        background: var(--color-border-subtle);
-        margin: 0 16px 4px;
-    }
-
-    .proc-info {
+    .proc-main-info {
         flex: 1;
+
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
         min-width: 0;
     }
 
     .proc-name {
-        font-size: 14px;
+        font-size: 13px;
         font-weight: 500;
+
         color: var(--color-text-secondary);
+
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
     }
 
-    .proc-sub {
-        margin-top: 2px;
-        font-size: 11px;
-        color: var(--color-text-dim);
-    }
-
-    .proc-metric-main {
-        font-size: 13px;
-        font-weight: 500;
+    .main-row .proc-name {
+        font-size: 18px;
+        font-weight: 600;
         color: var(--color-text-secondary);
-        letter-spacing: 0.02em;
-        flex-shrink: 0;
-        min-width: 60px;
-        text-align: right;
-        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.01em;
     }
 
     .proc-icon {
         width: 20px;
         height: 20px;
+
         flex-shrink: 0;
+
         border-radius: 4px;
+
         object-fit: contain;
+    }
+
+    .main-row .proc-icon {
+        width: 26px;
+        height: 26px;
+        border-radius: 8px;
     }
 
     img.proc-icon {
@@ -352,14 +388,17 @@
     }
 
     .fallback {
-        background: rgba(255, 255, 255, 0.08);
+        background: var(--color-track-fill);
     }
 
     .fallback-icon {
         display: grid;
         place-items: center;
-        background: rgba(255, 255, 255, 0.08);
+
+        background: var(--color-track-fill);
+
         color: var(--color-text-secondary);
+
         line-height: 0;
     }
 
@@ -367,24 +406,35 @@
         transform: translate(-0.5px, -0.5px);
     }
 
+    .main-row .fallback-icon :global(svg) {
+        width: 18px;
+        height: 18px;
+    }
+
     .meta-block {
         display: flex;
         flex-direction: column;
-        padding: 10px 16px 4px;
         gap: 6px;
+
+        padding: 12px 16px 4px;
     }
 
     .meta-label {
         font-size: 11px;
+
         color: var(--color-text-dim);
+
         letter-spacing: 0.03em;
+
         text-transform: uppercase;
     }
 
     .meta-value {
         font-size: 12.5px;
+
         color: var(--color-text-secondary);
-        line-height: 1.4;
+
+        line-height: 1.45;
     }
 
     .path {
@@ -394,81 +444,83 @@
     .hierarchy-section {
         display: flex;
         flex-direction: column;
-        padding-top: 4px;
+
+        padding-top: 8px;
     }
 
     .anc-row {
         display: flex;
         align-items: center;
         gap: 6px;
+
         min-height: 32px;
+
         padding-right: 16px;
+
         box-sizing: border-box;
     }
 
     .connector {
-        font-size: 11px;
-        color: var(--color-text-dim);
-        opacity: 0.4;
-        line-height: 1;
-        flex-shrink: 0;
         width: 10px;
+
+        flex-shrink: 0;
+
+        font-size: 11px;
+        line-height: 1;
+
+        color: var(--color-text-dim);
+
+        opacity: 0.4;
     }
 
     .anc-name {
         flex: 1;
+
         font-size: 12.5px;
         font-weight: 450;
+
         color: var(--color-text-dim);
+
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
     }
 
     .anc-pid {
-        font-size: 10.5px;
-        color: var(--color-text-dim);
-        font-variant-numeric: tabular-nums;
-        flex-shrink: 0;
-        opacity: 0.5;
+        display: none;
     }
 
     .process-row {
         display: flex;
         align-items: center;
         gap: 8px;
+
         width: 100%;
         min-height: 40px;
+
         box-sizing: border-box;
+
         border: none;
         background: transparent;
+
         font: inherit;
         text-align: left;
+
         padding-top: 7px;
         padding-bottom: 7px;
         padding-right: 16px;
-        cursor: default;
-        transition: background 0.12s;
-    }
-
-    .process-row:hover {
-        background: var(--color-button-bg-hover);
-    }
-    .process-row:focus {
-        outline: none;
-    }
-    .process-row:focus-visible {
-        background: var(--color-button-bg-hover);
     }
 
     .chevron {
-        width: 14px;
+        width: 22px;
+
         flex-shrink: 0;
+
         display: flex;
         align-items: center;
         justify-content: center;
-        color: var(--color-text-dim);
-        cursor: pointer;
+
+        color: var(--color-text-tertiary);
     }
 
     .chevron-spacer {
@@ -477,49 +529,51 @@
         height: 11px;
     }
 
-    .proc-name {
-        flex: 1;
-        font-size: 13px;
-        font-weight: 450;
-        color: var(--color-text-dim);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .proc-name.is-target {
-        color: var(--color-text-secondary);
-        font-weight: 500;
-    }
-
     .child-badge {
-        font-size: 11px;
-        color: var(--color-text-dim);
-        background: rgba(255, 255, 255, 0.07);
-        border-radius: 99px;
-        padding: 1px 6px;
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+
         flex-shrink: 0;
+        padding: 1px 6px;
+        border-radius: var(--radius-md);
+        background: var(--color-track-fill);
+        font-size: 12px;
+        color: var(--color-text-secondary);
+    }
+
+    .plus {
+        position: relative;
+        top: -0.5px;
+
+        font-size: 11px;
+        font-weight: 600;
     }
 
     .proc-metric {
+        min-width: 60px;
+
+        flex-shrink: 0;
+
+        text-align: right;
+
         font-size: 13px;
         font-weight: 500;
-        color: var(--color-text-dim);
+
         letter-spacing: 0.02em;
-        flex-shrink: 0;
-        min-width: 60px;
-        text-align: right;
+
+        color: var(--color-text-secondary);
+
         font-variant-numeric: tabular-nums;
     }
 
-    .proc-metric.is-target {
-        color: var(--color-text-secondary);
-    }
-
     .empty {
-        text-align: center;
-        color: var(--color-text-dim);
-        font-size: 12px;
         padding: 24px 0;
+
+        text-align: center;
+
+        font-size: 12px;
+
+        color: var(--color-text-dim);
     }
 </style>
