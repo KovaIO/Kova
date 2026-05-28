@@ -5,9 +5,6 @@ export function metricLabel(p: FlatProcess, activeTab: Tab): string {
     if (p.cpu_percent <= 0) {
       return "0%";
     }
-    if (p.cpu_percent < 0.1) {
-      return "<0.1%";
-    }
     return `${p.cpu_percent.toFixed(1)}%`;
   }
   if (activeTab === "ram") {
@@ -28,7 +25,6 @@ export function formatBytes(bytes: number): string {
   if (bytes >= 1_024) return `${(bytes / 1_024).toFixed(1)} KB`;
   return `${bytes} B`;
 }
-
 
 export function formatBps(bps: number): string {
   if (bps >= 1_000_000) return `${(bps / 1_000_000).toFixed(1)} MB/s`;
