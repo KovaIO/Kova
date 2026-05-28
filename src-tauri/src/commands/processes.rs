@@ -187,7 +187,16 @@ pub fn aggregate_process_metrics(processes: &mut Vec<FlatProcess>) {
 
     let roots: Vec<u32> = processes
         .iter()
-        .filter(|p| p.parent_pid.is_none() || !index_map.contains_key(&p.parent_pid.unwrap()))
+        .filter(|p| match p.parent_pid {
+            None => true,
+            Some(parent_pid) => match index_map.get(&parent_pid) {
+                None => true,
+                Some(parent_idx) => {
+                    let parent_name = processes[*parent_idx].name.to_lowercase();
+                    parent_name == "explorer.exe"
+                }
+            },
+        })
         .map(|p| p.pid)
         .collect();
 
