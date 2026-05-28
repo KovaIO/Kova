@@ -1,6 +1,6 @@
 use crate::{
     metrics::{models::SharedHistory, Metrics},
-    processes::{get_running_processes, FlatProcess, RunningProcess},
+    processes::FlatProcess,
 };
 
 #[tauri::command]
@@ -30,9 +30,4 @@ pub fn get_current_metrics(history: tauri::State<SharedHistory>) -> Option<Metri
         network_history: h.network.iter().copied().collect(),
         processes,
     })
-}
-
-#[tauri::command]
-pub fn get_running_procs() -> Vec<RunningProcess> {
-    get_running_processes()
 }

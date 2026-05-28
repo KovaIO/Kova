@@ -1,4 +1,6 @@
 <script lang="ts">
+    import { formatBps, formatBytes } from "$utils/format";
+
     type Tab = "cpu" | "ram" | "disk" | "network";
 
     export let activeTab: Tab;
@@ -7,16 +9,9 @@
     export let cpuHistory: number[];
     export let ramHistory: number[];
     export let networkHistory: number[];
-    export let cpuValue: number;
-    export let ramValue: number;
-    export let diskValue: number;
-    export let networkBps: number;
 
-    function formatBps(bps: number): string {
-        if (bps >= 1_000_000) return `${(bps / 1_000_000).toFixed(1)} MB/s`;
-        if (bps >= 1_000) return `${(bps / 1_000).toFixed(0)} KB/s`;
-        return `${bps} B/s`;
-    }
+    export let ramMax: number | null = null;
+    export let netMax: number | null = null;
 
     $: networkMax = Math.max(...networkHistory, 1);
 
@@ -27,31 +22,27 @@
               ? ramHistory
               : networkHistory.map((v) => (v / networkMax) * 100);
 
-    $: peakLabel =
-        activeTab === "network"
-            ? formatBps(networkBps)
-            : `${activeTab === "cpu" ? cpuValue : activeTab === "ram" ? ramValue : diskValue}%`;
+    // Dynamic current peak from the last value in history
+    $: currentValue = history.length > 0 ? history[history.length - 1] : 0;
 
-    function buildPath(data: number[]): string {
-        if (data.length < 2) return "";
-        const step = 100 / (data.length - 1);
-        return data
-            .map((v, i) => {
-                const x = i * step;
-                const y = 100 - v;
-                return `${i === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
-            })
-            .join(" ");
-    }
+    // Dynamic Y-axis: 4 labels based on actual max in current history
+    $: historyMax = activeTab === "network" ? 100 : Math.max(...history, 1);
 
-    function buildFill(data: number[]): string {
-        const line = buildPath(data);
-        if (!line) return "";
-        return `${line} L 100 100 L 0 100 Z`;
-    }
+    $: yLabels = (() => {
+        if (activeTab === "ram" && ramMax !== null) {
+            return [1, 0.75, 0.5, 0.25].map(r => formatBytes(ramMax! * r));
+        }
+        if (activeTab === "network" && netMax !== null) {
+            return [1, 0.75, 0.5, 0.25].map(r => formatBps(netMax! * r));
+        }
+        if (activeTab === "network") {
+            return [1, 0.75, 0.5, 0.25].map(r => formatBps(networkMax * r));
+        }
+        return [1, 0.75, 0.5, 0.25].map(r => `${Math.round(historyMax * r)} %`);
+    })();
 
-    $: linePath = buildPath(history);
-    $: fillPath = buildFill(history);
+    // Split threshold: top 30% of bar gets accent color, rest gets dimmer
+    const SPLIT = 0.3;
 </script>
 
 <div class="card">
@@ -75,37 +66,34 @@
             <button
                 class="tab"
                 class:active={activeTab === "disk"}
-                on:click={() => (activeTab = "disk")}
+                on:click={() => (activeTab = "disk")}>Disk</button
             >
-                Disk
-            </button>
         {/if}
     </div>
 
-    <div class="graph-wrap">
-        <div class="peak-label">{peakLabel}</div>
-        <svg viewBox="0 0 100 100" preserveAspectRatio="none" class="graph-svg">
-            <defs>
-                <linearGradient id="fill-grad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stop-color="var(--color-accent-strong)" />
-                    <stop
-                        offset="100%"
-                        stop-color="var(--color-accent)"
-                        stop-opacity="0"
-                    />
-                </linearGradient>
-            </defs>
-            <path d={fillPath} fill="url(#fill-grad)" />
-            <path
-                d={linePath}
-                fill="none"
-                stroke="var(--color-accent)"
-                stroke-width="1.5"
-                stroke-linejoin="round"
-                stroke-linecap="round"
-                vector-effect="non-scaling-stroke"
-            />
-        </svg>
+    <div class="graph-area">
+        <!-- Chart fills full width, y-labels overlay on top -->
+        <div class="chart-wrap">
+            <div class="grid-lines">
+                {#each [0, 1, 2, 3] as _}
+                    <div class="grid-line">
+                        <span class="grid-label">{yLabels[_]}</span>
+                    </div>
+                {/each}
+            </div>
+
+            <div class="bars">
+                {#each history as value}
+                    {@const pct = Math.max(value, 1)}
+                    {@const topPct = Math.min(pct * SPLIT, pct)}
+                    {@const bottomPct = pct - topPct}
+                    <div class="bar-wrap" style="height: {pct}%">
+                        <div class="bar-top" style="height: {(topPct / pct) * 100}%"></div>
+                        <div class="bar-bottom" style="height: {(bottomPct / pct) * 100}%"></div>
+                    </div>
+                {/each}
+            </div>
+        </div>
     </div>
 </div>
 
@@ -123,7 +111,7 @@
     .tabs {
         display: flex;
         gap: 4px;
-        margin-bottom: 14px;
+        margin-bottom: 16px;
         justify-content: center;
     }
 
@@ -136,6 +124,7 @@
         font-size: 12px;
         font-weight: 500;
         font-family: inherit;
+        cursor: pointer;
         transition: var(--transition-fast);
     }
 
@@ -144,18 +133,79 @@
         color: var(--color-accent);
     }
 
-    .peak-label {
-        font-size: 11px;
-        font-weight: 500;
-        color: var(--color-text-muted);
-        margin-bottom: 6px;
-        letter-spacing: 0.02em;
+    .graph-area {
+        display: flex;
     }
 
-    .graph-svg {
-        display: block;
+    .chart-wrap {
+        position: relative;
+        flex: 1;
+        height: 140px;
+    }
+
+    .grid-lines {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        pointer-events: none;
+        z-index: 2;
+    }
+
+    .grid-line {
         width: 100%;
-        aspect-ratio: 2 / 1;
-        border-radius: 6px;
+        height: 1px;
+        background: rgba(255, 255, 255, 0.05);
+        position: relative;
+        display: flex;
+        align-items: flex-start;
+    }
+
+    .grid-label {
+        font-size: 10px;
+        font-weight: 500;
+        color: var(--color-text-secondary);
+        letter-spacing: 0.02em;
+        line-height: 1;
+        white-space: nowrap;
+        padding: 2px 5px;
+        background: var(--color-surface-elevated);
+        border-radius: 5px;
+        transform: translateY(-100%);
+        margin-left: 2px;
+    }
+
+    .bars {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: flex-end;
+        justify-content: flex-end;
+        gap: 2px;
+        padding: 0 1px;
+        z-index: 1;
+        overflow: hidden;
+    }
+
+    .bar-wrap {
+        flex: 1;
+        max-width: 8px;
+        min-width: 2px;
+        display: flex;
+        flex-direction: column;
+        border-radius: 2px 2px 0 0;
+        overflow: hidden;
+        transition: height 300ms ease;
+    }
+
+    .bar-top {
+        background: var(--color-accent);
+        flex-shrink: 0;
+    }
+
+    .bar-bottom {
+        background: var(--color-accent-soft);
+        flex: 1;
     }
 </style>

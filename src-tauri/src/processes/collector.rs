@@ -69,6 +69,8 @@ pub fn collect_processes(
 
             let net_bps = net_map.get(&pid).copied().unwrap_or(0);
 
+            let cpu_cores = sys.cpus().len().max(1) as f32;
+
             FlatProcess {
                 pid,
                 parent_pid: proc.parent().map(|p| p.as_u32()),
@@ -78,11 +80,11 @@ pub fn collect_processes(
                 exe_path: meta.exe_path.clone(),
                 started_at: meta.started_at,
 
-                self_cpu_percent: proc.cpu_usage(),
+                self_cpu_percent: proc.cpu_usage() / cpu_cores,
                 self_ram_bytes: proc.memory(),
                 self_net_bps: net_bps,
 
-                cpu_percent: proc.cpu_usage(),
+                cpu_percent: proc.cpu_usage() / cpu_cores,
                 ram_bytes: proc.memory(),
                 net_bps,
 

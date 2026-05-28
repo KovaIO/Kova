@@ -135,10 +135,6 @@
             {cpuHistory}
             {ramHistory}
             {networkHistory}
-            {cpuValue}
-            {ramValue}
-            {diskValue}
-            {networkBps}
         />
     </div>
 

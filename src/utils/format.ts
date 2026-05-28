@@ -28,3 +28,10 @@ export function formatBytes(bytes: number): string {
   if (bytes >= 1_024) return `${(bytes / 1_024).toFixed(1)} KB`;
   return `${bytes} B`;
 }
+
+
+export function formatBps(bps: number): string {
+  if (bps >= 1_000_000) return `${(bps / 1_000_000).toFixed(1)} MB/s`;
+  if (bps >= 1_000) return `${(bps / 1_000).toFixed(0)} KB/s`;
+  return `${bps} B/s`;
+}

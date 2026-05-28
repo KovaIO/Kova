@@ -35,6 +35,8 @@
     let ramValue = 0;
     let diskValue = 0;
     let networkBps = 0;
+    let ramMax = 1;
+    let netMax = 1;
 
     let expandedPids = new Set<number>();
 
@@ -45,13 +47,7 @@
     }
 
     function applyMetrics(m: Metrics) {
-        cpuValue = m.cpu_percent;
-        ramValue = m.ram_percent;
-        diskValue = m.disk_percent;
-        networkBps = m.network_bps;
-
         const hierarchy = getProcessHierarchy(m.processes, pid);
-
         if (!hierarchy.target) return;
 
         proc = hierarchy.target;
@@ -59,10 +55,11 @@
         rootNode = hierarchy.rootNode;
 
         cpuHistory = [...cpuHistory.slice(-59), proc.cpu_percent];
-
         ramHistory = [...ramHistory.slice(-59), proc.ram_bytes];
-
         networkHistory = [...networkHistory.slice(-59), proc.net_bps];
+
+        ramMax = Math.max(...ramHistory, 1);
+        netMax = Math.max(...networkHistory, 1);
     }
 
     async function openMonitor() {
@@ -70,13 +67,21 @@
     }
 
     let unlisten: UnlistenFn;
-
     onMount(async () => {
+        const [cpuH, ramH, netH] = await invoke<[number[], number[], number[]]>(
+            "get_process_history",
+            { pid }
+        );
+        cpuHistory = cpuH;
+        ramHistory = ramH;
+        networkHistory = netH;
+        ramMax = Math.max(...ramH, 1);
+        netMax = Math.max(...netH, 1);
+
         const snap = await invoke<Metrics | null>("get_current_metrics");
         if (snap) applyMetrics(snap);
-        unlisten = await listen<Metrics>("metrics", (e) =>
-            applyMetrics(e.payload),
-        );
+
+        unlisten = await listen<Metrics>("metrics", (e) => applyMetrics(e.payload));
     });
 
     onDestroy(() => unlisten?.());
@@ -93,12 +98,10 @@
         <MetricGraph
             bind:activeTab
             {cpuHistory}
-            {ramHistory}
-            {networkHistory}
-            {cpuValue}
-            {ramValue}
-            {diskValue}
-            {networkBps}
+            ramHistory={ramHistory.map(v => (v / ramMax) * 100)}
+            networkHistory={networkHistory.map(v => (v / netMax) * 100)}
+            {ramMax}
+            {netMax}
             showDiskTab={false}
         />
 
