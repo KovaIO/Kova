@@ -44,7 +44,6 @@
         background: var(--color-button-bg);
         color: var(--color-text-primary);
         font-size: 13px;
-        cursor: pointer;
         min-width: 140px;
     }
 

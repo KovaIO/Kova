@@ -130,7 +130,6 @@
         font-size: 12px;
         font-weight: 500;
         font-family: inherit;
-        cursor: pointer;
         transition: var(--transition-fast);
     }
 

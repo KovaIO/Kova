@@ -170,7 +170,6 @@
         font-family: inherit;
         letter-spacing: 0.02em;
         text-align: left;
-        cursor: pointer;
         transition: var(--transition-medium);
     }
 

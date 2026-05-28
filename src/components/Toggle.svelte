@@ -19,7 +19,6 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        cursor: pointer;
         user-select: none;
         padding: 2px 0;
     }

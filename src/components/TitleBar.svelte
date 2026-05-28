@@ -18,7 +18,7 @@
         {#if isMac}
             <button
                 class="close-btn"
-                class:hovered={hovered}
+                class:hovered
                 on:click={close}
                 on:mouseenter={() => (hovered = true)}
                 on:mouseleave={() => (hovered = false)}
@@ -33,7 +33,7 @@
         {#if !isMac}
             <button
                 class="close-btn"
-                class:hovered={hovered}
+                class:hovered
                 on:click={close}
                 on:mouseenter={() => (hovered = true)}
                 on:mouseleave={() => (hovered = false)}
@@ -78,7 +78,6 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        cursor: pointer;
         flex-shrink: 0;
         transition: var(--transition-fast);
         -webkit-app-region: no-drag;

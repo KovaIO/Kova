@@ -71,7 +71,11 @@
         top: 0;
         left: 0;
         bottom: 0;
-        background: linear-gradient(to right, var(--color-accent), var(--color-accent-hover));
+        background: linear-gradient(
+            to right,
+            var(--color-accent),
+            var(--color-accent-hover)
+        );
         border-radius: 999px;
         pointer-events: none;
         transition: width 60ms linear;
@@ -101,7 +105,6 @@
         inset: 0;
         width: 100%;
         opacity: 0;
-        cursor: pointer;
         z-index: 2;
         margin: 0;
         height: 20px;

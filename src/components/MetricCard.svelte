@@ -49,7 +49,6 @@
         backdrop-filter: blur(var(--blur-glass));
         border: 1px solid var(--color-border-subtle);
         overflow: hidden;
-        cursor: default;
         flex-shrink: 0;
     }
 
@@ -110,7 +109,7 @@
         opacity: 1;
         transform: translateY(-60%) scale(1);
     }
-    
+
     .icon-wrap {
         opacity: 1;
         transform: translateY(-60%) scale(1);

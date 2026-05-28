@@ -19,9 +19,8 @@
     let loading = true;
     let searchInput: HTMLInputElement;
 
-
-    $: filtered = processes.filter(p =>
-        p.name.toLowerCase().includes(search.toLowerCase())
+    $: filtered = processes.filter((p) =>
+        p.name.toLowerCase().includes(search.toLowerCase()),
     );
 
     onMount(async () => {
@@ -38,7 +37,7 @@
             title: "Select an application",
             filters: [
                 { name: "Executable files", extensions: ["exe"] },
-                { name: "All files", extensions: ["*"] }
+                { name: "All files", extensions: ["*"] },
             ],
             directory: false,
             multiple: false,
@@ -65,7 +64,7 @@
 <div
     class="backdrop"
     on:click={handleBackdrop}
-    on:keydown={(e) => e.key === 'Escape' && dispatch('close')}
+    on:keydown={(e) => e.key === "Escape" && dispatch("close")}
     role="dialog"
     aria-modal="true"
     tabindex="-1"
@@ -73,18 +72,40 @@
     <div class="modal">
         <div class="modal-header">
             <span class="modal-title">Select an app to ignore</span>
-            <button class="close-btn" aria-label="Close" on:click={() => dispatch("close")}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-                    <line x1="18" y1="6" x2="6" y2="18"/>
-                    <line x1="6" y1="6" x2="18" y2="18"/>
+            <button
+                class="close-btn"
+                aria-label="Close"
+                on:click={() => dispatch("close")}
+            >
+                <svg
+                    width="13"
+                    height="13"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                >
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
             </button>
         </div>
 
         <div class="search-wrap">
-            <svg class="search-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="11" cy="11" r="8"/>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            <svg
+                class="search-icon"
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+            >
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
             <input
                 class="search-input"
@@ -102,9 +123,17 @@
                 <div class="state-msg">No results for "{search}"</div>
             {:else}
                 {#each filtered as p}
-                    <button class="process-item" aria-label="Select {p.name}" on:click={() => pick(p)}>
+                    <button
+                        class="process-item"
+                        aria-label="Select {p.name}"
+                        on:click={() => pick(p)}
+                    >
                         {#if p.icon}
-                            <img class="process-icon" src={`data:image/png;base64,${p.icon}`} alt="" />
+                            <img
+                                class="process-icon"
+                                src={`data:image/png;base64,${p.icon}`}
+                                alt=""
+                            />
                         {:else}
                             <div class="process-icon placeholder"></div>
                         {/if}
@@ -118,9 +147,24 @@
         </div>
 
         <div class="modal-footer">
-            <button class="browse-btn" aria-label="Browse for application" on:click={browseFile}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+            <button
+                class="browse-btn"
+                aria-label="Browse for application"
+                on:click={browseFile}
+            >
+                <svg
+                    width="13"
+                    height="13"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                >
+                    <path
+                        d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"
+                    />
                 </svg>
                 Browse for app
             </button>
@@ -176,7 +220,6 @@
         background: transparent;
         color: var(--color-text-dim);
         border-radius: 4px;
-        cursor: pointer;
         transition: all var(--transition-fast);
     }
     .close-btn:hover {
@@ -210,7 +253,9 @@
         font-family: inherit;
         transition: border-color var(--transition-fast);
     }
-    .search-input::placeholder { color: var(--color-text-dim); }
+    .search-input::placeholder {
+        color: var(--color-text-dim);
+    }
     .search-input:focus {
         outline: none;
         border-color: var(--color-accent-border);
@@ -222,7 +267,9 @@
         scrollbar-width: none;
         padding: 0 8px;
     }
-    .process-list::-webkit-scrollbar { display: none; }
+    .process-list::-webkit-scrollbar {
+        display: none;
+    }
 
     .state-msg {
         display: flex;
@@ -242,11 +289,12 @@
         border: none;
         border-radius: var(--radius-sm);
         background: transparent;
-        cursor: pointer;
         text-align: left;
         transition: background var(--transition-fast);
     }
-    .process-item:hover { background: var(--color-button-bg-hover); }
+    .process-item:hover {
+        background: var(--color-button-bg-hover);
+    }
 
     .process-icon {
         width: 24px;
@@ -300,7 +348,6 @@
         font-size: 13px;
         font-weight: 500;
         font-family: inherit;
-        cursor: pointer;
         transition: all var(--transition-fast);
     }
     .browse-btn:hover {

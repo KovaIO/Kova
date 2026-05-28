@@ -8,41 +8,53 @@
         {
             title: "Window Manager",
             shortcuts: [
-                { action: "Move window to next screen", keys: "Ctrl + Alt + →" },
-                { action: "Match with another window",  keys: "Ctrl + Alt + M" },
-                { action: "Auto layout windows",        keys: "Ctrl + Alt + L" },
-                { action: "Center window",              keys: "Ctrl + Alt + C" },
-                { action: "Make window 16 by 9",        keys: "Ctrl + Alt + 9" },
+                {
+                    action: "Move window to next screen",
+                    keys: "Ctrl + Alt + →",
+                },
+                { action: "Match with another window", keys: "Ctrl + Alt + M" },
+                { action: "Auto layout windows", keys: "Ctrl + Alt + L" },
+                { action: "Center window", keys: "Ctrl + Alt + C" },
+                { action: "Make window 16 by 9", keys: "Ctrl + Alt + 9" },
             ],
         },
         {
             title: "Window Switcher",
             shortcuts: [
-                { action: "Open window switcher",   keys: "Ctrl + Tab" },
-                { action: "Select previous window", keys: "Ctrl + Shift + Tab" },
-                { action: "Search",                 keys: "Ctrl + F" },
-                { action: "Expand tabs",            keys: "Ctrl + Shift + E" },
-                { action: "Collapse tabs",          keys: "Ctrl + Shift + C" },
+                { action: "Open window switcher", keys: "Ctrl + Tab" },
+                {
+                    action: "Select previous window",
+                    keys: "Ctrl + Shift + Tab",
+                },
+                { action: "Search", keys: "Ctrl + F" },
+                { action: "Expand tabs", keys: "Ctrl + Shift + E" },
+                { action: "Collapse tabs", keys: "Ctrl + Shift + C" },
             ],
         },
         {
             title: "Clipboard History",
             shortcuts: [
-                { action: "Open clipboard history",     keys: "Ctrl + Shift + H" },
-                { action: "Search clipboard history",   keys: "Ctrl + Shift + F" },
-                { action: "Move up",                    keys: "↑" },
-                { action: "Move down",                  keys: "↓" },
-                { action: "Select item",                keys: "Enter" },
-                { action: "Paste original",             keys: "Ctrl + V" },
-                { action: "Paste plain text",           keys: "Ctrl + Shift + V" },
-                { action: "Paste plain text directly",  keys: "Ctrl + Alt + V" },
+                { action: "Open clipboard history", keys: "Ctrl + Shift + H" },
+                {
+                    action: "Search clipboard history",
+                    keys: "Ctrl + Shift + F",
+                },
+                { action: "Move up", keys: "↑" },
+                { action: "Move down", keys: "↓" },
+                { action: "Select item", keys: "Enter" },
+                { action: "Paste original", keys: "Ctrl + V" },
+                { action: "Paste plain text", keys: "Ctrl + Shift + V" },
+                { action: "Paste plain text directly", keys: "Ctrl + Alt + V" },
             ],
         },
         {
             title: "Windows",
             shortcuts: [
-                { action: "Open system monitoring dashboard", keys: "Ctrl + Alt + D" },
-                { action: "Open menubar popover",             keys: "Ctrl + Alt + B" },
+                {
+                    action: "Open system monitoring dashboard",
+                    keys: "Ctrl + Alt + D",
+                },
+                { action: "Open menubar popover", keys: "Ctrl + Alt + B" },
             ],
         },
     ];
@@ -142,7 +154,6 @@
         border: none;
         background: transparent;
         color: var(--color-text-tertiary);
-        cursor: pointer;
         border-radius: 4px;
         transition: all 150ms ease;
     }

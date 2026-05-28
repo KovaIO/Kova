@@ -48,7 +48,6 @@
         color: var(--color-text-secondary);
         font-size: 13px;
         font-weight: 500;
-        cursor: pointer;
         transition: all 150ms ease;
         text-align: left;
         border-radius: 6px;

@@ -11,13 +11,15 @@
     async function clearHistory() {
         clearing = true;
         // TODO: invoke("clear_clipboard_history")
-        await new Promise(r => setTimeout(r, 800));
+        await new Promise((r) => setTimeout(r, 800));
         clearing = false;
     }
 
-    function onPick(e: CustomEvent<{ name: string; path: string; icon?: string }>) {
+    function onPick(
+        e: CustomEvent<{ name: string; path: string; icon?: string }>,
+    ) {
         const { name, path, icon } = e.detail;
-        if (ignoredApps.some(a => a.path === path)) return;
+        if (ignoredApps.some((a) => a.path === path)) return;
         ignoredApps = [...ignoredApps, { name, path, icon }];
         showPicker = false;
     }
@@ -28,7 +30,7 @@
 </script>
 
 {#if showPicker}
-    <AppPickerModal on:pick={onPick} on:close={() => showPicker = false} />
+    <AppPickerModal on:pick={onPick} on:close={() => (showPicker = false)} />
 {/if}
 
 <PreferencesSection
@@ -73,8 +75,17 @@
             disabled={clearing}
         >
             {#if clearing}
-                <svg class="spin" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-                    <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                <svg
+                    class="spin"
+                    width="13"
+                    height="13"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                >
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
                 </svg>
                 Clearing…
             {:else}
@@ -86,7 +97,9 @@
     <div class="ignored-section">
         <div class="ignored-header">
             <span class="ignored-title">Ignored apps</span>
-            <span class="ignored-hint">Clipboard won't be tracked for these apps</span>
+            <span class="ignored-hint"
+                >Clipboard won't be tracked for these apps</span
+            >
         </div>
 
         <div class="ignored-list">
@@ -96,7 +109,11 @@
                 {#each ignoredApps as app, i}
                     <div class="ignored-item">
                         {#if app.icon}
-                            <img class="app-icon" src={`data:image/png;base64,${app.icon}`} alt="" />
+                            <img
+                                class="app-icon"
+                                src={`data:image/png;base64,${app.icon}`}
+                                alt=""
+                            />
                         {:else}
                             <div class="app-icon placeholder"></div>
                         {/if}
@@ -104,10 +121,22 @@
                             <span class="app-name">{app.name}</span>
                             <span class="app-path">{app.path}</span>
                         </div>
-                        <button class="remove-btn" title="Remove" on:click={() => removeApp(i)}>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-                                <line x1="18" y1="6" x2="6" y2="18"/>
-                                <line x1="6" y1="6" x2="18" y2="18"/>
+                        <button
+                            class="remove-btn"
+                            title="Remove"
+                            on:click={() => removeApp(i)}
+                        >
+                            <svg
+                                width="12"
+                                height="12"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2.5"
+                                stroke-linecap="round"
+                            >
+                                <line x1="18" y1="6" x2="6" y2="18" />
+                                <line x1="6" y1="6" x2="18" y2="18" />
                             </svg>
                         </button>
                     </div>
@@ -115,10 +144,19 @@
             {/if}
         </div>
 
-        <button class="add-btn" on:click={() => showPicker = true}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19"/>
-                <line x1="5" y1="12" x2="19" y2="12"/>
+        <button class="add-btn" on:click={() => (showPicker = true)}>
+            <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+            >
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
             Add app
         </button>
@@ -133,11 +171,15 @@
         background: var(--color-button-bg);
         color: var(--color-text-primary);
         font-size: 13px;
-        cursor: pointer;
         min-width: 140px;
     }
-    .select:hover { background: var(--color-button-bg-hover); }
-    .select:focus { outline: none; border-color: var(--color-accent-border); }
+    .select:hover {
+        background: var(--color-button-bg-hover);
+    }
+    .select:focus {
+        outline: none;
+        border-color: var(--color-accent-border);
+    }
 
     .clear-btn {
         display: inline-flex;
@@ -151,18 +193,28 @@
         font-size: 13px;
         font-weight: 500;
         font-family: inherit;
-        cursor: pointer;
         transition: all var(--transition-fast);
     }
-    .clear-btn:hover { background: var(--color-danger-soft); }
-    .clear-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .clear-btn:hover {
+        background: var(--color-danger-soft);
+    }
+    .clear-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
     .clear-btn.clearing {
         color: var(--color-text-muted);
         border-color: var(--color-border-medium);
     }
 
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .spin { animation: spin 700ms linear infinite; }
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+    .spin {
+        animation: spin 700ms linear infinite;
+    }
 
     .ignored-section {
         display: flex;
@@ -215,8 +267,12 @@
         border-bottom: 1px solid var(--color-border-subtle);
         transition: background var(--transition-fast);
     }
-    .ignored-item:last-child { border-bottom: none; }
-    .ignored-item:hover { background: var(--color-button-bg); }
+    .ignored-item:last-child {
+        border-bottom: none;
+    }
+    .ignored-item:hover {
+        background: var(--color-button-bg);
+    }
 
     .app-icon {
         width: 24px;
@@ -263,12 +319,13 @@
         background: transparent;
         color: var(--color-text-dim);
         border-radius: 4px;
-        cursor: pointer;
         opacity: 0;
         transition: all var(--transition-fast);
         flex-shrink: 0;
     }
-    .ignored-item:hover .remove-btn { opacity: 1; }
+    .ignored-item:hover .remove-btn {
+        opacity: 1;
+    }
     .remove-btn:hover {
         background: var(--color-danger-soft);
         color: var(--color-danger);
@@ -287,7 +344,6 @@
         font-size: 13px;
         font-weight: 500;
         font-family: inherit;
-        cursor: pointer;
         transition: all var(--transition-fast);
     }
     .add-btn:hover {
