@@ -14,34 +14,28 @@
     export let netMax: number | null = null;
 
     $: networkMax = Math.max(...networkHistory, 1);
+    $: ramTotalBytes = ramMax ?? Math.max(...ramHistory, 1);
 
-    $: history =
-        activeTab === "cpu"
-            ? cpuHistory
-            : activeTab === "ram"
-              ? ramHistory
-              : networkHistory.map((v) => (v / networkMax) * 100);
-
-    // Dynamic current peak from the last value in history
-    $: currentValue = history.length > 0 ? history[history.length - 1] : 0;
-
-    // Dynamic Y-axis: 4 labels based on actual max in current history
-    $: historyMax = activeTab === "network" ? 100 : Math.max(...history, 1);
-
-    $: yLabels = (() => {
-        if (activeTab === "ram" && ramMax !== null) {
-            return [1, 0.75, 0.5, 0.25].map(r => formatBytes(ramMax! * r));
-        }
-        if (activeTab === "network" && netMax !== null) {
-            return [1, 0.75, 0.5, 0.25].map(r => formatBps(netMax! * r));
-        }
-        if (activeTab === "network") {
-            return [1, 0.75, 0.5, 0.25].map(r => formatBps(networkMax * r));
-        }
-        return [1, 0.75, 0.5, 0.25].map(r => `${Math.round(historyMax * r)} %`);
+    $: history = (() => {
+        if (activeTab === "cpu") return cpuHistory;
+        if (activeTab === "ram")
+            return ramHistory.map((v) => (v / ramTotalBytes) * 100);
+        return networkHistory.map((v) => (v / networkMax) * 100);
     })();
 
-    // Split threshold: top 30% of bar gets accent color, rest gets dimmer
+    $: yLabels = (() => {
+        if (activeTab === "ram") {
+            return [1, 0.75, 0.5, 0.25].map((r) =>
+                formatBytes(ramTotalBytes * r),
+            );
+        }
+        if (activeTab === "network") {
+            const peak = netMax ?? networkMax;
+            return [1, 0.75, 0.5, 0.25].map((r) => formatBps(peak * r));
+        }
+        return [1, 0.75, 0.5, 0.25].map((r) => `${Math.round(100 * r)}%`);
+    })();
+
     const SPLIT = 0.3;
 </script>
 
@@ -72,12 +66,11 @@
     </div>
 
     <div class="graph-area">
-        <!-- Chart fills full width, y-labels overlay on top -->
         <div class="chart-wrap">
             <div class="grid-lines">
-                {#each [0, 1, 2, 3] as _}
+                {#each [0, 1, 2, 3] as i}
                     <div class="grid-line">
-                        <span class="grid-label">{yLabels[_]}</span>
+                        <span class="grid-label">{yLabels[i]}</span>
                     </div>
                 {/each}
             </div>
@@ -88,8 +81,14 @@
                     {@const topPct = Math.min(pct * SPLIT, pct)}
                     {@const bottomPct = pct - topPct}
                     <div class="bar-wrap" style="height: {pct}%">
-                        <div class="bar-top" style="height: {(topPct / pct) * 100}%"></div>
-                        <div class="bar-bottom" style="height: {(bottomPct / pct) * 100}%"></div>
+                        <div
+                            class="bar-top"
+                            style="height: {(topPct / pct) * 100}%"
+                        ></div>
+                        <div
+                            class="bar-bottom"
+                            style="height: {(bottomPct / pct) * 100}%"
+                        ></div>
                     </div>
                 {/each}
             </div>

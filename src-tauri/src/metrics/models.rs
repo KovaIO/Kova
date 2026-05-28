@@ -36,12 +36,20 @@ pub const HISTORY_SIZE: usize = 60;
 pub struct MetricsHistory {
     pub cpu: VecDeque<u8>,
     pub ram: VecDeque<u8>,
+    pub last_ram_total: u64,
     pub network: VecDeque<u64>,
     pub process_history: VecDeque<HistoricalSnapshot>,
 }
 
 impl MetricsHistory {
-    pub fn push(&mut self, cpu: u8, ram: u8, network: u64, snapshot: HistoricalSnapshot) {
+    pub fn push(
+        &mut self,
+        cpu: u8,
+        ram: u8,
+        ram_total: u64,
+        network: u64,
+        snapshot: HistoricalSnapshot,
+    ) {
         push_capped_u8(&mut self.cpu, cpu);
         push_capped_u8(&mut self.ram, ram);
         push_capped_u64(&mut self.network, network);
@@ -50,6 +58,7 @@ impl MetricsHistory {
         }
 
         self.process_history.push_back(snapshot);
+        self.last_ram_total = ram_total;
     }
 }
 

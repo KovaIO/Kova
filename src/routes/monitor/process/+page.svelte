@@ -70,7 +70,7 @@
     onMount(async () => {
         const [cpuH, ramH, netH] = await invoke<[number[], number[], number[]]>(
             "get_process_history",
-            { pid }
+            { pid },
         );
         cpuHistory = cpuH;
         ramHistory = ramH;
@@ -81,7 +81,9 @@
         const snap = await invoke<Metrics | null>("get_current_metrics");
         if (snap) applyMetrics(snap);
 
-        unlisten = await listen<Metrics>("metrics", (e) => applyMetrics(e.payload));
+        unlisten = await listen<Metrics>("metrics", (e) =>
+            applyMetrics(e.payload),
+        );
     });
 
     onDestroy(() => unlisten?.());
@@ -98,8 +100,8 @@
         <MetricGraph
             bind:activeTab
             {cpuHistory}
-            ramHistory={ramHistory.map(v => (v / ramMax) * 100)}
-            networkHistory={networkHistory.map(v => (v / netMax) * 100)}
+            {ramHistory}
+            networkHistory={networkHistory.map((v) => (v / netMax) * 100)}
             {ramMax}
             {netMax}
             showDiskTab={false}

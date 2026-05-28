@@ -10,6 +10,10 @@ pub fn get_current_metrics(history: tauri::State<SharedHistory>) -> Option<Metri
         return None;
     }
 
+    let ram_total = h.last_ram_total;
+    let ram_percent = *h.ram.back().unwrap_or(&0);
+    let ram_used = (ram_percent as f64 / 100.0 * ram_total as f64) as u64;
+
     let processes: Vec<FlatProcess> = h
         .process_history
         .back()
@@ -18,10 +22,10 @@ pub fn get_current_metrics(history: tauri::State<SharedHistory>) -> Option<Metri
 
     Some(Metrics {
         cpu_percent: *h.cpu.back().unwrap_or(&0),
-        ram_percent: *h.ram.back().unwrap_or(&0),
+        ram_percent,
         network_bps: *h.network.back().unwrap_or(&0),
-        ram_used: 0,
-        ram_total: 0,
+        ram_used,
+        ram_total,
         disk_used: 0,
         disk_total: 0,
         disk_percent: 0,

@@ -86,7 +86,7 @@ pub fn start_metrics_loop(app: AppHandle, history: SharedHistory) {
             let (cpu_history, ram_history, network_history) = {
                 let mut h = history.lock().unwrap();
 
-                h.push(cpu_percent, ram_percent, network_bps, historical);
+                h.push(cpu_percent, ram_percent, ram_total, network_bps, historical);
 
                 (
                     h.cpu.iter().copied().collect::<Vec<_>>(),

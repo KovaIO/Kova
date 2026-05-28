@@ -29,7 +29,6 @@
 
     $: {
         const tab = page.url.searchParams.get("tab");
-
         if (
             tab === "cpu" ||
             tab === "ram" ||
@@ -43,6 +42,9 @@
     let cpuHistory: number[] = [];
     let ramHistory: number[] = [];
     let networkHistory: number[] = [];
+    let ramTotal = 0;
+    let networkPeak = 0;
+
     let cpuValue = 0;
     let ramValue = 0;
     let diskValue = 0;
@@ -53,24 +55,32 @@
 
     onMount(async () => {
         const snap = await invoke<Metrics | null>("get_current_metrics");
-        if (snap) applyMetrics(snap);
-
+        if (snap) applyMetrics(snap, true);
         unlisten = await listen<Metrics>("metrics", (e) =>
-            applyMetrics(e.payload),
+            applyMetrics(e.payload, false),
         );
     });
 
     onDestroy(() => unlisten?.());
 
-    function applyMetrics(m: Metrics) {
+    function applyMetrics(m: Metrics, isSnapshot: boolean) {
         cpuValue = m.cpu_percent;
         ramValue = m.ram_percent;
         diskValue = m.disk_percent;
         networkBps = m.network_bps;
-        cpuHistory = m.cpu_history;
-        ramHistory = m.ram_history;
-        networkHistory = m.network_history;
         liveProcesses = m.processes;
+
+        if (m.ram_total > 0) ramTotal = m.ram_total;
+        if (m.network_bps > networkPeak) networkPeak = m.network_bps;
+
+        cpuHistory = m.cpu_history;
+        networkHistory = m.network_history;
+
+        if (isSnapshot && m.ram_total > 0) {
+            ramHistory = m.ram_history.map((pct) => (pct / 100) * m.ram_total);
+        } else if (!isSnapshot) {
+            ramHistory = [...ramHistory.slice(-59), m.ram_used];
+        }
     }
 
     let search = "";
@@ -78,13 +88,7 @@
 
     function toggleExpand(pid: number) {
         const next = new Set(expandedPids);
-
-        if (next.has(pid)) {
-            next.delete(pid);
-        } else {
-            next.add(pid);
-        }
-
+        next.has(pid) ? next.delete(pid) : next.add(pid);
         expandedPids = next;
     }
 
@@ -96,13 +100,10 @@
 
     $: {
         const { roots } = buildTree(liveProcesses);
-
         cpuTree = cloneTree(roots);
         sortTreeBy(cpuTree, "cpu");
-
         ramTree = cloneTree(roots);
         sortTreeBy(ramTree, "ram");
-
         networkTree = cloneTree(roots);
         sortTreeBy(networkTree, "network");
     }
@@ -117,14 +118,10 @@
     $: displayProcesses = processTree.filter((p) =>
         matchesSearch(p, searchLower),
     );
-
     $: showProcessList = activeTab !== "disk";
 
     function openProcess(pid: number) {
-        invoke("open_process", {
-            pid,
-            tab: activeTab,
-        });
+        invoke("open_process", { pid, tab: activeTab });
     }
 </script>
 
@@ -135,6 +132,8 @@
             {cpuHistory}
             {ramHistory}
             {networkHistory}
+            ramMax={ramTotal}
+            netMax={networkPeak || undefined}
         />
     </div>
 
@@ -173,17 +172,14 @@
             class="chevron"
             aria-label={open ? "Collapse" : "Expand"}
             onclick={() => {
-                if (hasKids) {
-                    toggleExpand(proc.pid);
-                }
+                if (hasKids) toggleExpand(proc.pid);
             }}
         >
             {#if hasKids}
-                {#if open}
-                    <ChevronDown size={14} strokeWidth={3} />
-                {:else}
-                    <ChevronRight size={14} strokeWidth={3} />
-                {/if}
+                {#if open}<ChevronDown
+                        size={14}
+                        strokeWidth={3}
+                    />{:else}<ChevronRight size={14} strokeWidth={3} />{/if}
             {/if}
         </button>
         <button
@@ -192,9 +188,7 @@
             onclick={() => openProcess(proc.pid)}
         >
             {#if proc.icon === "system"}
-                <div class="proc-icon fallback-icon">
-                    <Cpu size={13} />
-                </div>
+                <div class="proc-icon fallback-icon"><Cpu size={13} /></div>
             {:else if proc.icon === "terminal"}
                 <div class="proc-icon fallback-icon">
                     <Terminal size={13} />
@@ -208,10 +202,8 @@
             {:else}
                 <div class="proc-icon fallback"></div>
             {/if}
-
             <div class="proc-main-info">
                 <span class="proc-name">{proc.name}</span>
-
                 {#if hasKids}
                     <span class="child-badge">
                         <span class="plus">+</span>
@@ -219,7 +211,6 @@
                     </span>
                 {/if}
             </div>
-
             <span class="proc-metric">{metricLabel(proc, activeTab)}</span>
         </button>
     </div>
@@ -305,27 +296,22 @@
         display: flex;
         align-items: center;
         gap: 8px;
-
         width: 100%;
         min-height: 40px;
         box-sizing: border-box;
-
         border: none;
         background: transparent;
         font: inherit;
         text-align: left;
-
         padding-top: 7px;
         padding-bottom: 7px;
         padding-right: 16px;
-
         transition: var(--transition-fast);
     }
 
     .process-row:focus {
         outline: none;
     }
-
     .process-row:focus-visible {
         background: var(--color-button-bg-hover);
     }
@@ -343,16 +329,12 @@
 
     .process-main {
         flex: 1;
-
         display: flex;
         align-items: center;
         gap: 8px;
-
         box-sizing: border-box;
-
         border: none;
         background: transparent;
-
         font: inherit;
         text-align: left;
     }
@@ -372,23 +354,20 @@
     .fallback-icon {
         display: grid;
         place-items: center;
-
         background: var(--color-track-fill);
         color: var(--color-text-secondary);
-
         line-height: 0;
     }
+
     .fallback-icon :global(svg) {
         transform: translate(-0.5px, -0.5px);
     }
 
     .proc-main-info {
         flex: 1;
-
         display: flex;
         align-items: center;
         gap: 8px;
-
         min-width: 0;
     }
 
@@ -405,7 +384,6 @@
         display: inline-flex;
         align-items: center;
         gap: 3px;
-
         font-size: 12px;
         color: var(--color-text-secondary);
         background: var(--color-track-fill);
@@ -417,7 +395,6 @@
     .plus {
         position: relative;
         top: -0.5px;
-
         font-size: 11px;
         font-weight: 600;
     }
