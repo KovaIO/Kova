@@ -1,5 +1,7 @@
 mod app_state;
 mod commands;
+mod metrics;
+mod processes;
 mod windows;
 
 use std::sync::{
@@ -12,8 +14,10 @@ use tauri::{Manager, WindowEvent};
 use tauri_plugin_positioner::{Position, WindowExt};
 
 use commands::{
-    get_current_metrics, get_running_processes, open_monitor, open_preferences, open_process,
+    get_current_metrics, get_running_procs, open_monitor, open_preferences, open_process,
 };
+
+use crate::metrics::{models::new_shared_history, start_metrics_loop};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -25,14 +29,14 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             get_current_metrics,
+            get_running_procs,
             open_preferences,
             open_monitor,
-            open_process,
-            get_running_processes
+            open_process
         ])
         .setup(|app| {
-            let history = app_state::new_shared_history();
-            commands::start_metrics_loop(app.handle().clone(), history.clone());
+            let history = new_shared_history();
+            start_metrics_loop(app.handle().clone(), history.clone());
 
             app.manage(history);
 
