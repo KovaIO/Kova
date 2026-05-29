@@ -1,20 +1,13 @@
 <script lang="ts">
+    import type { IgnoredApp } from "$types/preferences";
     import { invoke } from "@tauri-apps/api/core";
     import { open } from "@tauri-apps/plugin-dialog";
-    import { createEventDispatcher, onMount } from "svelte";
+    import { onMount } from "svelte";
 
-    const dispatch = createEventDispatcher<{
-        pick: { name: string; path: string; icon?: string };
-        close: void;
-    }>();
+    export let onpick: (app: IgnoredApp) => void = () => {};
+    export let onclose: () => void = () => {};
 
-    interface Process {
-        name: string;
-        path: string;
-        icon?: string;
-    }
-
-    let processes: Process[] = [];
+    let processes: IgnoredApp[] = [];
     let search = "";
     let loading = true;
     let searchInput: HTMLInputElement;
@@ -25,7 +18,7 @@
 
     onMount(async () => {
         try {
-            processes = await invoke<Process[]>("get_running_processes");
+            processes = await invoke<IgnoredApp[]>("get_running_procs");
         } finally {
             loading = false;
             searchInput?.focus();
@@ -48,15 +41,15 @@
 
         const path = selected as string;
         const name = path.split("\\").pop() ?? path;
-        dispatch("pick", { name, path });
+        onpick({ name, path });
     }
 
-    function pick(p: Process) {
-        dispatch("pick", { name: p.name, path: p.path, icon: p.icon });
+    function pick(p: IgnoredApp) {
+        onpick(p);
     }
 
     function handleBackdrop(e: MouseEvent) {
-        if (e.target === e.currentTarget) dispatch("close");
+        if (e.target === e.currentTarget) onclose();
     }
 </script>
 
@@ -64,7 +57,7 @@
 <div
     class="backdrop"
     on:click={handleBackdrop}
-    on:keydown={(e) => e.key === "Escape" && dispatch("close")}
+    on:keydown={(e) => e.key === "Escape" && onclose()}
     role="dialog"
     aria-modal="true"
     tabindex="-1"
@@ -75,7 +68,7 @@
             <button
                 class="close-btn"
                 aria-label="Close"
-                on:click={() => dispatch("close")}
+                on:click={() => onclose()}
             >
                 <svg
                     width="13"

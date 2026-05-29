@@ -16,6 +16,8 @@ const config = {
       $components: "src/components",
       $types: "src/types",
       $utils: "src/utils",
+      $stores: "src/stores",
+      $services: "src/services",
     },
   },
 };

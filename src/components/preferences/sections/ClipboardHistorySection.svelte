@@ -3,8 +3,9 @@
     import PreferenceItem from "../PreferenceItem.svelte";
     import Toggle from "$components/Toggle.svelte";
     import AppPickerModal from "$components/clipboard/AppPickerModal.svelte";
+    import type { IgnoredApp } from "$types/preferences";
 
-    let ignoredApps: { name: string; path: string; icon?: string }[] = [];
+    let ignoredApps: IgnoredApp[] = [];
     let showPicker = false;
     let clearing = false;
 
@@ -15,12 +16,9 @@
         clearing = false;
     }
 
-    function onPick(
-        e: CustomEvent<{ name: string; path: string; icon?: string }>,
-    ) {
-        const { name, path, icon } = e.detail;
-        if (ignoredApps.some((a) => a.path === path)) return;
-        ignoredApps = [...ignoredApps, { name, path, icon }];
+    function onPick(app: IgnoredApp) {
+        if (ignoredApps.some((a) => a.path === app.path)) return;
+        ignoredApps = [...ignoredApps, app];
         showPicker = false;
     }
 
@@ -30,7 +28,7 @@
 </script>
 
 {#if showPicker}
-    <AppPickerModal on:pick={onPick} on:close={() => (showPicker = false)} />
+    <AppPickerModal onpick={onPick} onclose={() => (showPicker = false)} />
 {/if}
 
 <PreferencesSection

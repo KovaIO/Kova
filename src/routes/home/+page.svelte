@@ -6,6 +6,8 @@
     import Toggle from "$components/Toggle.svelte";
     import BrightnessSlider from "$components/BrightnessSlider.svelte";
     import { Cpu, MemoryStick, HardDrive } from "@lucide/svelte";
+    import { updateWindowManager } from "$services/preferences";
+    import { preferences } from "$stores/preferences";
 
     interface Metrics {
         cpu_percent: number;
@@ -52,7 +54,7 @@
 
     let windowManager = false;
     let clipboardHistory = false;
-    let brightness = 80;
+    $: opacity = $preferences?.window_manager.opacity ?? 80;
 
     async function openPreferences() {
         await invoke("open_preferences");
@@ -103,7 +105,10 @@
         <div class="divider"></div>
 
         <section class="brightness-section">
-            <BrightnessSlider bind:value={brightness} />
+            <BrightnessSlider
+                value={opacity}
+                onchange={(v) => updateWindowManager(v)}
+            />
         </section>
     </div>
 

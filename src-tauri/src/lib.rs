@@ -1,6 +1,7 @@
 mod app_state;
 mod commands;
 mod metrics;
+mod preferences;
 mod processes;
 mod windows;
 
@@ -14,11 +15,16 @@ use tauri::{Manager, WindowEvent};
 use tauri_plugin_positioner::{Position, WindowExt};
 
 use commands::{
-    force_quit_process_cmd, get_current_metrics, get_process_history, get_running_procs,
-    get_snapshot, open_monitor, open_preferences, open_process, quit_process_cmd,
+    force_quit_process_cmd, get_current_metrics, get_preferences, get_process_history,
+    get_running_procs, get_snapshot, open_monitor, open_preferences, open_process,
+    quit_process_cmd, update_clipboard_preferences, update_general_preferences,
+    update_window_manager_preferences,
 };
 
-use crate::metrics::{models::new_shared_history, start_metrics_loop};
+use crate::{
+    app_state::initialize_app_state,
+    metrics::{models::new_shared_history, start_metrics_loop},
+};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -29,6 +35,10 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
+            get_preferences,
+            update_general_preferences,
+            update_clipboard_preferences,
+            update_window_manager_preferences,
             get_current_metrics,
             get_snapshot,
             get_process_history,
@@ -40,6 +50,10 @@ pub fn run() {
             open_process
         ])
         .setup(|app| {
+            let app_state = initialize_app_state(app)?;
+
+            app.manage(app_state);
+
             let history = new_shared_history();
             start_metrics_loop(app.handle().clone(), history.clone());
 

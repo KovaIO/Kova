@@ -30,6 +30,7 @@ tauri-plugin-os = "2"
 base64 = "0.22.1"
 netstat2 = "0.11.2"
 tauri-plugin-dialog = "=2.7.1"
+rusqlite = { version = "0.40.0", features = ["bundled"] }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 image = "0.25.10"

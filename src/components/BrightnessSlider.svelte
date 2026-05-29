@@ -1,20 +1,45 @@
 <script lang="ts">
     import { Sun } from "@lucide/svelte";
 
-    export let value: number = 80;
+    export let value: number;
+
+    export let onchange: (value: number) => void = () => {};
+
+    let localValue = value;
+    let dragging = false;
+
+    $: if (!dragging) {
+        localValue = value;
+    }
+
+    function onInput(e: Event) {
+        localValue = +(e.target as HTMLInputElement).value;
+    }
+
+    function onPointerDown() {
+        dragging = true;
+    }
+
+    function onPointerUp() {
+        dragging = false;
+        onchange(localValue);
+    }
 </script>
 
 <div class="brightness-row">
     <Sun class="icon" size={14} />
-    <div class="track-wrap" style="--thumb-position: {value}%">
+    <div class="track-wrap" style="--thumb-position: {localValue}%">
         <input
             type="range"
             min="0"
             max="100"
-            bind:value
+            value={localValue}
+            on:input={onInput}
+            on:pointerdown={onPointerDown}
+            on:pointerup={onPointerUp}
             aria-label="Brightness"
         />
-        <div class="track-fill" style="width: {value}%"></div>
+        <div class="track-fill" style="width: {localValue}%"></div>
     </div>
 </div>
 

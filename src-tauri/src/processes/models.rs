@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone)]
 pub struct ProcessMeta {
@@ -29,7 +29,7 @@ pub struct FlatProcess {
     pub icon: Option<String>,
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RunningProcess {
     pub name: String,
     pub path: String,
