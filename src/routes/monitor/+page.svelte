@@ -45,29 +45,56 @@
     let ramTotal = 0;
     let networkPeak = 0;
 
-    let cpuValue = 0;
-    let ramValue = 0;
-    let diskValue = 0;
-    let networkBps = 0;
     let liveProcesses: FlatProcess[] = [];
+
+    let selectedHistoryIndex: number | null = null;
+    let historyMode = false;
 
     let unlisten: UnlistenFn;
 
     onMount(async () => {
         const snap = await invoke<Metrics | null>("get_current_metrics");
-        if (snap) applyMetrics(snap, true);
-        unlisten = await listen<Metrics>("metrics", (e) =>
-            applyMetrics(e.payload, false),
-        );
+        if (snap) applyMetrics(snap);
+        unlisten = await listen<Metrics>("metrics", async (e) => {
+            if (!historyMode) {
+                applyMetrics(e.payload);
+                return;
+            }
+
+            if (selectedHistoryIndex !== null) {
+                selectedHistoryIndex -= 1;
+
+                const snap = await invoke<Metrics>("get_snapshot", {
+                    index: selectedHistoryIndex,
+                });
+
+                applyMetrics(snap);
+            }
+        });
     });
 
     onDestroy(() => unlisten?.());
 
-    function applyMetrics(m: Metrics, isSnapshot: boolean) {
-        cpuValue = m.cpu_percent;
-        ramValue = m.ram_percent;
-        diskValue = m.disk_percent;
-        networkBps = m.network_bps;
+    async function handleBarClick(index: number) {
+        if (selectedHistoryIndex === index) {
+            exitHistoryMode();
+            return;
+        }
+
+        historyMode = true;
+        selectedHistoryIndex = index;
+
+        const snap = await invoke<Metrics>("get_snapshot", { index });
+
+        applyMetrics(snap);
+    }
+
+    function exitHistoryMode() {
+        historyMode = false;
+        selectedHistoryIndex = null;
+    }
+
+    function applyMetrics(m: Metrics) {
         liveProcesses = m.processes;
 
         if (m.ram_total > 0) ramTotal = m.ram_total;
@@ -76,11 +103,7 @@
         cpuHistory = m.cpu_history;
         networkHistory = m.network_history;
 
-        if (isSnapshot && m.ram_total > 0) {
-            ramHistory = m.ram_history.map((pct) => (pct / 100) * m.ram_total);
-        } else if (!isSnapshot) {
-            ramHistory = [...ramHistory.slice(-59), m.ram_used];
-        }
+        ramHistory = m.ram_history.map((pct) => (pct / 100) * m.ram_total);
     }
 
     let search = "";
@@ -134,6 +157,9 @@
             {networkHistory}
             ramMax={ramTotal}
             netMax={networkPeak || undefined}
+            onBarClick={handleBarClick}
+            selectedIndex={selectedHistoryIndex}
+            onBackgroundClick={exitHistoryMode}
         />
     </div>
 

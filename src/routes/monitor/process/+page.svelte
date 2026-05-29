@@ -31,14 +31,32 @@
     let ramHistory: number[] = [];
     let networkHistory: number[] = [];
 
-    let cpuValue = 0;
-    let ramValue = 0;
-    let diskValue = 0;
-    let networkBps = 0;
     let ramMax = 1;
     let netMax = 1;
 
     let expandedPids = new Set<number>();
+
+    let selectedHistoryIndex: number | null = null;
+    let historyMode = false;
+
+    async function handleBarClick(index: number) {
+        if (selectedHistoryIndex === index) {
+            exitHistoryMode();
+            return;
+        }
+
+        historyMode = true;
+        selectedHistoryIndex = index;
+
+        const snap = await invoke<Metrics>("get_snapshot", { index });
+
+        applyMetrics(snap, false);
+    }
+
+    function exitHistoryMode() {
+        historyMode = false;
+        selectedHistoryIndex = null;
+    }
 
     function toggleExpand(id: number) {
         const next = new Set(expandedPids);
@@ -46,7 +64,7 @@
         expandedPids = next;
     }
 
-    function applyMetrics(m: Metrics) {
+    function applyMetrics(m: Metrics, appendHistory = true) {
         const hierarchy = getProcessHierarchy(m.processes, pid);
         if (!hierarchy.target) return;
 
@@ -54,9 +72,11 @@
         ancestors = hierarchy.ancestors;
         rootNode = hierarchy.rootNode;
 
-        cpuHistory = [...cpuHistory.slice(-59), proc.cpu_percent];
-        ramHistory = [...ramHistory.slice(-59), proc.ram_bytes];
-        networkHistory = [...networkHistory.slice(-59), proc.net_bps];
+        if (appendHistory) {
+            cpuHistory = [...cpuHistory.slice(-59), proc.cpu_percent];
+            ramHistory = [...ramHistory.slice(-59), proc.ram_bytes];
+            networkHistory = [...networkHistory.slice(-59), proc.net_bps];
+        }
 
         ramMax = Math.max(...ramHistory, 1);
         netMax = Math.max(...networkHistory, 1);
@@ -79,11 +99,24 @@
         netMax = Math.max(...netH, 1);
 
         const snap = await invoke<Metrics | null>("get_current_metrics");
-        if (snap) applyMetrics(snap);
+        if (snap) applyMetrics(snap, false);
 
-        unlisten = await listen<Metrics>("metrics", (e) =>
-            applyMetrics(e.payload),
-        );
+        unlisten = await listen<Metrics>("metrics", async (e) => {
+            if (!historyMode) {
+                applyMetrics(e.payload, false);
+                return;
+            }
+
+            if (selectedHistoryIndex !== null) {
+                selectedHistoryIndex -= 1;
+
+                const snap = await invoke<Metrics>("get_snapshot", {
+                    index: selectedHistoryIndex,
+                });
+
+                applyMetrics(snap, true);
+            }
+        });
     });
 
     onDestroy(() => unlisten?.());
@@ -105,6 +138,9 @@
             {ramMax}
             {netMax}
             showDiskTab={false}
+            onBarClick={handleBarClick}
+            selectedIndex={selectedHistoryIndex}
+            onBackgroundClick={exitHistoryMode}
         />
 
         <div class="details-scroll">

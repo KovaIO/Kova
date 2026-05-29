@@ -15,19 +15,22 @@ pub fn get_process_history(
 ) -> (Vec<f32>, Vec<u64>, Vec<u64>) {
     let h = history.lock().unwrap();
 
-    let cpu: Vec<f32> = h.process_history
+    let cpu: Vec<f32> = h
+        .process_history
         .iter()
         .filter_map(|snap| snap.processes.iter().find(|p| p.pid == pid))
         .map(|p| p.cpu_percent)
         .collect();
 
-    let ram: Vec<u64> = h.process_history
+    let ram: Vec<u64> = h
+        .process_history
         .iter()
         .filter_map(|snap| snap.processes.iter().find(|p| p.pid == pid))
         .map(|p| p.ram_bytes)
         .collect();
 
-    let net: Vec<u64> = h.process_history
+    let net: Vec<u64> = h
+        .process_history
         .iter()
         .filter_map(|snap| snap.processes.iter().find(|p| p.pid == pid))
         .map(|p| p.net_bps)

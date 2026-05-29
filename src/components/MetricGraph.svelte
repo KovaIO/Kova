@@ -13,6 +13,10 @@
     export let ramMax: number | null = null;
     export let netMax: number | null = null;
 
+    export let selectedIndex: number | null = null;
+    export let onBarClick: ((index: number) => void) | undefined;
+    export let onBackgroundClick: (() => void) | undefined;
+
     $: networkMax = Math.max(...networkHistory, 1);
     $: ramTotalBytes = ramMax ?? Math.max(...ramHistory, 1);
 
@@ -44,23 +48,23 @@
         <button
             class="tab"
             class:active={activeTab === "cpu"}
-            on:click={() => (activeTab = "cpu")}>CPU</button
+            onclick={() => (activeTab = "cpu")}>CPU</button
         >
         <button
             class="tab"
             class:active={activeTab === "ram"}
-            on:click={() => (activeTab = "ram")}>Memory</button
+            onclick={() => (activeTab = "ram")}>Memory</button
         >
         <button
             class="tab"
             class:active={activeTab === "network"}
-            on:click={() => (activeTab = "network")}>Network</button
+            onclick={() => (activeTab = "network")}>Network</button
         >
         {#if showDiskTab}
             <button
                 class="tab"
                 class:active={activeTab === "disk"}
-                on:click={() => (activeTab = "disk")}>Disk</button
+                onclick={() => (activeTab = "disk")}>Disk</button
             >
         {/if}
     </div>
@@ -75,12 +79,37 @@
                 {/each}
             </div>
 
-            <div class="bars">
-                {#each history as value}
+            <div
+                role="button"
+                class="bars"
+                tabindex="0"
+                onclick={(e) => {
+                    if (e.target === e.currentTarget) {
+                        onBackgroundClick?.();
+                    }
+                }}
+                onkeydown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                        onBackgroundClick?.();
+                    }
+                }}
+            >
+                {#each history as value, i}
                     {@const pct = Math.max(value, 1)}
                     {@const topPct = Math.min(pct * SPLIT, pct)}
                     {@const bottomPct = pct - topPct}
-                    <div class="bar-wrap" style="height: {pct}%">
+                    <button
+                        class="bar-wrap"
+                        class:selected={selectedIndex === i}
+                        class:dimmed={selectedIndex !== null &&
+                            selectedIndex !== i}
+                        aria-label="bar"
+                        style="height: {pct}%"
+                        onclick={(e) => {
+                            e.stopPropagation();
+                            onBarClick?.(i);
+                        }}
+                    >
                         <div
                             class="bar-top"
                             style="height: {(topPct / pct) * 100}%"
@@ -89,7 +118,7 @@
                             class="bar-bottom"
                             style="height: {(bottomPct / pct) * 100}%"
                         ></div>
-                    </div>
+                    </button>
                 {/each}
             </div>
         </div>
@@ -123,7 +152,6 @@
         font-size: 12px;
         font-weight: 500;
         font-family: inherit;
-        cursor: pointer;
         transition: var(--transition-fast);
     }
 
@@ -195,7 +223,19 @@
         flex-direction: column;
         border-radius: 2px 2px 0 0;
         overflow: hidden;
+        border: none;
+        padding: 0;
+        background: transparent;
         transition: height 300ms ease;
+    }
+    .bar-wrap.dimmed {
+        opacity: 0.28;
+        filter: grayscale(1);
+    }
+
+    .bar-wrap.selected {
+        opacity: 1;
+        filter: none;
     }
 
     .bar-top {
