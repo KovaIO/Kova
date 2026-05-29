@@ -353,23 +353,27 @@
         overflow-y: auto;
         overflow-x: hidden;
 
-        padding: 10px 0 12px;
+        padding: 10px 4px 12px 0;
 
         contain: strict;
         overscroll-behavior: contain;
     }
 
     .details-scroll::-webkit-scrollbar {
-        width: 3px;
+        width: 8px;
     }
 
     .details-scroll::-webkit-scrollbar-track {
         background: transparent;
+        margin-top: 4px;
+        margin-bottom: 4px;
     }
 
     .details-scroll::-webkit-scrollbar-thumb {
         background: var(--color-border-strong);
         border-radius: 999px;
+        background-clip: padding-box;
+        border: 2px solid transparent;
     }
 
     .main-row {

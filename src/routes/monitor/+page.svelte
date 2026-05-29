@@ -250,6 +250,7 @@
 
 <style>
     .graph {
+        padding-top: 16px;
         background: var(--color-main-bg);
         backdrop-filter: blur(var(--blur-glass));
         border: 2px solid var(--color-border-subtle);
@@ -301,21 +302,25 @@
         contain: strict;
         flex: 1;
         overflow-y: auto;
-        padding: 6px 0;
+        padding: 6px 4px 6px 0;
         min-height: 0;
         overscroll-behavior: contain;
         will-change: scroll-position;
     }
 
     .list-card::-webkit-scrollbar {
-        width: 3px;
+        width: 8px;
     }
     .list-card::-webkit-scrollbar-track {
         background: transparent;
+        margin-top: 4px;
+        margin-bottom: 4px;
     }
     .list-card::-webkit-scrollbar-thumb {
         background: var(--color-border-strong);
         border-radius: 999px;
+        background-clip: padding-box;
+        border: 2px solid transparent;
     }
 
     .process-row {

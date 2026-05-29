@@ -133,13 +133,13 @@
         color: white;
         overflow: hidden;
         flex-shrink: 0;
-        padding: 16px;
+        padding: 0px;
     }
 
     .tabs {
         display: flex;
         gap: 4px;
-        margin-bottom: 16px;
+        margin-bottom: 26px;
         justify-content: center;
     }
 
@@ -167,7 +167,7 @@
     .chart-wrap {
         position: relative;
         flex: 1;
-        height: 140px;
+        height: 160px;
     }
 
     .grid-lines {
@@ -182,8 +182,14 @@
 
     .grid-line {
         width: 100%;
-        height: 1px;
-        background: rgba(255, 255, 255, 0.05);
+        height: 1.5px;
+        background-image: linear-gradient(
+            to right,
+            var(--color-border-strong) 0 6px,
+            transparent 0 12px
+        );
+        background-size: 12px 100%;
+        background-repeat: repeat-x;
         position: relative;
         display: flex;
         align-items: flex-start;
@@ -226,7 +232,7 @@
         border: none;
         padding: 0;
         background: transparent;
-        transition: height 300ms ease;
+        transition: var(--transition-slow);
     }
     .bar-wrap.dimmed {
         opacity: 0.28;
