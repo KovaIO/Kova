@@ -20,8 +20,16 @@
     $: networkMax = Math.max(...networkHistory, 1);
     $: ramTotalBytes = ramMax ?? Math.max(...ramHistory, 1);
 
+    function getCpuCeiling(max: number) {
+        const padded = max * 1.2;
+        return Math.min(100, Math.ceil(padded / 10) * 10);
+    }
+
+    $: cpuCeiling = getCpuCeiling(Math.max(...cpuHistory, 1));
+
     $: history = (() => {
-        if (activeTab === "cpu") return cpuHistory;
+        if (activeTab === "cpu")
+            return cpuHistory.map((v) => (v / cpuCeiling) * 100);
         if (activeTab === "ram")
             return ramHistory.map((v) => (v / ramTotalBytes) * 100);
         return networkHistory.map((v) => (v / networkMax) * 100);
@@ -37,7 +45,9 @@
             const peak = netMax ?? networkMax;
             return [1, 0.75, 0.5, 0.25].map((r) => formatBps(peak * r));
         }
-        return [1, 0.75, 0.5, 0.25].map((r) => `${Math.round(100 * r)}%`);
+        return [1, 0.75, 0.5, 0.25].map(
+            (r) => `${Math.round(cpuCeiling * r)}%`,
+        );
     })();
 
     const SPLIT = 0.3;
@@ -72,7 +82,7 @@
     <div class="graph-area">
         <div class="chart-wrap">
             <div class="grid-lines">
-                {#each [0, 1, 2, 3] as i}
+                {#each [1, 0.75, 0.5, 0.25, 0] as ratio, i}
                     <div class="grid-line">
                         <span class="grid-label">{yLabels[i]}</span>
                     </div>
