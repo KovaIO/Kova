@@ -14,8 +14,8 @@ use tauri::{Manager, WindowEvent};
 use tauri_plugin_positioner::{Position, WindowExt};
 
 use commands::{
-    get_current_metrics, get_process_history, get_running_procs, get_snapshot, open_monitor,
-    open_preferences, open_process,
+    force_quit_process_cmd, get_current_metrics, get_process_history, get_running_procs,
+    get_snapshot, open_monitor, open_preferences, open_process, quit_process_cmd,
 };
 
 use crate::metrics::{models::new_shared_history, start_metrics_loop};
@@ -33,6 +33,8 @@ pub fn run() {
             get_snapshot,
             get_process_history,
             get_running_procs,
+            quit_process_cmd,
+            force_quit_process_cmd,
             open_preferences,
             open_monitor,
             open_process

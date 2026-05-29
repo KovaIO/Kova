@@ -1,6 +1,6 @@
 use crate::{
     metrics::models::SharedHistory,
-    processes::{get_running_processes, RunningProcess},
+    processes::{force_quit_process, get_running_processes, quit_process, RunningProcess},
 };
 
 #[tauri::command]
@@ -37,4 +37,14 @@ pub fn get_process_history(
         .collect();
 
     (cpu, ram, net)
+}
+
+#[tauri::command]
+pub fn quit_process_cmd(pid: u32) -> Result<(), String> {
+    quit_process(pid)
+}
+
+#[tauri::command]
+pub fn force_quit_process_cmd(pid: u32) -> Result<(), String> {
+    force_quit_process(pid)
 }

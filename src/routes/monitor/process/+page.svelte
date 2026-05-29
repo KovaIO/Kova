@@ -103,7 +103,7 @@
 
         unlisten = await listen<Metrics>("metrics", async (e) => {
             if (!historyMode) {
-                applyMetrics(e.payload, false);
+                applyMetrics(e.payload, true);
                 return;
             }
 
@@ -118,6 +118,20 @@
             }
         });
     });
+
+    async function quitProcess(force = false) {
+        try {
+            if (force) {
+                await invoke("force_quit_process_cmd", { pid });
+            } else {
+                await invoke("quit_process_cmd", { pid });
+            }
+
+            await openMonitor();
+        } catch (err) {
+            console.error("Failed to quit process:", err);
+        }
+    }
 
     onDestroy(() => unlisten?.());
 </script>
@@ -200,6 +214,23 @@
             {:else}
                 <p class="empty">Waiting for process data…</p>
             {/if}
+        </div>
+
+        <div class="actions">
+            <button
+                type="button"
+                class="action-button danger"
+                onclick={() => quitProcess(false)}
+            >
+                Force quit
+            </button>
+            <button
+                type="button"
+                class="action-button"
+                onclick={() => quitProcess(true)}
+            >
+                Quit
+            </button>
         </div>
     </div>
 </div>
@@ -621,5 +652,37 @@
         font-size: 12px;
 
         color: var(--color-text-dim);
+    }
+
+    .actions {
+        display: flex;
+        gap: 8px;
+        padding: 12px 16px 16px;
+        width: 100%;
+        box-sizing: border-box;
+        flex-shrink: 0;
+    }
+
+    .action-button {
+        flex: 1;
+        height: 36px;
+        border: none;
+        border-radius: var(--radius-md);
+        background: var(--color-accent);
+        color: var(--color-text-primary);
+        font: inherit;
+        font-size: 12px;
+        font-weight: 500;
+        transition: var(--transition-medium);
+    }
+    .action-button:hover {
+        background: var(--color-accent-hover);
+    }
+
+    .action-button.danger {
+        background: var(--color-track-fill);
+    }
+    .action-button.danger:hover {
+        background: var(--color-danger);
     }
 </style>
