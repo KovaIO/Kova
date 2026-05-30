@@ -2,55 +2,38 @@
     import PreferencesSection from "../PreferencesSection.svelte";
     import PreferenceItem from "../PreferenceItem.svelte";
     import Toggle from "$components/Toggle.svelte";
-    import BrightnessSlider from "$components/BrightnessSlider.svelte";
     import { updateWindowManager } from "$services/preferences";
     import { preferences } from "$stores/preferences";
 
-    $: opacity = $preferences?.window_manager.opacity ?? 80;
+    $: windowManager = $preferences?.window_manager;
 </script>
 
 <PreferencesSection
     title="Window Manager"
-    description="Configure window behavior and positioning"
+    description="Configure window behavior and layout"
 >
     <PreferenceItem
-        label="Snap to edges"
-        description="Automatically snap window to screen edges when dragging"
+        label="Auto-layout"
+        description="Automatically arrange windows for optimal workspace usage"
     >
-        <Toggle label="" id="snap-edges" checked={true} />
+        <Toggle
+            label=""
+            id="auto-layout"
+            checked={windowManager?.auto_layout ?? true}
+            onchange={(auto_layout) => updateWindowManager({ auto_layout })}
+        />
     </PreferenceItem>
 
     <PreferenceItem
-        label="Remember position"
-        description="Save window position between sessions"
+        label="Window switcher"
+        description="Enable quick switching between open windows"
     >
-        <Toggle label="" id="remember-position" checked={true} />
-    </PreferenceItem>
-
-    <PreferenceItem
-        label="Hide on focus loss"
-        description="Automatically hide window when it loses focus"
-    >
-        <Toggle label="" id="hide-focus-loss" checked={true} />
-    </PreferenceItem>
-
-    <PreferenceItem
-        label="Window opacity"
-        description="Adjust the transparency of the window"
-    >
-        <div class="slider-wrap">
-            <BrightnessSlider
-                value={opacity}
-                onchange={(v) => updateWindowManager({ opacity: v })}
-            />
-        </div>
+        <Toggle
+            label=""
+            id="window-switcher"
+            checked={windowManager?.window_switcher ?? true}
+            onchange={(window_switcher) =>
+                updateWindowManager({ window_switcher })}
+        />
     </PreferenceItem>
 </PreferencesSection>
-
-<style>
-    .slider-wrap {
-        position: relative;
-        width: 240px;
-        height: 4px;
-    }
-</style>

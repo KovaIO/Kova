@@ -34,7 +34,9 @@ impl PreferencesStorage {
     }
 
     fn load_general_preferences(&self) -> Result<GeneralPreferences> {
-        let mut stmt = self.conn.prepare("SELECT launch_at_startup, show_menu_bar, language, theme FROM general_preferences LIMIT 1",)?;
+        let mut stmt = self.conn.prepare(
+            "SELECT launch_at_startup, show_menu_bar, language, theme, monitor_dim FROM general_preferences LIMIT 1",
+        )?;
         let prefs = stmt.query_row([], |row| {
             let theme_str: String = row.get(3)?;
             let theme = match theme_str.as_str() {
@@ -47,6 +49,7 @@ impl PreferencesStorage {
                 show_menu_bar: row.get(1)?,
                 language: row.get(2)?,
                 theme,
+                monitor_dim: row.get(4)?,
             })
         })?;
         Ok(prefs)
@@ -69,13 +72,13 @@ impl PreferencesStorage {
     }
 
     fn load_window_manager_preferences(&self) -> Result<WindowManagerPreferences> {
-        let mut stmt = self.conn.prepare("SELECT snap_to_edges, remember_position, hide_on_focus_loss, opacity FROM window_manager_preferences LIMIT 1",)?;
+        let mut stmt = self.conn.prepare(
+            "SELECT auto_layout, window_switcher FROM window_manager_preferences LIMIT 1",
+        )?;
         stmt.query_row([], |row| {
             Ok(WindowManagerPreferences {
-                snap_to_edges: row.get(0)?,
-                remember_position: row.get(1)?,
-                hide_on_focus_loss: row.get(2)?,
-                opacity: row.get(3)?,
+                auto_layout: row.get(0)?,
+                window_switcher: row.get(1)?,
             })
         })
     }
@@ -131,8 +134,8 @@ impl PreferencesStorage {
             Theme::System => "system",
         };
         self.conn.execute(
-            "UPDATE general_preferences SET launch_at_startup = ?1, show_menu_bar = ?2, language = ?3, theme = ?4",
-            params![ prefs.launch_at_startup, prefs.show_menu_bar, prefs.language, theme ],)?;
+            "UPDATE general_preferences SET launch_at_startup = ?1, show_menu_bar = ?2, language = ?3, theme = ?4, monitor_dim = ?5",
+            params![ prefs.launch_at_startup, prefs.show_menu_bar, prefs.language, theme, prefs.monitor_dim ],)?;
         Ok(())
     }
 
@@ -155,17 +158,10 @@ impl PreferencesStorage {
             "
             UPDATE window_manager_preferences
             SET
-                snap_to_edges = ?1,
-                remember_position = ?2,
-                hide_on_focus_loss = ?3,
-                opacity = ?4
+                auto_layout = ?1,
+                window_switcher = ?2
             ",
-            params![
-                prefs.snap_to_edges,
-                prefs.remember_position,
-                prefs.hide_on_focus_loss,
-                prefs.opacity
-            ],
+            params![prefs.auto_layout, prefs.window_switcher],
         )?;
 
         Ok(())

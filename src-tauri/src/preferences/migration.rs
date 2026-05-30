@@ -7,7 +7,8 @@ pub fn run_migrations(conn: &Connection) -> Result<()> {
             launch_at_startup INTEGER NOT NULL DEFAULT 0,
             show_menu_bar INTEGER NOT NULL DEFAULT 1,
             language TEXT NOT NULL DEFAULT 'en',
-            theme TEXT NOT NULL DEFAULT 'system'
+            theme TEXT NOT NULL DEFAULT 'system',
+            monitor_dim INTEGER NOT NULL DEFAULT 90
         );
 
         CREATE TABLE IF NOT EXISTS clipboard_preferences (
@@ -17,10 +18,8 @@ pub fn run_migrations(conn: &Connection) -> Result<()> {
         );
 
         CREATE TABLE IF NOT EXISTS window_manager_preferences (
-            snap_to_edges INTEGER NOT NULL DEFAULT 1,
-            remember_position INTEGER NOT NULL DEFAULT 1,
-            hide_on_focus_loss INTEGER NOT NULL DEFAULT 1,
-            opacity INTEGER NOT NULL DEFAULT 90
+            auto_layout INTEGER NOT NULL DEFAULT 1,
+            window_switcher INTEGER NOT NULL DEFAULT 1
         );
 
         CREATE TABLE IF NOT EXISTS power_preferences (
@@ -58,9 +57,10 @@ fn seed_defaults(conn: &Connection) -> Result<()> {
             launch_at_startup,
             show_menu_bar,
             language,
-            theme
+            theme,
+            monitor_dim
         )
-        SELECT 1, 1, 'en', 'system'
+        SELECT 1, 1, 'en', 'system', 90
         WHERE NOT EXISTS (
             SELECT 1 FROM general_preferences
         )
@@ -86,12 +86,10 @@ fn seed_defaults(conn: &Connection) -> Result<()> {
     conn.execute(
         "
         INSERT INTO window_manager_preferences (
-            snap_to_edges,
-            remember_position,
-            hide_on_focus_loss,
-            opacity
+            auto_layout,
+            window_switcher
         )
-        SELECT 1, 1, 1, 90
+        SELECT 1, 1
         WHERE NOT EXISTS (
             SELECT 1 FROM window_manager_preferences
         )

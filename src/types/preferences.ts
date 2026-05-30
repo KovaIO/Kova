@@ -11,6 +11,7 @@ export interface GeneralPreferences {
   show_menu_bar: boolean;
   language: string;
   theme: "dark" | "light" | "system";
+  monitor_dim: number;
 }
 
 export interface ClipboardPreferences {
@@ -21,10 +22,8 @@ export interface ClipboardPreferences {
 }
 
 export interface WindowManagerPreferences {
-  snap_to_edges: boolean;
-  remember_position: boolean;
-  hide_on_focus_loss: boolean;
-  opacity: number;
+  auto_layout: boolean;
+  window_switcher: boolean;
 }
 
 export interface PowerPreferences {

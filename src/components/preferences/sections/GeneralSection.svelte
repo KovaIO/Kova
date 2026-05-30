@@ -2,6 +2,12 @@
     import PreferencesSection from "../PreferencesSection.svelte";
     import PreferenceItem from "../PreferenceItem.svelte";
     import Toggle from "$components/Toggle.svelte";
+    import BrightnessSlider from "$components/BrightnessSlider.svelte";
+    import { updateGeneral } from "$services/preferences";
+    import { preferences } from "$stores/preferences";
+
+    $: general = $preferences?.general;
+    $: monitorDim = general?.monitor_dim ?? 90;
 </script>
 
 <PreferencesSection
@@ -20,6 +26,18 @@
         description="Display Kova icon in the system menu bar"
     >
         <Toggle label="" id="show-menubar" checked={true} />
+    </PreferenceItem>
+
+    <PreferenceItem
+        label="Monitor dim"
+        description="Adjust the background dim level when the monitor is open"
+    >
+        <div class="slider-wrap">
+            <BrightnessSlider
+                value={monitorDim}
+                onchange={(v) => updateGeneral({ monitor_dim: v })}
+            />
+        </div>
     </PreferenceItem>
 
     <PreferenceItem
@@ -47,6 +65,12 @@
 </PreferencesSection>
 
 <style>
+    .slider-wrap {
+        position: relative;
+        width: 240px;
+        height: 4px;
+    }
+
     .select {
         padding: 8px 12px;
         border-radius: var(--radius-sm);

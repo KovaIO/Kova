@@ -29,6 +29,7 @@ pub struct GeneralPreferences {
     pub show_menu_bar: bool,
     pub language: String,
     pub theme: Theme,
+    pub monitor_dim: u8,
 }
 
 impl Default for GeneralPreferences {
@@ -38,6 +39,7 @@ impl Default for GeneralPreferences {
             show_menu_bar: true,
             language: "en".to_string(),
             theme: Theme::System,
+            monitor_dim: 90,
         }
     }
 }
@@ -63,19 +65,15 @@ impl Default for ClipboardPreferences {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WindowManagerPreferences {
-    pub snap_to_edges: bool,
-    pub remember_position: bool,
-    pub hide_on_focus_loss: bool,
-    pub opacity: u8,
+    pub auto_layout: bool,
+    pub window_switcher: bool,
 }
 
 impl Default for WindowManagerPreferences {
     fn default() -> Self {
         Self {
-            snap_to_edges: true,
-            remember_position: true,
-            hide_on_focus_loss: true,
-            opacity: 90,
+            auto_layout: true,
+            window_switcher: true,
         }
     }
 }

@@ -32,8 +32,10 @@ impl PreferencesService {
     }
 
     pub fn update_general_preferences(&self, prefs: GeneralPreferences) -> Result<()> {
+        let mut validated = prefs;
+        validated.monitor_dim = validated.monitor_dim.clamp(0, 100);
         let storage = self.storage.lock().unwrap();
-        storage.save_general_preferences(&prefs)
+        storage.save_general_preferences(&validated)
     }
 
     pub fn update_clipboard_preferences(&self, prefs: ClipboardPreferences) -> Result<(), String> {
