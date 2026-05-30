@@ -5,6 +5,7 @@ mod metrics;
 mod preferences;
 mod processes;
 mod windows;
+mod migration;
 
 use std::sync::{
     atomic::{AtomicBool, Ordering},

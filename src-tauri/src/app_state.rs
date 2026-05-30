@@ -4,7 +4,8 @@ use tauri::{AppHandle, Emitter, Manager};
 
 use crate::{
     license::{LicenseService, LicenseStorage},
-    preferences::{migration::run_migrations, service::PreferencesService, PreferencesStorage},
+    migration::run_migrations,
+    preferences::{service::PreferencesService, PreferencesStorage},
 };
 
 #[derive(Clone)]
