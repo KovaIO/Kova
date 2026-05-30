@@ -18,6 +18,7 @@ pub fn run_migrations(conn: &Connection) -> Result<()> {
         );
 
         CREATE TABLE IF NOT EXISTS window_manager_preferences (
+            enabled INTEGER NOT NULL DEFAULT 1,
             auto_layout INTEGER NOT NULL DEFAULT 1,
             window_switcher INTEGER NOT NULL DEFAULT 1
         );
@@ -86,10 +87,11 @@ fn seed_defaults(conn: &Connection) -> Result<()> {
     conn.execute(
         "
         INSERT INTO window_manager_preferences (
+            enabled,
             auto_layout,
             window_switcher
         )
-        SELECT 1, 1
+        SELECT 1, 1, 1
         WHERE NOT EXISTS (
             SELECT 1 FROM window_manager_preferences
         )

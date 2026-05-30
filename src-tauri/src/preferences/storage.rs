@@ -33,7 +33,7 @@ impl PreferencesStorage {
         Ok(preferences)
     }
 
-    fn load_general_preferences(&self) -> Result<GeneralPreferences> {
+    pub fn load_general_preferences(&self) -> Result<GeneralPreferences> {
         let mut stmt = self.conn.prepare(
             "SELECT launch_at_startup, show_menu_bar, language, theme, monitor_dim FROM general_preferences LIMIT 1",
         )?;
@@ -73,12 +73,13 @@ impl PreferencesStorage {
 
     fn load_window_manager_preferences(&self) -> Result<WindowManagerPreferences> {
         let mut stmt = self.conn.prepare(
-            "SELECT auto_layout, window_switcher FROM window_manager_preferences LIMIT 1",
+            "SELECT enabled, auto_layout, window_switcher FROM window_manager_preferences LIMIT 1",
         )?;
         stmt.query_row([], |row| {
             Ok(WindowManagerPreferences {
-                auto_layout: row.get(0)?,
-                window_switcher: row.get(1)?,
+                enabled: row.get(0)?,
+                auto_layout: row.get(1)?,
+                window_switcher: row.get(2)?,
             })
         })
     }
@@ -158,10 +159,11 @@ impl PreferencesStorage {
             "
             UPDATE window_manager_preferences
             SET
-                auto_layout = ?1,
-                window_switcher = ?2
+                enabled = ?1,
+                auto_layout = ?2,
+                window_switcher = ?3
             ",
-            params![prefs.auto_layout, prefs.window_switcher],
+            params![prefs.enabled, prefs.auto_layout, prefs.window_switcher],
         )?;
 
         Ok(())

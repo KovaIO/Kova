@@ -22,6 +22,7 @@ export interface ClipboardPreferences {
 }
 
 export interface WindowManagerPreferences {
+  enabled: boolean;
   auto_layout: boolean;
   window_switcher: boolean;
 }

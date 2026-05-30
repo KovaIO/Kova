@@ -151,7 +151,7 @@
             networkHistory={networkHistory.map((v) => (v / netMax) * 100)}
             {ramMax}
             {netMax}
-            showDiskTab={false}
+            diskCleanEnabled={false}
             onBarClick={handleBarClick}
             selectedIndex={selectedHistoryIndex}
             onBackgroundClick={exitHistoryMode}

@@ -10,6 +10,10 @@ pub enum LicenseTier {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LicenseLimits {
     pub clipboard_history_unlimited: bool,
+    pub monitor_dimming: bool,
+    pub disk_clean: bool,
+    pub auto_layout: bool,
+    pub window_switcher: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

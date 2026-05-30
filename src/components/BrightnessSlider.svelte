@@ -2,6 +2,7 @@
     import { Sun } from "@lucide/svelte";
 
     export let value: number;
+    export let disabled = false;
 
     export let onchange: (value: number) => void = () => {};
 
@@ -17,16 +18,18 @@
     }
 
     function onPointerDown() {
+        if (disabled) return;
         dragging = true;
     }
 
     function onPointerUp() {
+        if (disabled) return;
         dragging = false;
         onchange(localValue);
     }
 </script>
 
-<div class="brightness-row">
+<div class="brightness-row" class:disabled>
     <Sun class="icon" size={14} />
     <div class="track-wrap" style="--thumb-position: {localValue}%">
         <input
@@ -34,6 +37,7 @@
             min="0"
             max="100"
             value={localValue}
+            {disabled}
             on:input={onInput}
             on:pointerdown={onPointerDown}
             on:pointerup={onPointerUp}
@@ -48,6 +52,11 @@
         display: flex;
         align-items: center;
         gap: 10px;
+    }
+
+    .brightness-row.disabled {
+        opacity: 0.45;
+        pointer-events: none;
     }
 
     .track-wrap {

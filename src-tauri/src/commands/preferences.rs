@@ -33,10 +33,7 @@ pub fn update_general_preferences(
     state: State<AppState>,
 ) -> Result<(), String> {
     with_emit(&state, || {
-        state
-            .preferences
-            .update_general_preferences(prefs)
-            .map_err(|e| e.to_string())
+        state.preferences.update_general_preferences(prefs)
     })
 }
 
@@ -59,9 +56,6 @@ pub fn update_window_manager_preferences(
     state: State<AppState>,
 ) -> Result<(), String> {
     with_emit(&state, || {
-        state
-            .preferences
-            .update_window_manager_preferences(prefs)
-            .map_err(|e| e.to_string())
+        state.preferences.update_window_manager_preferences(prefs)
     })
 }

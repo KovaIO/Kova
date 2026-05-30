@@ -4,7 +4,7 @@
     type Tab = "cpu" | "ram" | "disk" | "network";
 
     export let activeTab: Tab;
-    export let showDiskTab = true;
+    export let diskCleanEnabled = true;
 
     export let cpuHistory: number[];
     export let ramHistory: number[];
@@ -70,13 +70,15 @@
             class:active={activeTab === "network"}
             onclick={() => (activeTab = "network")}>Network</button
         >
-        {#if showDiskTab}
-            <button
-                class="tab"
-                class:active={activeTab === "disk"}
-                onclick={() => (activeTab = "disk")}>Disk</button
-            >
-        {/if}
+        <button
+            class="tab"
+            class:active={activeTab === "disk"}
+            class:disabled={!diskCleanEnabled}
+            disabled={!diskCleanEnabled}
+            onclick={() => {
+                if (diskCleanEnabled) activeTab = "disk";
+            }}>Disk</button
+        >
     </div>
 
     <div class="graph-area">
@@ -168,6 +170,10 @@
     .tab.active {
         background: var(--color-accent-soft);
         color: var(--color-accent);
+    }
+
+    .tab.disabled {
+        display: none;
     }
 
     .graph-area {

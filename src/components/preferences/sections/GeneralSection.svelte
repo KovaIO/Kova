@@ -4,6 +4,7 @@
     import Toggle from "$components/Toggle.svelte";
     import BrightnessSlider from "$components/BrightnessSlider.svelte";
     import { updateGeneral } from "$services/preferences";
+    import { canUse, license } from "$stores/license";
     import { preferences } from "$stores/preferences";
     import type { GeneralPreferences } from "$types/preferences";
 
@@ -24,6 +25,7 @@
     $: monitorDim = general?.monitor_dim ?? 90;
     $: language = general?.language ?? "en";
     $: theme = general?.theme ?? "system";
+    $: monitorDimmingEnabled = canUse("monitor_dimming", $license);
 
     function onLanguageChange(event: Event) {
         const value = (event.target as HTMLSelectElement).value;
@@ -49,7 +51,8 @@
             label=""
             id="launch-startup"
             checked={general?.launch_at_startup ?? false}
-            onchange={(launch_at_startup) => updateGeneral({ launch_at_startup })}
+            onchange={(launch_at_startup) =>
+                updateGeneral({ launch_at_startup })}
         />
     </PreferenceItem>
 
@@ -65,17 +68,24 @@
         />
     </PreferenceItem>
 
-    <PreferenceItem
-        label="Monitor dim"
-        description="Adjust the background dim level when the monitor is open"
-    >
-        <div class="slider-wrap">
-            <BrightnessSlider
-                value={monitorDim}
-                onchange={(v) => updateGeneral({ monitor_dim: v })}
-            />
-        </div>
-    </PreferenceItem>
+    <div class="monitor-dim-group">
+        <PreferenceItem
+            label="Monitor dim"
+            description="Adjust the background dim level when the monitor is open"
+        >
+            <div class="slider-wrap">
+                <BrightnessSlider
+                    value={monitorDim}
+                    disabled={!monitorDimmingEnabled}
+                    onchange={(v) => updateGeneral({ monitor_dim: v })}
+                />
+            </div>
+        </PreferenceItem>
+
+        {#if !monitorDimmingEnabled}
+            <p class="tier-hint">Upgrade to Pro to adjust monitor dimming.</p>
+        {/if}
+    </div>
 
     <PreferenceItem
         label="Language"
@@ -101,6 +111,20 @@
 </PreferencesSection>
 
 <style>
+    .monitor-dim-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .tier-hint {
+        margin: 0;
+        padding: 0 16px 4px;
+        font-size: 12px;
+        color: var(--color-accent);
+        line-height: 1.4;
+    }
+
     .slider-wrap {
         position: relative;
         width: 240px;

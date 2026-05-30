@@ -4,6 +4,7 @@
     import { page } from "$app/state";
     import { listen, type UnlistenFn } from "@tauri-apps/api/event";
     import MetricGraph from "$components/MetricGraph.svelte";
+    import { canUse, license } from "$stores/license";
     import {
         Search,
         ChevronRight,
@@ -141,7 +142,11 @@
     $: displayProcesses = processTree.filter((p) =>
         matchesSearch(p, searchLower),
     );
+    $: diskCleanEnabled = canUse("disk_clean", $license);
     $: showProcessList = activeTab !== "disk";
+    $: if (activeTab === "disk" && !diskCleanEnabled) {
+        activeTab = "cpu";
+    }
 
     function openProcess(pid: number) {
         invoke("open_process", { pid, tab: activeTab });
@@ -152,6 +157,7 @@
     <div class="graph">
         <MetricGraph
             bind:activeTab
+            diskCleanEnabled={diskCleanEnabled}
             {cpuHistory}
             {ramHistory}
             {networkHistory}

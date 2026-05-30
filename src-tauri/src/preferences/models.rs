@@ -65,6 +65,7 @@ impl Default for ClipboardPreferences {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WindowManagerPreferences {
+    pub enabled: bool,
     pub auto_layout: bool,
     pub window_switcher: bool,
 }
@@ -72,6 +73,7 @@ pub struct WindowManagerPreferences {
 impl Default for WindowManagerPreferences {
     fn default() -> Self {
         Self {
+            enabled: true,
             auto_layout: true,
             window_switcher: true,
         }

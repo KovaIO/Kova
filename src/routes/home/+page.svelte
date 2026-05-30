@@ -6,7 +6,8 @@
     import Toggle from "$components/Toggle.svelte";
     import BrightnessSlider from "$components/BrightnessSlider.svelte";
     import { Cpu, MemoryStick, HardDrive } from "@lucide/svelte";
-    import { updateGeneral } from "$services/preferences";
+    import { updateClipboard, updateGeneral, updateWindowManager } from "$services/preferences";
+    import { canUse, license } from "$stores/license";
     import { preferences } from "$stores/preferences";
 
     interface Metrics {
@@ -52,9 +53,10 @@
 
     onDestroy(() => unlisten?.());
 
-    let windowManager = false;
-    let clipboardHistory = false;
+    $: clipboardEnabled = $preferences?.clipboard.enabled ?? true;
+    $: windowManagerEnabled = $preferences?.window_manager.enabled ?? true;
     $: monitorDim = $preferences?.general.monitor_dim ?? 90;
+    $: monitorDimmingEnabled = canUse("monitor_dimming", $license);
 
     async function openPreferences() {
         await invoke("open_preferences");
@@ -93,23 +95,27 @@
             <Toggle
                 id="wm"
                 label="Window Manager"
-                bind:checked={windowManager}
+                checked={windowManagerEnabled}
+                onchange={(enabled) => updateWindowManager({ enabled })}
             />
             <Toggle
                 id="cb"
                 label="Clipboard History"
-                bind:checked={clipboardHistory}
+                checked={clipboardEnabled}
+                onchange={(enabled) => updateClipboard({ enabled })}
             />
         </section>
 
-        <div class="divider"></div>
+        {#if monitorDimmingEnabled}
+            <div class="divider"></div>
 
-        <section class="brightness-section">
-            <BrightnessSlider
-                value={monitorDim}
-                onchange={(v) => updateGeneral({ monitor_dim: v })}
-            />
-        </section>
+            <section class="brightness-section">
+                <BrightnessSlider
+                    value={monitorDim}
+                    onchange={(v) => updateGeneral({ monitor_dim: v })}
+                />
+            </section>
+        {/if}
     </div>
 
     <button class="prefs-btn" type="button" on:click={openPreferences}
