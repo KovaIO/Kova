@@ -3,11 +3,23 @@
     import PreferenceItem from "../PreferenceItem.svelte";
     import Toggle from "$components/Toggle.svelte";
     import AppPickerModal from "$components/clipboard/AppPickerModal.svelte";
+    import { updateClipboard } from "$services/preferences";
+    import { license } from "$stores/license";
+    import { preferences } from "$stores/preferences";
     import type { IgnoredApp } from "$types/preferences";
+    import { CLIPBOARD_HISTORY_OPTIONS } from "$types/clipboard";
 
-    let ignoredApps: IgnoredApp[] = [];
     let showPicker = false;
     let clearing = false;
+
+    $: clipboard = $preferences?.clipboard;
+    $: historyLimit = clipboard?.history_limit ?? 25;
+    $: ignoredApps = clipboard?.ignored_apps ?? [];
+    $: historyOptions = CLIPBOARD_HISTORY_OPTIONS.filter(
+        (option) =>
+            !("proOnly" in option && option.proOnly) ||
+            $license?.limits.clipboard_history_unlimited,
+    );
 
     async function clearHistory() {
         clearing = true;
@@ -18,12 +30,19 @@
 
     function onPick(app: IgnoredApp) {
         if (ignoredApps.some((a) => a.path === app.path)) return;
-        ignoredApps = [...ignoredApps, app];
+        updateClipboard({ ignored_apps: [...ignoredApps, app] });
         showPicker = false;
     }
 
     function removeApp(index: number) {
-        ignoredApps = ignoredApps.filter((_, i) => i !== index);
+        updateClipboard({
+            ignored_apps: ignoredApps.filter((_, i) => i !== index),
+        });
+    }
+
+    function onHistoryLimitChange(event: Event) {
+        const value = Number((event.target as HTMLSelectElement).value);
+        updateClipboard({ history_limit: value });
     }
 </script>
 
@@ -39,27 +58,46 @@
         label="Enable clipboard history"
         description="Keep track of items copied to clipboard"
     >
-        <Toggle label="" id="enable-clipboard" checked={true} />
+        <Toggle
+            label=""
+            id="enable-clipboard"
+            checked={clipboard?.enabled ?? true}
+            onchange={(enabled) => updateClipboard({ enabled })}
+        />
     </PreferenceItem>
 
-    <PreferenceItem
-        label="History limit"
-        description="Maximum number of items to keep in history"
-    >
-        <select class="select">
-            <option>10 items</option>
-            <option selected>25 items</option>
-            <option>50 items</option>
-            <option>100 items</option>
-            <option>Unlimited</option>
-        </select>
-    </PreferenceItem>
+    <div class="history-limit-group">
+        <PreferenceItem
+            label="History limit"
+            description="Maximum number of items to keep in history"
+        >
+            <select
+                class="select"
+                value={historyLimit}
+                on:change={onHistoryLimitChange}
+            >
+                {#each historyOptions as option}
+                    <option value={option.value}>{option.label}</option>
+                {/each}
+            </select>
+        </PreferenceItem>
+
+        {#if $license?.tier === "free"}
+            <p class="tier-hint">Upgrade to Pro for unlimited history.</p>
+        {/if}
+    </div>
 
     <PreferenceItem
         label="Ignore passwords"
         description="Don't save password fields to clipboard history"
     >
-        <Toggle label="" id="ignore-passwords" checked={true} />
+        <Toggle
+            label=""
+            id="ignore-passwords"
+            checked={clipboard?.ignore_passwords ?? true}
+            onchange={(ignore_passwords) =>
+                updateClipboard({ ignore_passwords })}
+        />
     </PreferenceItem>
 
     <PreferenceItem
@@ -177,6 +215,20 @@
     .select:focus {
         outline: none;
         border-color: var(--color-accent-border);
+    }
+
+    .history-limit-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .tier-hint {
+        margin: 0;
+        padding: 0 16px 4px;
+        font-size: 12px;
+        color: var(--color-accent);
+        line-height: 1.4;
     }
 
     .clear-btn {

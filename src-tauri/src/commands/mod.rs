@@ -1,8 +1,10 @@
+pub mod license;
 pub mod metrics;
 pub mod preferences;
 pub mod processes;
 pub mod windows;
 
+pub use license::*;
 pub use metrics::{get_current_metrics, get_snapshot};
 pub use preferences::*;
 pub use processes::{

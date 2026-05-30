@@ -1,5 +1,6 @@
 mod app_state;
 mod commands;
+mod license;
 mod metrics;
 mod preferences;
 mod processes;
@@ -15,7 +16,7 @@ use tauri::{Manager, WindowEvent};
 use tauri_plugin_positioner::{Position, WindowExt};
 
 use commands::{
-    force_quit_process_cmd, get_current_metrics, get_preferences, get_process_history,
+    force_quit_process_cmd, get_current_metrics, get_license, get_preferences, get_process_history,
     get_running_procs, get_snapshot, open_monitor, open_preferences, open_process,
     quit_process_cmd, update_clipboard_preferences, update_general_preferences,
     update_window_manager_preferences,
@@ -36,6 +37,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             get_preferences,
+            get_license,
             update_general_preferences,
             update_clipboard_preferences,
             update_window_manager_preferences,

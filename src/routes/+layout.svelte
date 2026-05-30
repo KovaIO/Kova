@@ -3,6 +3,7 @@
     import "../global.css";
     import { listen, type UnlistenFn } from "@tauri-apps/api/event";
     import { loadPreferences, preferences } from "$stores/preferences";
+    import { loadLicense } from "$stores/license";
     import type { Preferences } from "$types/preferences";
 
     onMount(() => {
@@ -21,7 +22,7 @@
     });
 
     onMount(async () => {
-        await loadPreferences();
+        await Promise.all([loadPreferences(), loadLicense()]);
     });
 
     onMount(() => {

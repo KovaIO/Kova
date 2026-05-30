@@ -1,34 +1,40 @@
 <script lang="ts">
     import PreferencesSection from "../PreferencesSection.svelte";
+    import { license } from "$stores/license";
+
+    $: tierLabel = $license?.tier === "pro" ? "Pro" : "Free";
+    $: historyLimitLabel =
+        $license?.limits.clipboard_history_unlimited
+            ? "Up to 100 items, or unlimited"
+            : "Up to 100 items";
 </script>
 
 <PreferencesSection
     title="License"
-    description="View license information and terms"
+    description="View your plan and feature access"
 >
     <div class="license-info">
         <div class="license-item">
-            <span class="license-label">License Type</span>
-            <span class="license-value">MIT License</span>
+            <span class="license-label">Plan</span>
+            <span class="license-value" class:pro={$license?.tier === "pro"}>
+                {tierLabel}
+            </span>
+        </div>
+        <div class="license-item">
+            <span class="license-label">Clipboard history</span>
+            <span class="license-value">{historyLimitLabel}</span>
         </div>
         <div class="license-item">
             <span class="license-label">Version</span>
             <span class="license-value">0.1.0</span>
         </div>
-        <div class="license-item">
-            <span class="license-label">Licensee</span>
-            <span class="license-value">Personal Use</span>
-        </div>
     </div>
-    <div class="license-text">
-        <p>
-            Permission is hereby granted, free of charge, to any person obtaining a copy
-            of this software and associated documentation files (the "Software"), to deal
-            in the Software without restriction, including without limitation the rights
-            to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-            copies of the Software.
+    {#if $license?.tier === "free"}
+        <p class="upgrade-note">
+            Upgrade to Pro to unlock unlimited clipboard history and other
+            premium features.
         </p>
-    </div>
+    {/if}
 </PreferencesSection>
 
 <style>
@@ -60,17 +66,17 @@
         color: var(--color-text-primary);
     }
 
-    .license-text {
-        padding: 16px;
+    .license-value.pro {
+        color: var(--color-accent);
+    }
+
+    .upgrade-note {
+        font-size: 12px;
+        color: var(--color-text-muted);
+        line-height: 1.5;
+        padding: 12px 16px;
         background: var(--color-surface-elevated);
         border-radius: var(--radius-sm);
         border: 1px solid var(--color-border-subtle);
-    }
-
-    .license-text p {
-        font-size: 12px;
-        color: var(--color-text-secondary);
-        line-height: 1.6;
-        margin: 0;
     }
 </style>

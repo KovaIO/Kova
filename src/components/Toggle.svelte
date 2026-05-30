@@ -2,12 +2,17 @@
     export let label: string;
     export let checked: boolean = false;
     export let id: string;
+    export let onchange: ((checked: boolean) => void) | undefined = undefined;
+
+    function handleChange() {
+        onchange?.(checked);
+    }
 </script>
 
 <label class="toggle-row" for={id}>
     <span class="toggle-label">{label}</span>
     <div class="switch">
-        <input type="checkbox" {id} bind:checked />
+        <input type="checkbox" {id} bind:checked on:change={handleChange} />
         <span class="track">
             <span class="thumb"></span>
         </span>

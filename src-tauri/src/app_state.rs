@@ -2,20 +2,27 @@ use std::{path::PathBuf, sync::Arc};
 
 use tauri::{AppHandle, Emitter, Manager};
 
-use crate::preferences::{
-    migration::run_migrations, service::PreferencesService, PreferencesStorage,
+use crate::{
+    license::{LicenseService, LicenseStorage},
+    preferences::{migration::run_migrations, service::PreferencesService, PreferencesStorage},
 };
 
 #[derive(Clone)]
 pub struct AppState {
     pub preferences: Arc<PreferencesService>,
+    pub license: Arc<LicenseService>,
     pub app_handle: AppHandle,
 }
 
 impl AppState {
-    pub fn new(preferences: PreferencesService, app_handle: AppHandle) -> Self {
+    pub fn new(
+        preferences: PreferencesService,
+        license: Arc<LicenseService>,
+        app_handle: AppHandle,
+    ) -> Self {
         Self {
             preferences: Arc::new(preferences),
+            license,
             app_handle,
         }
     }
@@ -34,10 +41,15 @@ pub fn initialize_app_state(app: &tauri::App) -> Result<AppState, Box<dyn std::e
 
     let db_path: PathBuf = app_dir.join("kova.db");
 
-    let storage = PreferencesStorage::new(db_path)?;
+    let storage = PreferencesStorage::new(db_path.clone())?;
     run_migrations(storage.connection())?;
 
-    let preferences_service = PreferencesService::new(storage);
+    let license = Arc::new(LicenseService::new(LicenseStorage::new(db_path)?));
+    let preferences_service = PreferencesService::new(storage, license.clone());
 
-    Ok(AppState::new(preferences_service, app.handle().clone()))
+    Ok(AppState::new(
+        preferences_service,
+        license,
+        app.handle().clone(),
+    ))
 }

@@ -39,6 +39,10 @@ pub fn run_migrations(conn: &Connection) -> Result<()> {
             action TEXT PRIMARY KEY,
             keys TEXT NOT NULL
         );
+
+        CREATE TABLE IF NOT EXISTS license (
+            tier TEXT NOT NULL DEFAULT 'free'
+        );
         ",
     )?;
 
@@ -56,7 +60,7 @@ fn seed_defaults(conn: &Connection) -> Result<()> {
             language,
             theme
         )
-        SELECT 0, 1, 'en', 'system'
+        SELECT 1, 1, 'en', 'system'
         WHERE NOT EXISTS (
             SELECT 1 FROM general_preferences
         )
@@ -105,6 +109,17 @@ fn seed_defaults(conn: &Connection) -> Result<()> {
         SELECT 1, 0, 300
         WHERE NOT EXISTS (
             SELECT 1 FROM power_preferences
+        )
+        ",
+        [],
+    )?;
+
+    conn.execute(
+        "
+        INSERT INTO license (tier)
+        SELECT 'free'
+        WHERE NOT EXISTS (
+            SELECT 1 FROM license
         )
         ",
         [],

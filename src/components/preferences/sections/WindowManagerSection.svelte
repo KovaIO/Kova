@@ -41,7 +41,7 @@
         <div class="slider-wrap">
             <BrightnessSlider
                 value={opacity}
-                onchange={(v) => updateWindowManager(v)}
+                onchange={(v) => updateWindowManager({ opacity: v })}
             />
         </div>
     </PreferenceItem>
