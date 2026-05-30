@@ -2,11 +2,12 @@ use rusqlite::{params, Connection, Result};
 use std::path::PathBuf;
 
 use crate::{
+    clipboard::models::InstalledApp,
     preferences::{
         ClipboardPreferences, GeneralPreferences, PowerPreferences, Preferences, Shortcut, Theme,
         WindowManagerPreferences,
     },
-    processes::{get_process_icon, RunningProcess},
+    processes::get_process_icon,
 };
 
 pub struct PreferencesStorage {
@@ -95,16 +96,14 @@ impl PreferencesStorage {
         })
     }
 
-    fn load_ignored_apps(&self) -> Result<Vec<RunningProcess>> {
-        let mut stmt = self
-            .conn
-            .prepare("SELECT name, path FROM ignored_apps")?;
+    fn load_ignored_apps(&self) -> Result<Vec<InstalledApp>> {
+        let mut stmt = self.conn.prepare("SELECT name, path FROM ignored_apps")?;
         let rows = stmt.query_map([], |row| {
             let name: String = row.get(0)?;
             let path: String = row.get(1)?;
             let icon = get_process_icon(&name, Some(&path));
 
-            Ok(RunningProcess { name, path, icon })
+            Ok(InstalledApp { name, path, icon })
         })?;
         let mut apps = vec![];
         for row in rows {

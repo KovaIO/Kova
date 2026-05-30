@@ -1,11 +1,12 @@
 mod app_state;
+mod clipboard;
 mod commands;
 mod license;
 mod metrics;
+mod migration;
 mod preferences;
 mod processes;
 mod windows;
-mod migration;
 
 use std::sync::{
     atomic::{AtomicBool, Ordering},
@@ -17,8 +18,8 @@ use tauri::{Manager, WindowEvent};
 use tauri_plugin_positioner::{Position, WindowExt};
 
 use commands::{
-    force_quit_process_cmd, get_current_metrics, get_license, get_preferences, get_process_history,
-    get_running_procs, get_snapshot, open_monitor, open_preferences, open_process,
+    force_quit_process_cmd, get_apps, get_current_metrics, get_license, get_preferences,
+    get_process_history, get_snapshot, open_monitor, open_preferences, open_process,
     quit_process_cmd, update_clipboard_preferences, update_general_preferences,
     update_window_manager_preferences,
 };
@@ -45,7 +46,7 @@ pub fn run() {
             get_current_metrics,
             get_snapshot,
             get_process_history,
-            get_running_procs,
+            get_apps,
             quit_process_cmd,
             force_quit_process_cmd,
             open_preferences,

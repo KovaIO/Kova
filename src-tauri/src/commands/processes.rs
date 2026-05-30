@@ -1,12 +1,7 @@
 use crate::{
     metrics::models::SharedHistory,
-    processes::{force_quit_process, get_running_processes, quit_process, RunningProcess},
+    processes::{force_quit_process, quit_process},
 };
-
-#[tauri::command]
-pub fn get_running_procs() -> Vec<RunningProcess> {
-    get_running_processes()
-}
 
 #[tauri::command]
 pub fn get_process_history(

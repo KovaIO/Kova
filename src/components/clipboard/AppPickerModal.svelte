@@ -18,7 +18,7 @@
 
     onMount(async () => {
         try {
-            processes = await invoke<IgnoredApp[]>("get_running_procs");
+            processes = await invoke<IgnoredApp[]>("get_apps");
         } finally {
             loading = false;
             searchInput?.focus();

@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 #[derive(Clone)]
 pub struct ProcessMeta {
@@ -54,11 +54,4 @@ impl From<&FlatProcess> for ProcessSnapshot {
             net_bps: process.net_bps,
         }
     }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct RunningProcess {
-    pub name: String,
-    pub path: String,
-    pub icon: Option<String>,
 }

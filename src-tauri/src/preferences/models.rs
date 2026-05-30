@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::processes::RunningProcess;
+use crate::clipboard::models::InstalledApp;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Preferences {
@@ -49,7 +49,7 @@ pub struct ClipboardPreferences {
     pub enabled: bool,
     pub history_limit: i32,
     pub ignore_passwords: bool,
-    pub ignored_apps: Vec<RunningProcess>,
+    pub ignored_apps: Vec<InstalledApp>,
 }
 
 impl Default for ClipboardPreferences {

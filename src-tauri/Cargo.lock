@@ -71,6 +71,7 @@ version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
  "cocoa",
+ "dirs",
  "image",
  "netstat2",
  "objc",
