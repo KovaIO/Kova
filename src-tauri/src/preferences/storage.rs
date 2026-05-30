@@ -6,7 +6,7 @@ use crate::{
         ClipboardPreferences, GeneralPreferences, PowerPreferences, Preferences, Shortcut, Theme,
         WindowManagerPreferences,
     },
-    processes::RunningProcess,
+    processes::{get_process_icon, RunningProcess},
 };
 
 pub struct PreferencesStorage {
@@ -98,13 +98,13 @@ impl PreferencesStorage {
     fn load_ignored_apps(&self) -> Result<Vec<RunningProcess>> {
         let mut stmt = self
             .conn
-            .prepare("SELECT name, path, icon FROM ignored_apps")?;
+            .prepare("SELECT name, path FROM ignored_apps")?;
         let rows = stmt.query_map([], |row| {
-            Ok(RunningProcess {
-                name: row.get(0)?,
-                path: row.get(1)?,
-                icon: row.get(2)?,
-            })
+            let name: String = row.get(0)?;
+            let path: String = row.get(1)?;
+            let icon = get_process_icon(&name, Some(&path));
+
+            Ok(RunningProcess { name, path, icon })
         })?;
         let mut apps = vec![];
         for row in rows {
@@ -147,8 +147,8 @@ impl PreferencesStorage {
         self.conn.execute("DELETE FROM ignored_apps", [])?;
         for app in &prefs.ignored_apps {
             self.conn.execute(
-                "INSERT INTO ignored_apps ( name, path, icon ) VALUES (?1, ?2, ?3)",
-                params![app.name, app.path, app.icon],
+                "INSERT INTO ignored_apps ( name, path ) VALUES (?1, ?2)",
+                params![app.name, app.path],
             )?;
         }
         Ok(())

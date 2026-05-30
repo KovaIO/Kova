@@ -1,8 +1,19 @@
 use serde::Serialize;
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use std::sync::{Arc, Mutex};
 
-use crate::processes::FlatProcess;
+use crate::processes::{FlatProcess, ProcessMeta, ProcessSnapshot};
+
+#[derive(Serialize)]
+pub struct SystemMetrics {
+    pub cpu_percent: u8,
+    pub ram_used: u64,
+    pub ram_total: u64,
+    pub ram_percent: u8,
+    pub disk_used: u64,
+    pub disk_total: u64,
+    pub disk_percent: u8,
+}
 
 #[derive(Serialize)]
 pub struct Metrics {
@@ -24,10 +35,9 @@ pub struct Metrics {
     pub processes: Vec<FlatProcess>,
 }
 
-#[derive(Serialize, Clone)]
+#[derive(Clone)]
 pub struct HistoricalSnapshot {
-    pub timestamp: u64,
-    pub processes: Vec<FlatProcess>,
+    pub processes: Vec<ProcessSnapshot>,
 }
 
 pub const HISTORY_SIZE: usize = 60;
@@ -39,6 +49,7 @@ pub struct MetricsHistory {
     pub last_ram_total: u64,
     pub network: VecDeque<u64>,
     pub process_history: VecDeque<HistoricalSnapshot>,
+    pub process_metadata: HashMap<u32, ProcessMeta>,
 }
 
 impl MetricsHistory {
@@ -49,6 +60,7 @@ impl MetricsHistory {
         ram_total: u64,
         network: u64,
         snapshot: HistoricalSnapshot,
+        metadata: HashMap<u32, ProcessMeta>,
     ) {
         push_capped_u8(&mut self.cpu, cpu);
         push_capped_u8(&mut self.ram, ram);
@@ -58,6 +70,7 @@ impl MetricsHistory {
         }
 
         self.process_history.push_back(snapshot);
+        self.process_metadata = metadata;
         self.last_ram_total = ram_total;
     }
 }

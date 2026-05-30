@@ -1,6 +1,6 @@
 use std::{
     collections::HashMap,
-    time::{Duration, SystemTime, UNIX_EPOCH},
+    time::Duration,
 };
 use sysinfo::{Disks, Networks, ProcessesToUpdate, System};
 use tauri::{AppHandle, Emitter};
@@ -8,11 +8,10 @@ use tauri::{AppHandle, Emitter};
 use crate::{
     metrics::{
         disk::{find_disk_index, primary_disk_metrics},
-        models::SharedHistory,
+        models::{HistoricalSnapshot, Metrics, SharedHistory, SystemMetrics},
         network::NetTracker,
-        HistoricalSnapshot, Metrics,
     },
-    processes::{aggregate_process_metrics, collect_processes, ProcessMeta},
+    processes::{aggregate_process_metrics, collect_processes, ProcessMeta, ProcessSnapshot},
 };
 
 #[cfg(target_os = "windows")]
@@ -74,25 +73,40 @@ pub fn start_metrics_loop(app: AppHandle, history: SharedHistory) {
             let mut processes = collect_processes(&sys, &net_map, &mut metadata_cache);
             aggregate_process_metrics(&mut processes);
 
-            let historical = HistoricalSnapshot {
-                timestamp: SystemTime::now()
-                    .duration_since(UNIX_EPOCH)
-                    .unwrap()
-                    .as_secs(),
+            let snapshot_processes: Vec<ProcessSnapshot> =
+                processes.iter().map(ProcessSnapshot::from).collect();
 
-                processes: processes.clone(),
+            let historical = HistoricalSnapshot {
+                processes: snapshot_processes,
             };
 
             let (cpu_history, ram_history, network_history) = {
                 let mut h = history.lock().unwrap();
 
-                h.push(cpu_percent, ram_percent, ram_total, network_bps, historical);
+                h.push(
+                    cpu_percent,
+                    ram_percent,
+                    ram_total,
+                    network_bps,
+                    historical,
+                    metadata_cache.clone(),
+                );
 
                 (
                     h.cpu.iter().copied().collect::<Vec<_>>(),
                     h.ram.iter().copied().collect::<Vec<_>>(),
                     h.network.iter().copied().collect::<Vec<_>>(),
                 )
+            };
+
+            let system_metrics = SystemMetrics {
+                cpu_percent,
+                ram_used,
+                ram_total,
+                ram_percent,
+                disk_used,
+                disk_total,
+                disk_percent,
             };
 
             let metrics = Metrics {
@@ -109,6 +123,10 @@ pub fn start_metrics_loop(app: AppHandle, history: SharedHistory) {
                 network_history,
                 processes,
             };
+
+            if let Err(err) = app.emit("system-metrics", &system_metrics) {
+                eprintln!("failed to emit system-metrics: {err}");
+            }
 
             if let Err(err) = app.emit("metrics", &metrics) {
                 eprintln!("failed to emit metrics: {err}");

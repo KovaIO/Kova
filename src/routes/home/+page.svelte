@@ -10,7 +10,7 @@
     import { canUse, license } from "$stores/license";
     import { preferences } from "$stores/preferences";
 
-    interface Metrics {
+    interface SystemMetrics {
         cpu_percent: number;
         ram_used: number;
         ram_total: number;
@@ -34,7 +34,7 @@
             : `${(bytes / 1024 / 1024).toFixed(0)} MB`;
     }
 
-    function applyMetrics(m: Metrics) {
+    function applyMetrics(m: SystemMetrics) {
         cpu = Math.round(m.cpu_percent);
         ram = Math.round(m.ram_percent);
         disk = Math.round(m.disk_percent);
@@ -46,7 +46,7 @@
     let unlisten: UnlistenFn;
 
     onMount(async () => {
-        unlisten = await listen<Metrics>("metrics", (event) => {
+        unlisten = await listen<SystemMetrics>("system-metrics", (event) => {
             applyMetrics(event.payload);
         });
     });

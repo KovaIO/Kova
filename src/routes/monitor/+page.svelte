@@ -55,22 +55,14 @@
 
     onMount(async () => {
         const snap = await invoke<Metrics | null>("get_current_metrics");
-        if (snap) applyMetrics(snap);
-        unlisten = await listen<Metrics>("metrics", async (e) => {
+        if (snap) applyLiveMetrics(snap);
+        unlisten = await listen<Metrics>("metrics", (e) => {
             if (!historyMode) {
-                applyMetrics(e.payload);
+                applyLiveMetrics(e.payload);
                 return;
             }
 
-            if (selectedHistoryIndex !== null) {
-                selectedHistoryIndex -= 1;
-
-                const snap = await invoke<Metrics>("get_snapshot", {
-                    index: selectedHistoryIndex,
-                });
-
-                applyMetrics(snap);
-            }
+            updateGraph(e.payload);
         });
     });
 
@@ -87,24 +79,29 @@
 
         const snap = await invoke<Metrics>("get_snapshot", { index });
 
-        applyMetrics(snap);
+        liveProcesses = snap.processes;
     }
 
-    function exitHistoryMode() {
+    async function exitHistoryMode() {
         historyMode = false;
         selectedHistoryIndex = null;
+
+        const snap = await invoke<Metrics | null>("get_current_metrics");
+        if (snap) applyLiveMetrics(snap);
     }
 
-    function applyMetrics(m: Metrics) {
-        liveProcesses = m.processes;
-
+    function updateGraph(m: Metrics) {
         if (m.ram_total > 0) ramTotal = m.ram_total;
         if (m.network_bps > networkPeak) networkPeak = m.network_bps;
 
         cpuHistory = m.cpu_history;
         networkHistory = m.network_history;
-
         ramHistory = m.ram_history.map((pct) => (pct / 100) * m.ram_total);
+    }
+
+    function applyLiveMetrics(m: Metrics) {
+        liveProcesses = m.processes;
+        updateGraph(m);
     }
 
     let search = "";
@@ -118,26 +115,21 @@
 
     $: searchLower = search.trim().toLowerCase();
 
-    let cpuTree: ProcessNode[] = [];
-    let ramTree: ProcessNode[] = [];
-    let networkTree: ProcessNode[] = [];
+    let processTree: ProcessNode[] = [];
 
-    $: {
+    $: if (activeTab !== "disk") {
+        const sortKey =
+            activeTab === "network"
+                ? "network"
+                : activeTab === "ram"
+                  ? "ram"
+                  : "cpu";
         const { roots } = buildTree(liveProcesses);
-        cpuTree = cloneTree(roots);
-        sortTreeBy(cpuTree, "cpu");
-        ramTree = cloneTree(roots);
-        sortTreeBy(ramTree, "ram");
-        networkTree = cloneTree(roots);
-        sortTreeBy(networkTree, "network");
+        processTree = cloneTree(roots);
+        sortTreeBy(processTree, sortKey);
+    } else {
+        processTree = [];
     }
-
-    $: processTree =
-        activeTab === "cpu"
-            ? cpuTree
-            : activeTab === "ram"
-              ? ramTree
-              : networkTree;
 
     $: displayProcesses = processTree.filter((p) =>
         matchesSearch(p, searchLower),

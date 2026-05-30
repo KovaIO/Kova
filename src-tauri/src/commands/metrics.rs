@@ -1,5 +1,5 @@
 use crate::{
-    metrics::{models::SharedHistory, Metrics},
+    metrics::{enrich_process_snapshots, models::SharedHistory, Metrics},
     processes::FlatProcess,
 };
 
@@ -17,7 +17,9 @@ pub fn get_current_metrics(history: tauri::State<SharedHistory>) -> Option<Metri
     let processes: Vec<FlatProcess> = h
         .process_history
         .back()
-        .map(|s| s.processes.clone())
+        .map(|snapshot| {
+            enrich_process_snapshots(&snapshot.processes, &h.process_metadata)
+        })
         .unwrap_or_default();
 
     Some(Metrics {
@@ -58,6 +60,6 @@ pub fn get_snapshot(index: usize, history: tauri::State<SharedHistory>) -> Optio
         ram_history: h.ram.iter().copied().collect(),
         network_history: h.network.iter().copied().collect(),
 
-        processes: snapshot.processes.clone(),
+        processes: enrich_process_snapshots(&snapshot.processes, &h.process_metadata),
     })
 }

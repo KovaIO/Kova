@@ -50,21 +50,41 @@
 
         const snap = await invoke<Metrics>("get_snapshot", { index });
 
-        applyMetrics(snap, false);
+        applySnapshot(snap);
     }
 
-    function exitHistoryMode() {
+    async function exitHistoryMode() {
         historyMode = false;
         selectedHistoryIndex = null;
+
+        const snap = await invoke<Metrics | null>("get_current_metrics");
+        if (snap) applyLiveMetrics(snap);
     }
 
-    function toggleExpand(id: number) {
-        const next = new Set(expandedPids);
-        next.has(id) ? next.delete(id) : next.add(id);
-        expandedPids = next;
+    function applySnapshot(m: Metrics) {
+        const hierarchy = getProcessHierarchy(m.processes, pid);
+        if (!hierarchy.target) return;
+
+        proc = hierarchy.target;
+        ancestors = hierarchy.ancestors;
+        rootNode = hierarchy.rootNode;
     }
 
-    function applyMetrics(m: Metrics, appendHistory = true) {
+    function appendLiveGraphPoint(m: Metrics) {
+        const hierarchy = getProcessHierarchy(m.processes, pid);
+        if (!hierarchy.target) return;
+
+        cpuHistory = [...cpuHistory.slice(-59), hierarchy.target.cpu_percent];
+        ramHistory = [...ramHistory.slice(-59), hierarchy.target.ram_bytes];
+        networkHistory = [
+            ...networkHistory.slice(-59),
+            hierarchy.target.net_bps,
+        ];
+        ramMax = Math.max(...ramHistory, 1);
+        netMax = Math.max(...networkHistory, 1);
+    }
+
+    function applyLiveMetrics(m: Metrics) {
         const hierarchy = getProcessHierarchy(m.processes, pid);
         if (!hierarchy.target) return;
 
@@ -72,14 +92,17 @@
         ancestors = hierarchy.ancestors;
         rootNode = hierarchy.rootNode;
 
-        if (appendHistory) {
-            cpuHistory = [...cpuHistory.slice(-59), proc.cpu_percent];
-            ramHistory = [...ramHistory.slice(-59), proc.ram_bytes];
-            networkHistory = [...networkHistory.slice(-59), proc.net_bps];
-        }
-
+        cpuHistory = [...cpuHistory.slice(-59), proc.cpu_percent];
+        ramHistory = [...ramHistory.slice(-59), proc.ram_bytes];
+        networkHistory = [...networkHistory.slice(-59), proc.net_bps];
         ramMax = Math.max(...ramHistory, 1);
         netMax = Math.max(...networkHistory, 1);
+    }
+
+    function toggleExpand(id: number) {
+        const next = new Set(expandedPids);
+        next.has(id) ? next.delete(id) : next.add(id);
+        expandedPids = next;
     }
 
     async function openMonitor() {
@@ -99,23 +122,15 @@
         netMax = Math.max(...netH, 1);
 
         const snap = await invoke<Metrics | null>("get_current_metrics");
-        if (snap) applyMetrics(snap, false);
+        if (snap) applyLiveMetrics(snap);
 
-        unlisten = await listen<Metrics>("metrics", async (e) => {
+        unlisten = await listen<Metrics>("metrics", (e) => {
             if (!historyMode) {
-                applyMetrics(e.payload, true);
+                applyLiveMetrics(e.payload);
                 return;
             }
 
-            if (selectedHistoryIndex !== null) {
-                selectedHistoryIndex -= 1;
-
-                const snap = await invoke<Metrics>("get_snapshot", {
-                    index: selectedHistoryIndex,
-                });
-
-                applyMetrics(snap, true);
-            }
+            appendLiveGraphPoint(e.payload);
         });
     });
 

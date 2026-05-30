@@ -7,5 +7,5 @@ pub mod quit;
 pub use aggregation::aggregate_process_metrics;
 pub use collector::{collect_processes, get_running_processes};
 pub use icons::get_process_icon;
-pub use models::{FlatProcess, ProcessMeta, RunningProcess};
+pub use models::{FlatProcess, ProcessMeta, ProcessSnapshot, RunningProcess};
 pub use quit::{force_quit_process, quit_process};
