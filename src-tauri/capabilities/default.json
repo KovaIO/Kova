@@ -10,6 +10,9 @@
     "shell:allow-open",
     "opener:default",
     "os:default",
-    "dialog:allow-open"
+    "dialog:allow-open",
+    "global-shortcut:allow-is-registered",
+    "global-shortcut:allow-register",
+    "global-shortcut:allow-unregister"
   ]
 }

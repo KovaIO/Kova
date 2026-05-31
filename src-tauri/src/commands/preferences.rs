@@ -4,7 +4,7 @@ use crate::{
     app_state::AppState,
     preferences::{
         models::{ClipboardPreferences, GeneralPreferences, Preferences},
-        WindowManagerPreferences,
+        Shortcut, WindowManagerPreferences,
     },
 };
 
@@ -58,4 +58,9 @@ pub fn update_window_manager_preferences(
     with_emit(&state, || {
         state.preferences.update_window_manager_preferences(prefs)
     })
+}
+
+#[tauri::command]
+pub fn update_shortcuts(shortcuts: Vec<Shortcut>, state: State<AppState>) -> Result<(), String> {
+    with_emit(&state, || state.preferences.update_shortcuts(shortcuts))
 }

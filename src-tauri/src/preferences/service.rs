@@ -8,7 +8,7 @@ use crate::{
         validate_window_manager_preferences, LicenseService,
     },
     preferences::{
-        ClipboardPreferences, GeneralPreferences, Preferences, PreferencesStorage,
+        ClipboardPreferences, GeneralPreferences, Preferences, PreferencesStorage, Shortcut,
         WindowManagerPreferences,
     },
 };
@@ -35,6 +35,12 @@ impl PreferencesService {
         preferences.window_manager =
             sanitize_window_manager_preferences(preferences.window_manager, &tier);
         Ok(preferences)
+    }
+
+    pub fn get_shortcuts(&self) -> Result<Vec<Shortcut>> {
+        let storage = self.storage.lock().unwrap();
+
+        storage.load_shortcuts()
     }
 
     pub fn update_general_preferences(&self, prefs: GeneralPreferences) -> Result<(), String> {
@@ -85,6 +91,14 @@ impl PreferencesService {
         let storage = self.storage.lock().unwrap();
         storage
             .save_window_manager_preferences(&validated)
+            .map_err(|e| e.to_string())
+    }
+
+    pub fn update_shortcuts(&self, shortcuts: Vec<Shortcut>) -> Result<(), String> {
+        let storage = self.storage.lock().unwrap();
+
+        storage
+            .save_shortcuts(&shortcuts)
             .map_err(|e| e.to_string())
     }
 }

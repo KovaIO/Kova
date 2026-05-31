@@ -1,3 +1,7 @@
+use rusqlite::{
+    types::{FromSql, FromSqlError, FromSqlResult, ToSqlOutput, ValueRef},
+    ToSql,
+};
 use serde::{Deserialize, Serialize};
 
 use crate::clipboard::models::InstalledApp;
@@ -18,7 +22,10 @@ impl Default for Preferences {
             clipboard: ClipboardPreferences::default(),
             window_manager: WindowManagerPreferences::default(),
             power: PowerPreferences::default(),
-            shortcuts: vec![],
+            shortcuts: vec![Shortcut {
+                action: ShortcutAction::OpenClipboardHistory,
+                keys: "Ctrl + Shift + H".to_string(),
+            }],
         }
     }
 }
@@ -99,7 +106,7 @@ impl Default for PowerPreferences {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Shortcut {
-    pub action: String,
+    pub action: ShortcutAction,
     pub keys: String,
 }
 
@@ -109,4 +116,87 @@ pub enum Theme {
     Dark,
     Light,
     System,
+}
+
+impl ToSql for Theme {
+    fn to_sql(&self) -> rusqlite::Result<ToSqlOutput<'_>> {
+        Ok(match self {
+            Self::Dark => "dark".into(),
+            Self::Light => "light".into(),
+            Self::System => "system".into(),
+        })
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ShortcutAction {
+    MoveWindowToNextScreen,
+    MatchWithAnotherWindow,
+    AutoLayoutWindows,
+    CenterWindow,
+    MakeWindow16By9,
+
+    OpenWindowSwitcher,
+    PreviousWindow,
+    SearchWindowSwitcher,
+    ExpandTabs,
+    CollapseTabs,
+
+    OpenClipboardHistory,
+    SearchClipboardHistory,
+
+    OpenMonitor,
+    OpenMenubarPopover,
+}
+
+impl FromSql for ShortcutAction {
+    fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
+        match value.as_str()? {
+            "move_window_to_next_screen" => Ok(Self::MoveWindowToNextScreen),
+            "match_with_another_window" => Ok(Self::MatchWithAnotherWindow),
+            "auto_layout_windows" => Ok(Self::AutoLayoutWindows),
+            "center_window" => Ok(Self::CenterWindow),
+            "make_window_16_by_9" => Ok(Self::MakeWindow16By9),
+
+            "open_window_switcher" => Ok(Self::OpenWindowSwitcher),
+            "previous_window" => Ok(Self::PreviousWindow),
+            "search_window_switcher" => Ok(Self::SearchWindowSwitcher),
+            "expand_tabs" => Ok(Self::ExpandTabs),
+            "collapse_tabs" => Ok(Self::CollapseTabs),
+
+            "open_clipboard_history" => Ok(Self::OpenClipboardHistory),
+            "search_clipboard_history" => Ok(Self::SearchClipboardHistory),
+
+            "open_monitor" => Ok(Self::OpenMonitor),
+            "open_menubar_popover" => Ok(Self::OpenMenubarPopover),
+
+            _ => Err(FromSqlError::Other(
+                format!("Unknown shortcut action: {}", value.as_str()?).into(),
+            )),
+        }
+    }
+}
+
+impl ToSql for ShortcutAction {
+    fn to_sql(&self) -> rusqlite::Result<ToSqlOutput<'_>> {
+        Ok(match self {
+            Self::MoveWindowToNextScreen => "move_window_to_next_screen".into(),
+            Self::MatchWithAnotherWindow => "match_with_another_window".into(),
+            Self::AutoLayoutWindows => "auto_layout_windows".into(),
+            Self::CenterWindow => "center_window".into(),
+            Self::MakeWindow16By9 => "make_window_16_by_9".into(),
+
+            Self::OpenWindowSwitcher => "open_window_switcher".into(),
+            Self::PreviousWindow => "previous_window".into(),
+            Self::SearchWindowSwitcher => "search_window_switcher".into(),
+            Self::ExpandTabs => "expand_tabs".into(),
+            Self::CollapseTabs => "collapse_tabs".into(),
+
+            Self::OpenClipboardHistory => "open_clipboard_history".into(),
+            Self::SearchClipboardHistory => "search_clipboard_history".into(),
+
+            Self::OpenMonitor => "open_monitor".into(),
+            Self::OpenMenubarPopover => "open_menubar_popover".into(),
+        })
+    }
 }

@@ -112,7 +112,7 @@ impl PreferencesStorage {
         Ok(apps)
     }
 
-    fn load_shortcuts(&self) -> Result<Vec<Shortcut>> {
+    pub fn load_shortcuts(&self) -> Result<Vec<Shortcut>> {
         let mut stmt = self.conn.prepare("SELECT action, keys FROM shortcuts")?;
         let rows = stmt.query_map([], |row| {
             Ok(Shortcut {
@@ -164,6 +164,26 @@ impl PreferencesStorage {
             ",
             params![prefs.enabled, prefs.auto_layout, prefs.window_switcher],
         )?;
+
+        Ok(())
+    }
+
+    pub fn save_shortcuts(&self, shortcuts: &[Shortcut]) -> Result<()> {
+        let tx = self.conn.unchecked_transaction()?;
+        tx.execute("DELETE FROM shortcuts", [])?;
+
+        {
+            let mut stmt = tx.prepare(
+                "INSERT INTO shortcuts (action, keys)
+                 VALUES (?1, ?2)",
+            )?;
+
+            for shortcut in shortcuts {
+                stmt.execute(params![shortcut.action, shortcut.keys,])?;
+            }
+        }
+
+        tx.commit()?;
 
         Ok(())
     }

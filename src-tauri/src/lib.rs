@@ -6,6 +6,7 @@ mod metrics;
 mod migration;
 mod preferences;
 mod processes;
+mod shortcuts;
 mod windows;
 
 use std::sync::{
@@ -20,13 +21,14 @@ use tauri_plugin_positioner::{Position, WindowExt};
 use commands::{
     force_quit_process_cmd, get_apps, get_current_metrics, get_license, get_preferences,
     get_process_history, get_snapshot, open_monitor, open_preferences, open_process,
-    quit_process_cmd, update_clipboard_preferences, update_general_preferences,
+    quit_process_cmd, update_clipboard_preferences, update_general_preferences, update_shortcuts,
     update_window_manager_preferences,
 };
 
 use crate::{
     app_state::initialize_app_state,
     metrics::{models::new_shared_history, start_metrics_loop},
+    shortcuts::{handle_shortcuts, load_shortcuts, ShortcutMap},
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -37,12 +39,29 @@ pub fn run() {
         .plugin(tauri_plugin_positioner::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(
+            tauri_plugin_global_shortcut::Builder::new()
+                .with_handler(move |app, shortcut, event| {
+                    use tauri_plugin_global_shortcut::ShortcutState;
+
+                    if event.state() != ShortcutState::Pressed {
+                        return;
+                    }
+
+                    let shortcuts = app.state::<ShortcutMap>();
+                    if let Some(action) = shortcuts.get(shortcut) {
+                        handle_shortcuts(app, action);
+                    }
+                })
+                .build(),
+        )
         .invoke_handler(tauri::generate_handler![
             get_preferences,
             get_license,
             update_general_preferences,
             update_clipboard_preferences,
             update_window_manager_preferences,
+            update_shortcuts,
             get_current_metrics,
             get_snapshot,
             get_process_history,
@@ -56,7 +75,11 @@ pub fn run() {
         .setup(|app| {
             let app_state = initialize_app_state(app)?;
 
-            app.manage(app_state);
+            app.manage(app_state.clone());
+
+            let shortcut_map = load_shortcuts(app, app_state)?;
+
+            app.manage(shortcut_map);
 
             let history = new_shared_history();
             start_metrics_loop(app.handle().clone(), history.clone());
