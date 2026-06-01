@@ -52,6 +52,18 @@ pub fn parse_shortcut(keys: &str) -> Option<Shortcut> {
                 code = Some(Code::ArrowRight);
             }
 
+            "`" | "~" | "backquote" => {
+                code = Some(Code::Backquote);
+            }
+
+            "-" | "minus" => {
+                code = Some(Code::Minus);
+            }
+
+            "=" | "equal" | "plus" => {
+                code = Some(Code::Equal);
+            }
+
             key if key.len() == 1 => {
                 let ch = key.chars().next()?.to_ascii_uppercase();
 
