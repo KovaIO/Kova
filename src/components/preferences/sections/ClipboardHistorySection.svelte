@@ -3,6 +3,7 @@
     import PreferenceItem from "../PreferenceItem.svelte";
     import Toggle from "$components/Toggle.svelte";
     import AppPickerModal from "$components/clipboard/AppPickerModal.svelte";
+    import { clearClipboardHistory } from "$services/clipboard";
     import { updateClipboard } from "$services/preferences";
     import { license } from "$stores/license";
     import { preferences } from "$stores/preferences";
@@ -23,9 +24,11 @@
 
     async function clearHistory() {
         clearing = true;
-        // TODO: invoke("clear_clipboard_history")
-        await new Promise((r) => setTimeout(r, 800));
-        clearing = false;
+        try {
+            await clearClipboardHistory();
+        } finally {
+            clearing = false;
+        }
     }
 
     function onPick(app: IgnoredApp) {

@@ -19,11 +19,15 @@ use tauri::{Manager, WindowEvent};
 use tauri_plugin_positioner::{Position, WindowExt};
 
 use commands::{
-    force_quit_process_cmd, get_apps, get_current_metrics, get_license, get_preferences,
-    get_process_history, get_snapshot, open_monitor, open_preferences, open_process,
-    quit_process_cmd, update_clipboard_preferences, update_general_preferences, update_shortcuts,
-    update_window_manager_preferences,
+    clear_clipboard_history, copy_clipboard_item, delete_clipboard_item, force_quit_process_cmd,
+    get_apps, get_clipboard_history, get_current_metrics, get_license, get_preferences,
+    get_process_history, get_snapshot, open_clipboard_url, open_monitor, open_preferences,
+    open_process, paste_clipboard_item, paste_plain_clipboard_item, preview_clipboard_item,
+    quit_process_cmd, reveal_clipboard_item, update_clipboard_preferences, update_general_preferences,
+    update_shortcuts, update_window_manager_preferences,
 };
+
+use clipboard::start_clipboard_watcher;
 
 use crate::{
     app_state::initialize_app_state,
@@ -70,6 +74,15 @@ pub fn run() {
             get_snapshot,
             get_process_history,
             get_apps,
+            get_clipboard_history,
+            paste_clipboard_item,
+            copy_clipboard_item,
+            paste_plain_clipboard_item,
+            open_clipboard_url,
+            reveal_clipboard_item,
+            preview_clipboard_item,
+            delete_clipboard_item,
+            clear_clipboard_history,
             quit_process_cmd,
             force_quit_process_cmd,
             open_preferences,
@@ -81,7 +94,7 @@ pub fn run() {
 
             app.manage(app_state.clone());
 
-            let shortcut_map = load_shortcuts(app, app_state)?;
+            let shortcut_map = load_shortcuts(app, app_state.clone())?;
 
             app.manage(shortcut_map);
 
@@ -177,6 +190,8 @@ pub fn run() {
             if let Some(clippy) = app.get_webview_window("clipboard") {
                 windows::attach_focus_hide(clippy);
             }
+
+            start_clipboard_watcher(app.handle().clone(), app_state);
 
             Ok(())
         })

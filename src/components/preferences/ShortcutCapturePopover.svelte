@@ -151,18 +151,22 @@
                 on:outroend={handleShellOutroEnd}
             >
                 <div class="combo">
-                    {#each previewParts as part, index (index)}
-                        {#if index > 0}
-                            <span
-                                class="plus"
-                                aria-hidden="true"
-                                in:scale={keyPop}>+</span
+                    {#if previewParts.length === 0}
+                        <span class="hint">Press keys...</span>
+                    {:else}
+                        {#each previewParts as part, index (index)}
+                            {#if index > 0}
+                                <span
+                                    class="plus"
+                                    aria-hidden="true"
+                                    in:scale={keyPop}>+</span
+                                >
+                            {/if}
+                            <kbd class="key" in:scale={keyPop}
+                                >{partDisplayLabel(part)}</kbd
                             >
-                        {/if}
-                        <kbd class="key" in:scale={keyPop}
-                            >{partDisplayLabel(part)}</kbd
-                        >
-                    {/each}
+                        {/each}
+                    {/if}
                 </div>
 
                 {#if error}
@@ -198,7 +202,6 @@
         background: var(--color-surface-elevated);
         border: 1px solid var(--color-border-medium);
         border-radius: var(--radius-sm);
-        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
         outline: none;
         transform-origin: center bottom;
     }
@@ -215,6 +218,13 @@
         justify-content: center;
         gap: 6px;
         min-height: 28px;
+    }
+
+    .hint {
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--color-text-dim);
+        letter-spacing: 0.02em;
     }
 
     .plus {
