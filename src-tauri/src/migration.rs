@@ -42,6 +42,15 @@ pub fn run_migrations(conn: &Connection) -> Result<()> {
             keys TEXT NOT NULL
         );
 
+        CREATE TABLE IF NOT EXISTS clipboard_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            content_type TEXT NOT NULL,
+            text_content TEXT,
+            image_path TEXT,
+            source_app TEXT,
+            created_at INTEGER NOT NULL
+        );
+
         CREATE TABLE IF NOT EXISTS license (
             tier TEXT NOT NULL DEFAULT 'free'
         );
