@@ -2,7 +2,7 @@
     import { onMount } from "svelte";
     import "../global.css";
     import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-    import { loadPreferences, preferences } from "$stores/preferences";
+    import { loadPreferences, setPreferences } from "$stores/preferences";
     import { loadLicense } from "$stores/license";
     import type { Preferences } from "$types/preferences";
 
@@ -13,7 +13,7 @@
             unlisten = await listen<Preferences>(
                 "preferences-updated",
                 (event) => {
-                    preferences.set(event.payload);
+                    setPreferences(event.payload);
                 },
             );
         })();

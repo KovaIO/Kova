@@ -1,81 +1,139 @@
 <script lang="ts">
     import PreferencesSection from "../PreferencesSection.svelte";
+    import ShortcutCapturePopover from "../ShortcutCapturePopover.svelte";
     import { Trash2 } from "@lucide/svelte";
 
-    type Shortcut = { action: string; keys: string };
+    import {
+        actionToSnake,
+        CATALOG_SECTIONS,
+        shortcutsForApi,
+    } from "$utils/keyboard-shortcuts";
+    import { updateShortcuts } from "$services/preferences";
+    import { preferences } from "$stores/preferences";
+    import type { Shortcut } from "$types/preferences";
 
-    const sections: { title: string; shortcuts: Shortcut[] }[] = [
-        {
-            title: "Window Manager",
-            shortcuts: [
-                {
-                    action: "Move window to next screen",
-                    keys: "Ctrl + Alt + →",
-                },
-                { action: "Match with another window", keys: "Ctrl + Alt + M" },
-                { action: "Auto layout windows", keys: "Ctrl + Alt + L" },
-                { action: "Center window", keys: "Ctrl + Alt + C" },
-                { action: "Make window 16 by 9", keys: "Ctrl + Alt + 9" },
-            ],
-        },
-        {
-            title: "Window Switcher",
-            shortcuts: [
-                { action: "Open window switcher", keys: "Ctrl + Tab" },
-                {
-                    action: "Select previous window",
-                    keys: "Ctrl + Shift + Tab",
-                },
-                { action: "Search", keys: "Ctrl + F" },
-                { action: "Expand tabs", keys: "Ctrl + Shift + E" },
-                { action: "Collapse tabs", keys: "Ctrl + Shift + C" },
-            ],
-        },
-        {
-            title: "Clipboard History",
-            shortcuts: [
-                { action: "Open clipboard history", keys: "Ctrl + Shift + H" },
-                {
-                    action: "Search clipboard history",
-                    keys: "Ctrl + Shift + F",
-                },
-                { action: "Move up", keys: "↑" },
-                { action: "Move down", keys: "↓" },
-                { action: "Select item", keys: "Enter" },
-                { action: "Paste original", keys: "Ctrl + V" },
-                { action: "Paste plain text", keys: "Ctrl + Shift + V" },
-                { action: "Paste plain text directly", keys: "Ctrl + Alt + V" },
-            ],
-        },
-        {
-            title: "Windows",
-            shortcuts: [
-                {
-                    action: "Open system monitoring dashboard",
-                    keys: "Ctrl + Alt + D",
-                },
-                { action: "Open menubar popover", keys: "Ctrl + Alt + B" },
-            ],
-        },
-    ];
+    type RecordingState = {
+        action: string;
+        label: string;
+        anchor: DOMRect;
+    };
+
+    let recording: RecordingState | null = null;
+    let savingAction: string | null = null;
+
+    $: savedShortcuts = $preferences?.shortcuts ?? [];
+    $: keysByAction = Object.fromEntries(
+        savedShortcuts.map((shortcut) => [
+            actionToSnake(shortcut.action),
+            shortcut.keys,
+        ]),
+    );
+
+    function openRecorder(action: string, label: string, event: MouseEvent) {
+        const target = event.currentTarget as HTMLElement;
+        recording = {
+            action,
+            label,
+            anchor: target.getBoundingClientRect(),
+        };
+    }
+
+    function buildUpdatedShortcuts(
+        action: string,
+        keys: string | null,
+    ): Shortcut[] {
+        const snake = actionToSnake(action);
+        const others = savedShortcuts.filter(
+            (shortcut) => actionToSnake(shortcut.action) !== snake,
+        );
+
+        if (!keys) {
+            return others;
+        }
+
+        return [...others, { action: snake, keys }];
+    }
+
+    async function persistShortcuts(action: string, next: Shortcut[]) {
+        savingAction = action;
+        try {
+            await updateShortcuts(next);
+        } finally {
+            savingAction = null;
+        }
+    }
+
+    async function confirmRecording(keys: string) {
+        if (!recording) return;
+
+        const { action } = recording;
+        recording = null;
+        await persistShortcuts(action, buildUpdatedShortcuts(action, keys));
+    }
+
+    async function removeShortcut(action: string) {
+        await persistShortcuts(action, buildUpdatedShortcuts(action, null));
+    }
+
+    function cancelRecording() {
+        recording = null;
+    }
+
+    $: shortcutsForCapture = shortcutsForApi(savedShortcuts);
 </script>
+
+{#if recording}
+    <ShortcutCapturePopover
+        anchor={recording.anchor}
+        actionLabel={recording.label}
+        editingAction={recording.action}
+        shortcuts={shortcutsForCapture}
+        onconfirm={confirmRecording}
+        oncancel={cancelRecording}
+    />
+{/if}
 
 <PreferencesSection
     title="Keyboard Shortcuts"
     description="View and customize keyboard shortcuts"
 >
-    {#each sections as section}
+    {#each CATALOG_SECTIONS as section (section.title)}
         <div class="shortcuts-section">
             <div class="section-title">{section.title}</div>
             <div class="shortcuts-list">
-                {#each section.shortcuts as shortcut}
+                {#each section.shortcuts as entry (entry.action)}
                     <div class="shortcut-item">
-                        <span class="shortcut-action">{shortcut.action}</span>
+                        <span class="shortcut-action">{entry.label}</span>
                         <div class="shortcut-keys">
-                            <span class="keybind">{shortcut.keys}</span>
-                            <button class="trash-button" title="Remove keybind">
-                                <Trash2 size={13} />
+                            <button
+                                type="button"
+                                class="keybind"
+                                class:keybind-empty={!keysByAction[
+                                    actionToSnake(entry.action)
+                                ]}
+                                disabled={savingAction === entry.action}
+                                on:click={(event) =>
+                                    openRecorder(
+                                        entry.action,
+                                        entry.label,
+                                        event,
+                                    )}
+                            >
+                                {keysByAction[actionToSnake(entry.action)] ??
+                                    "Click to set"}
                             </button>
+                            {#if keysByAction[actionToSnake(entry.action)]}
+                                <button
+                                    type="button"
+                                    class="trash-button"
+                                    title="Remove shortcut"
+                                    disabled={savingAction === entry.action}
+                                    on:click={() =>
+                                        removeShortcut(entry.action)}
+                                >
+                                    <Trash2 size={13} />
+                                </button>
+                            {/if}
                         </div>
                     </div>
                 {/each}
@@ -133,6 +191,7 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
+        min-width: 96px;
         padding: 4px 10px;
         background: var(--color-button-bg);
         border: 1px solid var(--color-border-medium);
@@ -142,6 +201,25 @@
         color: var(--color-text-primary);
         font-family: inherit;
         letter-spacing: 0.02em;
+        cursor: pointer;
+        transition:
+            border-color 150ms ease,
+            background 150ms ease;
+    }
+
+    .keybind:hover:not(:disabled) {
+        border-color: var(--color-border-strong, var(--color-border-medium));
+        background: var(--color-surface-hover, var(--color-button-bg));
+    }
+
+    .keybind:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .keybind-empty {
+        color: var(--color-text-tertiary);
+        font-weight: 500;
     }
 
     .trash-button {
@@ -156,10 +234,16 @@
         color: var(--color-text-tertiary);
         border-radius: 4px;
         transition: all 150ms ease;
+        cursor: pointer;
     }
 
-    .trash-button:hover {
+    .trash-button:hover:not(:disabled) {
         background: var(--color-danger-soft);
         color: var(--color-danger);
+    }
+
+    .trash-button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
     }
 </style>

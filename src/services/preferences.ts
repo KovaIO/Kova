@@ -1,13 +1,15 @@
 import { get } from "svelte/store";
 import { invoke } from "@tauri-apps/api/core";
 
-import { preferences } from "$stores/preferences";
+import { preferences, normalizePreferences } from "$stores/preferences";
 import type {
   ClipboardPreferences,
   GeneralPreferences,
   Preferences,
+  Shortcut,
   WindowManagerPreferences,
 } from "$types/preferences";
+import { shortcutsForApi, normalizeStoredShortcuts } from "$utils/keyboard-shortcuts";
 
 type UpdatableSection = keyof Pick<
   Preferences,
@@ -44,4 +46,18 @@ export function updateClipboard(patch: Partial<ClipboardPreferences>) {
 
 export function updateWindowManager(patch: Partial<WindowManagerPreferences>) {
   return updateSection("window_manager", patch);
+}
+
+export function updateShortcuts(shortcuts: Shortcut[]) {
+  const normalized = normalizeStoredShortcuts(shortcuts);
+
+  preferences.update((current) =>
+    current
+      ? normalizePreferences({ ...current, shortcuts: normalized })
+      : current,
+  );
+
+  return invoke("update_shortcuts", {
+    shortcuts: shortcutsForApi(normalized),
+  });
 }
