@@ -1,4 +1,2 @@
 pub mod manager;
-pub use manager::open_window;
-
-pub use manager::attach_focus_hide;
+pub use manager::{attach_focus_hide, open_window, toggle_window};

@@ -28,7 +28,7 @@ use commands::{
 use crate::{
     app_state::initialize_app_state,
     metrics::{models::new_shared_history, start_metrics_loop},
-    shortcuts::{handle_shortcuts, load_shortcuts, ShortcutMap},
+    shortcuts::{handle_action, load_shortcuts, ShortcutMap},
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -48,9 +48,13 @@ pub fn run() {
                         return;
                     }
 
-                    let shortcuts = app.state::<ShortcutMap>();
-                    if let Some(action) = shortcuts.get(shortcut) {
-                        handle_shortcuts(app, action);
+                    let map = app.state::<ShortcutMap>();
+                    let Ok(guard) = map.lock() else {
+                        return;
+                    };
+
+                    if let Some(action) = guard.get(&shortcut) {
+                        handle_action(app, action);
                     }
                 })
                 .build(),

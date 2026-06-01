@@ -24,7 +24,7 @@ impl Default for Preferences {
             power: PowerPreferences::default(),
             shortcuts: vec![Shortcut {
                 action: ShortcutAction::OpenClipboardHistory,
-                keys: "Ctrl + Shift + H".to_string(),
+                keys: "Ctrl + alt + Space".to_string(),
             }],
         }
     }

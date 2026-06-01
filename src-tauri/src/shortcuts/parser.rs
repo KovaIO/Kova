@@ -28,7 +28,11 @@ pub fn parse_shortcut(keys: &str) -> Option<Shortcut> {
                 code = Some(Code::Tab);
             }
 
-            "enter" => {
+            "space" => {
+                code = Some(Code::Space);
+            }
+
+            "enter" | "return" => {
                 code = Some(Code::Enter);
             }
 

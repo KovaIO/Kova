@@ -6,6 +6,7 @@ use crate::{
         models::{ClipboardPreferences, GeneralPreferences, Preferences},
         Shortcut, WindowManagerPreferences,
     },
+    shortcuts::ShortcutMap,
 };
 
 fn with_emit<T, F>(state: &State<AppState>, f: F) -> Result<T, String>
@@ -61,6 +62,21 @@ pub fn update_window_manager_preferences(
 }
 
 #[tauri::command]
-pub fn update_shortcuts(shortcuts: Vec<Shortcut>, state: State<AppState>) -> Result<(), String> {
-    with_emit(&state, || state.preferences.update_shortcuts(shortcuts))
+pub fn update_shortcuts(
+    shortcuts: Vec<Shortcut>,
+    state: State<AppState>,
+    app: tauri::AppHandle,
+    map: State<ShortcutMap>,
+) -> Result<(), String> {
+    with_emit(&state, || {
+        state.preferences.update_shortcuts(shortcuts.clone())?;
+
+        #[cfg(target_os = "windows")]
+        crate::shortcuts::reload_shortcuts(&app, &map, &shortcuts)?;
+
+        #[cfg(target_os = "macos")]
+        crate::shortcuts::reload_shortcuts(&map, &shortcuts)?;
+
+        Ok(())
+    })
 }
