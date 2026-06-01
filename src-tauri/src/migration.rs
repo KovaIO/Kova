@@ -48,6 +48,7 @@ pub fn run_migrations(conn: &Connection) -> Result<()> {
             text_content TEXT,
             image_path TEXT,
             source_app TEXT,
+            source_app_path TEXT,
             created_at INTEGER NOT NULL
         );
 

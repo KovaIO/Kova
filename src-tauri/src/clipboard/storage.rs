@@ -2,8 +2,10 @@ use std::path::Path;
 
 use rusqlite::{params, Connection, Result};
 
-use super::models::{ClipboardContentType, ClipboardItem};
-use crate::processes::get_process_icon;
+use crate::{
+    clipboard::models::{ClipboardContentType, ClipboardItem},
+    processes::get_process_icon,
+};
 
 pub fn list_history(
     conn: &Connection,
@@ -90,9 +92,8 @@ pub fn delete_item(conn: &Connection, id: i64) -> Result<Option<String>> {
 }
 
 pub fn clear_history(conn: &Connection) -> Result<Vec<String>> {
-    let mut stmt = conn.prepare(
-        "SELECT image_path FROM clipboard_history WHERE image_path IS NOT NULL",
-    )?;
+    let mut stmt =
+        conn.prepare("SELECT image_path FROM clipboard_history WHERE image_path IS NOT NULL")?;
     let paths = stmt
         .query_map([], |row| row.get::<_, Option<String>>(0))?
         .filter_map(|row| row.ok().flatten())
@@ -201,13 +202,14 @@ impl ClipboardContentType {
 }
 
 fn map_row(row: &rusqlite::Row<'_>) -> Result<ClipboardItem> {
-    let content_type = ClipboardContentType::from_db(&row.get::<_, String>(1)?).ok_or_else(|| {
-        rusqlite::Error::InvalidColumnType(
-            1,
-            "content_type".into(),
-            rusqlite::types::Type::Text,
-        )
-    })?;
+    let content_type =
+        ClipboardContentType::from_db(&row.get::<_, String>(1)?).ok_or_else(|| {
+            rusqlite::Error::InvalidColumnType(
+                1,
+                "content_type".into(),
+                rusqlite::types::Type::Text,
+            )
+        })?;
 
     let text_content: Option<String> = row.get(2)?;
     let image_path: Option<String> = row.get(3)?;
@@ -215,14 +217,15 @@ fn map_row(row: &rusqlite::Row<'_>) -> Result<ClipboardItem> {
     let source_app_path: Option<String> = row.get(5)?;
     let created_at: i64 = row.get(6)?;
 
-    let source_app_icon = source_app.as_deref().map(|name| {
-        get_process_icon(
-            name,
-            source_app_path
-                .as_deref()
-                .filter(|path| !path.is_empty()),
-        )
-    }).flatten();
+    let source_app_icon = source_app
+        .as_deref()
+        .map(|name| {
+            get_process_icon(
+                name,
+                source_app_path.as_deref().filter(|path| !path.is_empty()),
+            )
+        })
+        .flatten();
 
     let (image_width, image_height, image_size, image_filename) =
         image_metadata(image_path.as_deref());
@@ -257,12 +260,7 @@ fn image_metadata(path: Option<&str>) -> (Option<u32>, Option<u32>, Option<u64>,
 
     if let Ok(reader) = image::ImageReader::open(path) {
         if let Ok((width, height)) = reader.into_dimensions() {
-            return (
-                Some(width),
-                Some(height),
-                image_size,
-                image_filename,
-            );
+            return (Some(width), Some(height), image_size, image_filename);
         }
     }
 

@@ -4,7 +4,11 @@ use std::sync::{Arc, Mutex};
 use crate::{
     clipboard::{
         models::ClipboardItem,
-        storage::{self, effective_history_limit},
+        storage::{
+            clear_history, delete_item, effective_history_limit, get_item, list_history,
+            trim_to_limit,
+        },
+        watcher::cleanup_image_files,
     },
     license::{
         sanitize_clipboard_history_limit, sanitize_window_manager_preferences,
@@ -85,11 +89,11 @@ impl PreferencesService {
             .map_err(|e| e.to_string())?;
 
         if validated.history_limit > 0 {
-            let max = crate::clipboard::storage::effective_history_limit(validated.history_limit);
+            let max = effective_history_limit(validated.history_limit);
             if max < i32::MAX / 4 {
-                let removed = crate::clipboard::storage::trim_to_limit(storage.connection(), max)
-                    .map_err(|e| e.to_string())?;
-                crate::clipboard::watcher::cleanup_image_files(&removed);
+                let removed =
+                    trim_to_limit(storage.connection(), max).map_err(|e| e.to_string())?;
+                cleanup_image_files(&removed);
             }
         }
 
@@ -132,30 +136,26 @@ impl PreferencesService {
     ) -> Result<Vec<ClipboardItem>, String> {
         self.with_storage(|storage| {
             let conn = storage.connection();
-            let max = storage::effective_history_limit(limit);
+            let max = effective_history_limit(limit);
             if max > 0 && max < i32::MAX / 4 {
-                let removed = storage::trim_to_limit(conn, max).map_err(|e| e.to_string())?;
-                crate::clipboard::watcher::cleanup_image_files(&removed);
+                let removed = trim_to_limit(conn, max).map_err(|e| e.to_string())?;
+                cleanup_image_files(&removed);
             }
-            storage::list_history(conn, max, search).map_err(|e| e.to_string())
+            list_history(conn, max, search).map_err(|e| e.to_string())
         })
     }
 
     pub fn get_clipboard_item(&self, id: i64) -> Result<Option<ClipboardItem>, String> {
-        self.with_storage(|storage| {
-            storage::get_item(storage.connection(), id).map_err(|e| e.to_string())
-        })
+        self.with_storage(|storage| get_item(storage.connection(), id).map_err(|e| e.to_string()))
     }
 
     pub fn delete_clipboard_item(&self, id: i64) -> Result<Option<String>, String> {
         self.with_storage(|storage| {
-            storage::delete_item(storage.connection(), id).map_err(|e| e.to_string())
+            delete_item(storage.connection(), id).map_err(|e| e.to_string())
         })
     }
 
     pub fn clear_clipboard_history(&self) -> Result<Vec<String>, String> {
-        self.with_storage(|storage| {
-            storage::clear_history(storage.connection()).map_err(|e| e.to_string())
-        })
+        self.with_storage(|storage| clear_history(storage.connection()).map_err(|e| e.to_string()))
     }
 }

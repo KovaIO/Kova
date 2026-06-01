@@ -1,7 +1,6 @@
 use std::path::Path;
 
-use super::models::SourceApp;
-use crate::clipboard::models::InstalledApp;
+use crate::clipboard::models::{InstalledApp, SourceApp};
 
 pub fn get_foreground_app() -> Option<SourceApp> {
     #[cfg(target_os = "windows")]
@@ -25,9 +24,7 @@ pub fn is_app_ignored(foreground: &SourceApp, ignored: &[InstalledApp]) -> bool 
 
     ignored.iter().any(|app| {
         if app.path.is_empty() {
-            return app
-                .name
-                .eq_ignore_ascii_case(&foreground.name);
+            return app.name.eq_ignore_ascii_case(&foreground.name);
         }
 
         let ignored_path = app.path.to_lowercase();
@@ -40,7 +37,10 @@ pub fn is_app_ignored(foreground: &SourceApp, ignored: &[InstalledApp]) -> bool 
             || Path::new(&exe)
                 .parent()
                 .map(|parent| {
-                    parent.to_string_lossy().to_lowercase().starts_with(&ignored_path)
+                    parent
+                        .to_string_lossy()
+                        .to_lowercase()
+                        .starts_with(&ignored_path)
                 })
                 .unwrap_or(false)
     })
