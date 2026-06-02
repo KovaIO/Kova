@@ -26,8 +26,8 @@ pub fn get_clipboard_history(
         .get_preferences()
         .map_err(|e| e.to_string())?;
     state
-        .preferences
-        .list_clipboard_history(prefs.clipboard.history_limit, search.as_deref())
+        .clipboard
+        .list_history(prefs.clipboard.history_limit, search.as_deref())
 }
 
 #[tauri::command]
@@ -126,8 +126,8 @@ pub fn clear_clipboard_history(state: State<AppState>, app: AppHandle) -> Result
 
 fn get_required_item(state: &AppState, id: i64) -> Result<ClipboardItem, String> {
     state
-        .preferences
-        .get_clipboard_item(id)?
+        .clipboard
+        .get_item(id)?
         .ok_or_else(|| "Clipboard item not found".to_string())
 }
 

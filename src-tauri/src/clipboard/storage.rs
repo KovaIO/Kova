@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use rusqlite::{params, Connection, Result};
 
@@ -7,101 +7,185 @@ use crate::{
     processes::get_process_icon,
 };
 
-pub fn list_history(
-    conn: &Connection,
-    limit: i32,
-    search: Option<&str>,
-) -> Result<Vec<ClipboardItem>> {
-    if let Some(term) = search.filter(|s| !s.trim().is_empty()) {
-        let pattern = format!("%{}%", term.trim());
-        let mut stmt = conn.prepare(
+pub struct ClipboardStorage {
+    conn: Connection,
+}
+
+impl ClipboardStorage {
+    pub fn new(db_path: PathBuf) -> Result<Self> {
+        let conn = Connection::open(db_path)?;
+        Ok(Self { conn })
+    }
+
+    pub fn list_history(&self, limit: i32, search: Option<&str>) -> Result<Vec<ClipboardItem>> {
+        if let Some(term) = search.filter(|s| !s.trim().is_empty()) {
+            let pattern = format!("%{}%", term.trim());
+            let mut stmt = self.conn.prepare(
+                "SELECT id, content_type, text_content, image_path, source_app, source_app_path, created_at
+                 FROM clipboard_history
+                 WHERE text_content LIKE ?1 OR source_app LIKE ?1
+                 ORDER BY created_at DESC, id DESC
+                 LIMIT ?2",
+            )?;
+            let rows = stmt.query_map(params![pattern, limit], map_row)?;
+            return rows.collect();
+        }
+
+        let mut stmt = self.conn.prepare(
             "SELECT id, content_type, text_content, image_path, source_app, source_app_path, created_at
              FROM clipboard_history
-             WHERE text_content LIKE ?1 OR source_app LIKE ?1
              ORDER BY created_at DESC, id DESC
-             LIMIT ?2",
+             LIMIT ?1",
         )?;
-        let rows = stmt.query_map(params![pattern, limit], map_row)?;
-        return rows.collect();
+        let rows = stmt.query_map(params![limit], map_row)?;
+        rows.collect()
     }
 
-    let mut stmt = conn.prepare(
-        "SELECT id, content_type, text_content, image_path, source_app, source_app_path, created_at
-         FROM clipboard_history
-         ORDER BY created_at DESC, id DESC
-         LIMIT ?1",
-    )?;
-    let rows = stmt.query_map(params![limit], map_row)?;
-    rows.collect()
-}
+    pub fn get_item(&self, id: i64) -> Result<Option<ClipboardItem>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT id, content_type, text_content, image_path, source_app, source_app_path, created_at
+             FROM clipboard_history
+             WHERE id = ?1",
+        )?;
 
-pub fn get_item(conn: &Connection, id: i64) -> Result<Option<ClipboardItem>> {
-    let mut stmt = conn.prepare(
-        "SELECT id, content_type, text_content, image_path, source_app, source_app_path, created_at
-         FROM clipboard_history
-         WHERE id = ?1",
-    )?;
+        let mut rows = stmt.query_map(params![id], map_row)?;
 
-    let mut rows = stmt.query_map(params![id], map_row)?;
-
-    match rows.next() {
-        Some(row) => Ok(Some(row?)),
-        None => Ok(None),
+        match rows.next() {
+            Some(row) => Ok(Some(row?)),
+            None => Ok(None),
+        }
     }
-}
 
-pub fn insert_item(
-    conn: &Connection,
-    content_type: ClipboardContentType,
-    text_content: Option<&str>,
-    image_path: Option<&str>,
-    source_app: Option<&str>,
-    source_app_path: Option<&str>,
-    created_at: i64,
-) -> Result<i64> {
-    let type_str = content_type.as_str();
+    pub fn insert_item(
+        &self,
+        content_type: ClipboardContentType,
+        text_content: Option<&str>,
+        image_path: Option<&str>,
+        source_app: Option<&str>,
+        source_app_path: Option<&str>,
+        created_at: i64,
+    ) -> Result<i64> {
+        let type_str = content_type.as_str();
 
-    conn.execute(
-        "INSERT INTO clipboard_history (content_type, text_content, image_path, source_app, source_app_path, created_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-        params![
-            type_str,
-            text_content,
-            image_path,
-            source_app,
-            source_app_path,
-            created_at
-        ],
-    )?;
+        self.conn.execute(
+            "INSERT INTO clipboard_history (content_type, text_content, image_path, source_app, source_app_path, created_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![
+                type_str,
+                text_content,
+                image_path,
+                source_app,
+                source_app_path,
+                created_at
+            ],
+        )?;
 
-    Ok(conn.last_insert_rowid())
-}
+        Ok(self.conn.last_insert_rowid())
+    }
 
-pub fn delete_item(conn: &Connection, id: i64) -> Result<Option<String>> {
-    let image_path: Option<String> = conn
-        .query_row(
-            "SELECT image_path FROM clipboard_history WHERE id = ?1",
-            params![id],
-            |row| row.get(0),
-        )
-        .ok();
+    pub fn delete_item(&self, id: i64) -> Result<Option<String>> {
+        let image_path: Option<String> = self
+            .conn
+            .query_row(
+                "SELECT image_path FROM clipboard_history WHERE id = ?1",
+                params![id],
+                |row| row.get(0),
+            )
+            .ok();
 
-    conn.execute("DELETE FROM clipboard_history WHERE id = ?1", params![id])?;
+        self.conn
+            .execute("DELETE FROM clipboard_history WHERE id = ?1", params![id])?;
 
-    Ok(image_path)
-}
+        Ok(image_path)
+    }
 
-pub fn clear_history(conn: &Connection) -> Result<Vec<String>> {
-    let mut stmt =
-        conn.prepare("SELECT image_path FROM clipboard_history WHERE image_path IS NOT NULL")?;
-    let paths = stmt
-        .query_map([], |row| row.get::<_, Option<String>>(0))?
-        .filter_map(|row| row.ok().flatten())
-        .collect::<Vec<_>>();
+    pub fn clear_history(&self) -> Result<Vec<String>> {
+        let mut stmt = self
+            .conn
+            .prepare("SELECT image_path FROM clipboard_history WHERE image_path IS NOT NULL")?;
+        let paths = stmt
+            .query_map([], |row| row.get::<_, Option<String>>(0))?
+            .filter_map(|row| row.ok().flatten())
+            .collect::<Vec<_>>();
 
-    conn.execute("DELETE FROM clipboard_history", [])?;
+        self.conn.execute("DELETE FROM clipboard_history", [])?;
 
-    Ok(paths)
+        Ok(paths)
+    }
+
+    pub fn trim_to_limit(&self, max_items: i32) -> Result<Vec<String>> {
+        if max_items <= 0 {
+            return Ok(vec![]);
+        }
+
+        let count: i64 =
+            self.conn
+                .query_row("SELECT COUNT(*) FROM clipboard_history", [], |row| {
+                    row.get(0)
+                })?;
+
+        if count <= max_items as i64 {
+            return Ok(vec![]);
+        }
+
+        let mut stmt = self.conn.prepare(
+            "SELECT image_path FROM clipboard_history
+             WHERE id IN (
+                 SELECT id FROM clipboard_history
+                 ORDER BY created_at ASC, id ASC
+                 LIMIT ?1
+             )
+             AND image_path IS NOT NULL",
+        )?;
+
+        let excess = (count - max_items as i64) as i32;
+        let removed_images = stmt
+            .query_map(params![excess], |row| row.get::<_, Option<String>>(0))?
+            .filter_map(|row| row.ok().flatten())
+            .collect::<Vec<_>>();
+
+        self.conn.execute(
+            "DELETE FROM clipboard_history
+             WHERE id IN (
+                 SELECT id FROM clipboard_history
+                 ORDER BY created_at ASC, id ASC
+                 LIMIT ?1
+             )",
+            params![excess],
+        )?;
+
+        Ok(removed_images)
+    }
+
+    pub fn latest_matches(
+        &self,
+        content_type: ClipboardContentType,
+        text_content: Option<&str>,
+        image_path: Option<&str>,
+    ) -> Result<bool> {
+        let mut stmt = self.conn.prepare(
+            "SELECT content_type, text_content, image_path
+             FROM clipboard_history
+             ORDER BY created_at DESC, id DESC
+             LIMIT 1",
+        )?;
+
+        let mut rows = stmt.query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, Option<String>>(1)?,
+                row.get::<_, Option<String>>(2)?,
+            ))
+        })?;
+
+        let Some(Ok((latest_type, latest_text, latest_image))) = rows.next() else {
+            return Ok(false);
+        };
+
+        Ok(latest_type == content_type.as_str()
+            && latest_text.as_deref() == text_content
+            && latest_image.as_deref() == image_path)
+    }
 }
 
 pub fn effective_history_limit(limit: i32) -> i32 {
@@ -110,78 +194,6 @@ pub fn effective_history_limit(limit: i32) -> i32 {
     } else {
         limit
     }
-}
-
-pub fn trim_to_limit(conn: &Connection, max_items: i32) -> Result<Vec<String>> {
-    if max_items <= 0 {
-        return Ok(vec![]);
-    }
-
-    let count: i64 = conn.query_row("SELECT COUNT(*) FROM clipboard_history", [], |row| {
-        row.get(0)
-    })?;
-
-    if count <= max_items as i64 {
-        return Ok(vec![]);
-    }
-
-    let mut stmt = conn.prepare(
-        "SELECT image_path FROM clipboard_history
-         WHERE id IN (
-             SELECT id FROM clipboard_history
-             ORDER BY created_at ASC, id ASC
-             LIMIT ?1
-         )
-         AND image_path IS NOT NULL",
-    )?;
-
-    let excess = (count - max_items as i64) as i32;
-    let removed_images = stmt
-        .query_map(params![excess], |row| row.get::<_, Option<String>>(0))?
-        .filter_map(|row| row.ok().flatten())
-        .collect::<Vec<_>>();
-
-    conn.execute(
-        "DELETE FROM clipboard_history
-         WHERE id IN (
-             SELECT id FROM clipboard_history
-             ORDER BY created_at ASC, id ASC
-             LIMIT ?1
-         )",
-        params![excess],
-    )?;
-
-    Ok(removed_images)
-}
-
-pub fn latest_matches(
-    conn: &Connection,
-    content_type: ClipboardContentType,
-    text_content: Option<&str>,
-    image_path: Option<&str>,
-) -> Result<bool> {
-    let mut stmt = conn.prepare(
-        "SELECT content_type, text_content, image_path
-         FROM clipboard_history
-         ORDER BY created_at DESC, id DESC
-         LIMIT 1",
-    )?;
-
-    let mut rows = stmt.query_map([], |row| {
-        Ok((
-            row.get::<_, String>(0)?,
-            row.get::<_, Option<String>>(1)?,
-            row.get::<_, Option<String>>(2)?,
-        ))
-    })?;
-
-    let Some(Ok((latest_type, latest_text, latest_image))) = rows.next() else {
-        return Ok(false);
-    };
-
-    Ok(latest_type == content_type.as_str()
-        && latest_text.as_deref() == text_content
-        && latest_image.as_deref() == image_path)
 }
 
 impl ClipboardContentType {

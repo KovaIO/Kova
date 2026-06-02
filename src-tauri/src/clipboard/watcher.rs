@@ -15,7 +15,6 @@ use crate::{
     clipboard::{
         models::{ClipboardContentType, SourceApp},
         source::{get_foreground_app, is_app_ignored},
-        storage,
     },
 };
 
@@ -147,17 +146,10 @@ fn try_capture_text(
         return Ok(false);
     }
 
-    let is_duplicate = state
-        .preferences
-        .with_storage(|storage| {
-            storage::latest_matches(
-                storage.connection(),
-                ClipboardContentType::Text,
-                Some(&text),
-                None,
-            )
-            .map_err(|e| e.to_string())
-        })?;
+    let is_duplicate =
+        state
+            .clipboard
+            .latest_matches(ClipboardContentType::Text, Some(&text), None)?;
 
     if is_duplicate {
         return Ok(false);
@@ -170,21 +162,18 @@ fn try_capture_text(
         .map(|s| s.path.as_str())
         .filter(|p| !p.is_empty());
 
-    state.preferences.with_storage(|storage| {
-        let conn = storage.connection();
-        storage::insert_item(
-            conn,
-            ClipboardContentType::Text,
-            Some(&text),
-            None,
-            source_name,
-            source_path,
-            created_at,
-        )
-        .map_err(|e| e.to_string())?;
-        storage::trim_to_limit(conn, effective_limit(prefs.clipboard.history_limit))
-            .map_err(|e| e.to_string())
-    })?;
+    state.clipboard.insert_item(
+        ClipboardContentType::Text,
+        Some(&text),
+        None,
+        source_name,
+        source_path,
+        created_at,
+    )?;
+    let removed = state
+        .clipboard
+        .trim_to_limit(prefs.clipboard.history_limit)?;
+    cleanup_image_files(&removed);
 
     remember_text(text);
 
@@ -214,17 +203,10 @@ fn try_capture_image(
         .get_preferences()
         .map_err(|e| e.to_string())?;
 
-    let is_duplicate = state
-        .preferences
-        .with_storage(|storage| {
-            storage::latest_matches(
-                storage.connection(),
-                ClipboardContentType::Image,
-                None,
-                Some(&path),
-            )
-            .map_err(|e| e.to_string())
-        })?;
+    let is_duplicate =
+        state
+            .clipboard
+            .latest_matches(ClipboardContentType::Image, None, Some(&path))?;
 
     if is_duplicate {
         let _ = std::fs::remove_file(&path);
@@ -238,22 +220,17 @@ fn try_capture_image(
         .map(|s| s.path.as_str())
         .filter(|p| !p.is_empty());
 
-    let removed = state.preferences.with_storage(|storage| {
-        let conn = storage.connection();
-        storage::insert_item(
-            conn,
-            ClipboardContentType::Image,
-            None,
-            Some(&path),
-            source_name,
-            source_path,
-            created_at,
-        )
-        .map_err(|e| e.to_string())?;
-        storage::trim_to_limit(conn, effective_limit(prefs.clipboard.history_limit))
-            .map_err(|e| e.to_string())
-    })?;
-
+    state.clipboard.insert_item(
+        ClipboardContentType::Image,
+        None,
+        Some(&path),
+        source_name,
+        source_path,
+        created_at,
+    )?;
+    let removed = state
+        .clipboard
+        .trim_to_limit(prefs.clipboard.history_limit)?;
     cleanup_image_files(&removed);
 
     remember_image_signature(signature);
@@ -271,7 +248,7 @@ fn save_image(state: &AppState, image: &ImageData) -> Result<String, String> {
         image.height as u32,
         image.bytes.to_vec(),
     )
-        .ok_or_else(|| "invalid clipboard image dimensions".to_string())?;
+    .ok_or_else(|| "invalid clipboard image dimensions".to_string())?;
 
     let mut buffer = Vec::new();
     image::codecs::png::PngEncoder::new(&mut buffer)
@@ -288,14 +265,6 @@ fn save_image(state: &AppState, image: &ImageData) -> Result<String, String> {
     Ok(path.to_string_lossy().to_string())
 }
 
-fn effective_limit(limit: i32) -> i32 {
-    if limit <= 0 {
-        i32::MAX / 2
-    } else {
-        limit
-    }
-}
-
 fn looks_like_password(text: &str) -> bool {
     if text.len() > 128 {
         return false;
@@ -304,7 +273,9 @@ fn looks_like_password(text: &str) -> bool {
     let has_upper = text.chars().any(|c| c.is_uppercase());
     let has_lower = text.chars().any(|c| c.is_lowercase());
     let has_digit = text.chars().any(|c| c.is_ascii_digit());
-    let has_symbol = text.chars().any(|c| !c.is_alphanumeric() && !c.is_whitespace());
+    let has_symbol = text
+        .chars()
+        .any(|c| !c.is_alphanumeric() && !c.is_whitespace());
 
     text.len() >= 12 && has_upper && has_lower && has_digit && has_symbol
 }
@@ -338,16 +309,13 @@ pub fn cleanup_image_files(paths: &[String]) {
 }
 
 pub fn clear_history_files(state: &AppState) -> Result<(), String> {
-    let paths = state
-        .preferences
-        .clear_clipboard_history()
-        .map_err(|e| e.to_string())?;
+    let paths = state.clipboard.clear_history()?;
     cleanup_image_files(&paths);
     Ok(())
 }
 
 pub fn delete_item_files(state: &AppState, id: i64) -> Result<(), String> {
-    if let Some(path) = state.preferences.delete_clipboard_item(id)? {
+    if let Some(path) = state.clipboard.delete_item(id)? {
         cleanup_image_files(&[path]);
     }
     Ok(())
