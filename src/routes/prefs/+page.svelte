@@ -23,7 +23,7 @@
         { id: "keyboard-shortcuts", label: "Keyboard Shortcuts" },
         { id: "power-management", label: "Power Management" },
         { id: "help-feedback", label: "Help & Feedback" },
-        { id: "developer-view", label: "Developer View" }
+        { id: "developer-view", label: "Developer View" },
     ];
 
     function handleSectionChange(sectionId: string) {
@@ -48,8 +48,8 @@
     <div class="content">
         {#snippet sidebar()}
             <PreferencesSidebar
-                sections={sections}
-                activeSection={activeSection}
+                {sections}
+                {activeSection}
                 onSectionChange={handleSectionChange}
             />
         {/snippet}

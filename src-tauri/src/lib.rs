@@ -128,14 +128,13 @@ pub fn run() {
                             if is_open.load(Ordering::Relaxed) {
                                 close_pending.store(false, Ordering::Relaxed);
                                 is_open.store(false, Ordering::Relaxed);
-                                window.hide().ok();
+                                windows::hide_window(&window);
                             } else {
                                 close_pending.store(false, Ordering::Relaxed);
                                 is_open.store(true, Ordering::Relaxed);
 
                                 window.move_window(Position::TrayCenter).ok();
-                                window.show().ok();
-                                window.set_focus().ok();
+                                windows::open_window(tray.app_handle(), "home");
                             }
                         }
                     }
@@ -171,7 +170,7 @@ pub fn run() {
                             if close_pending.load(Ordering::Relaxed)
                                 && !window.is_focused().unwrap_or(false)
                             {
-                                window.hide().ok();
+                                windows::hide_window(&window);
                                 is_open.store(false, Ordering::Relaxed);
                                 close_pending.store(false, Ordering::Relaxed);
                             }

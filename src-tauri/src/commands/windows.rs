@@ -1,5 +1,5 @@
 use crate::windows;
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 
 #[tauri::command]
 pub fn open_preferences(app: AppHandle) {
@@ -10,14 +10,7 @@ pub fn open_preferences(app: AppHandle) {
 pub fn open_monitor(app: AppHandle, tab: Option<String>) {
     if let Some(window) = app.get_webview_window("monitor") {
         let tab = tab.unwrap_or_else(|| "cpu".to_string());
-        if let Ok(current_url) = window.url() {
-            let origin = current_url.origin().ascii_serialization();
-            let url = format!("{}/monitor?tab={}", origin, tab);
-
-            if let Ok(parsed) = url.parse() {
-                let _ = window.navigate(parsed);
-            }
-        }
+        let _ = window.emit_to("monitor", "set-tab", tab);
         windows::open_window(&app, "monitor");
     }
 }
@@ -26,14 +19,11 @@ pub fn open_monitor(app: AppHandle, tab: Option<String>) {
 pub fn open_process(app: AppHandle, pid: u32, tab: Option<String>) {
     if let Some(window) = app.get_webview_window("process") {
         let tab = tab.unwrap_or_else(|| "cpu".to_string());
-        if let Ok(current_url) = window.url() {
-            let origin = current_url.origin().ascii_serialization();
-            let url = format!("{}/monitor/process?pid={}&tab={}", origin, pid, tab);
-
-            if let Ok(parsed) = url.parse() {
-                let _ = window.navigate(parsed);
-            }
-        }
+        let _ = window.emit_to(
+            "process",
+            "set-process",
+            serde_json::json!({ "pid": pid, "tab": tab }),
+        );
         windows::open_window(&app, "process");
     }
 }

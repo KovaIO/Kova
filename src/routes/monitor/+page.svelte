@@ -25,20 +25,17 @@
         sortTreeBy,
     } from "$utils/process-tree";
     import { metricLabel } from "$utils/format";
+    import WindowAnimation from "$components/WindowAnimation.svelte";
+    import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 
     let activeTab: Tab = "cpu";
 
-    $: {
-        const tab = page.url.searchParams.get("tab");
-        if (
-            tab === "cpu" ||
-            tab === "ram" ||
-            tab === "disk" ||
-            tab === "network"
-        ) {
-            activeTab = tab;
-        }
-    }
+    const unlistenTab = getCurrentWebviewWindow().listen<string>(
+        "set-tab",
+        (e) => {
+            activeTab = e.payload as Tab;
+        },
+    );
 
     let cpuHistory: number[] = [];
     let ramHistory: number[] = [];
@@ -66,7 +63,10 @@
         });
     });
 
-    onDestroy(() => unlisten?.());
+    onDestroy(async () => {
+        unlisten?.();
+        (await unlistenTab)();
+    });
 
     async function handleBarClick(index: number) {
         if (selectedHistoryIndex === index) {
@@ -145,46 +145,48 @@
     }
 </script>
 
-<div class="page">
-    <div class="graph">
-        <MetricGraph
-            bind:activeTab
-            diskCleanEnabled={diskCleanEnabled}
-            {cpuHistory}
-            {ramHistory}
-            {networkHistory}
-            ramMax={ramTotal}
-            netMax={networkPeak || undefined}
-            onBarClick={handleBarClick}
-            selectedIndex={selectedHistoryIndex}
-            onBackgroundClick={exitHistoryMode}
-        />
-    </div>
-
-    {#if showProcessList}
-        <div class="card search-card">
-            <Search class="search-icon" size={14} />
-            <input
-                class="search-input"
-                type="text"
-                placeholder="Search process"
-                bind:value={search}
+<WindowAnimation>
+    <div class="page">
+        <div class="graph">
+            <MetricGraph
+                bind:activeTab
+                {diskCleanEnabled}
+                {cpuHistory}
+                {ramHistory}
+                {networkHistory}
+                ramMax={ramTotal}
+                netMax={networkPeak || undefined}
+                onBarClick={handleBarClick}
+                selectedIndex={selectedHistoryIndex}
+                onBackgroundClick={exitHistoryMode}
             />
         </div>
 
-        <div class="card list-card">
-            {#if displayProcesses.length === 0}
-                <p class="empty">
-                    {search ? `No results for "${search}"` : "No data yet"}
-                </p>
-            {:else}
-                {#each displayProcesses as proc (`${proc.pid}-${activeTab}`)}
-                    {@render row(proc, 0)}
-                {/each}
-            {/if}
-        </div>
-    {/if}
-</div>
+        {#if showProcessList}
+            <div class="card search-card">
+                <Search class="search-icon" size={14} />
+                <input
+                    class="search-input"
+                    type="text"
+                    placeholder="Search process"
+                    bind:value={search}
+                />
+            </div>
+
+            <div class="card list-card">
+                {#if displayProcesses.length === 0}
+                    <p class="empty">
+                        {search ? `No results for "${search}"` : "No data yet"}
+                    </p>
+                {:else}
+                    {#each displayProcesses as proc (`${proc.pid}-${activeTab}`)}
+                        {@render row(proc, 0)}
+                    {/each}
+                {/if}
+            </div>
+        {/if}
+    </div>
+</WindowAnimation>
 
 {#snippet row(proc: ProcessNode, depth: number)}
     {@const hasKids = proc.children.length > 0}

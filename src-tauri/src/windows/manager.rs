@@ -2,28 +2,28 @@ use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
 };
-use tauri::{AppHandle, Manager, WebviewWindow, WindowEvent};
+use tauri::{AppHandle, Emitter, Manager, WebviewWindow, WindowEvent};
 
 pub fn open_window(app: &AppHandle, label: &str) {
     if let Some(window) = app.get_webview_window(label) {
         window.show().ok();
+        let _ = window.emit_to(label, "window-opened", ());
         window.set_focus().ok();
     }
 }
 
-// pub fn hide_window(app: &AppHandle, label: &str) {
-//     if let Some(window) = app.get_webview_window(label) {
-//         window.hide().ok();
-//     }
-// }
+pub fn hide_window(window: &WebviewWindow) {
+    let label = window.label();
+    let _ = window.emit_to(label, "window-closed", ());
+    window.hide().ok();
+}
 
 pub fn toggle_window(app: &AppHandle, label: &str) {
     if let Some(window) = app.get_webview_window(label) {
         if window.is_visible().unwrap_or(false) {
-            window.hide().ok();
+            hide_window(&window);
         } else {
-            window.show().ok();
-            window.set_focus().ok();
+            open_window(app, label);
         }
     }
 }
@@ -59,7 +59,7 @@ pub fn attach_focus_hide(window: WebviewWindow) {
                     if close_pending.load(Ordering::Relaxed)
                         && !window.is_focused().unwrap_or(false)
                     {
-                        window.hide().ok();
+                        hide_window(&window);
                         is_open.store(false, Ordering::Relaxed);
                         close_pending.store(false, Ordering::Relaxed);
                     }

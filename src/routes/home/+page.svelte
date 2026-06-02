@@ -6,9 +6,14 @@
     import Toggle from "$components/Toggle.svelte";
     import BrightnessSlider from "$components/BrightnessSlider.svelte";
     import { Cpu, MemoryStick, HardDrive } from "@lucide/svelte";
-    import { updateClipboard, updateGeneral, updateWindowManager } from "$services/preferences";
+    import {
+        updateClipboard,
+        updateGeneral,
+        updateWindowManager,
+    } from "$services/preferences";
     import { canUse, license } from "$stores/license";
     import { preferences } from "$stores/preferences";
+    import WindowAnimation from "$components/WindowAnimation.svelte";
 
     interface SystemMetrics {
         cpu_percent: number;
@@ -63,65 +68,67 @@
     }
 </script>
 
-<div class="page">
-    <div class="shell">
-        <section class="metrics">
-            <MetricCard
-                icon={Cpu}
-                label="CPU"
-                value={cpu}
-                displayValue={cpuDisplay}
-                tab="cpu"
-            />
-            <MetricCard
-                icon={MemoryStick}
-                label="RAM"
-                value={ram}
-                displayValue={ramDisplay}
-                tab="ram"
-            />
-            <MetricCard
-                icon={HardDrive}
-                label="Disk"
-                value={disk}
-                displayValue={diskDisplay}
-                tab="disk"
-            />
-        </section>
-
-        <div class="divider"></div>
-
-        <section class="switches">
-            <Toggle
-                id="wm"
-                label="Window Manager"
-                checked={windowManagerEnabled}
-                onchange={(enabled) => updateWindowManager({ enabled })}
-            />
-            <Toggle
-                id="cb"
-                label="Clipboard History"
-                checked={clipboardEnabled}
-                onchange={(enabled) => updateClipboard({ enabled })}
-            />
-        </section>
-
-        {#if monitorDimmingEnabled}
-            <div class="divider"></div>
-
-            <section class="brightness-section">
-                <BrightnessSlider
-                    value={monitorDim}
-                    onchange={(v) => updateGeneral({ monitor_dim: v })}
+<WindowAnimation>
+    <div class="page">
+        <div class="shell">
+            <section class="metrics">
+                <MetricCard
+                    icon={Cpu}
+                    label="CPU"
+                    value={cpu}
+                    displayValue={cpuDisplay}
+                    tab="cpu"
+                />
+                <MetricCard
+                    icon={MemoryStick}
+                    label="RAM"
+                    value={ram}
+                    displayValue={ramDisplay}
+                    tab="ram"
+                />
+                <MetricCard
+                    icon={HardDrive}
+                    label="Disk"
+                    value={disk}
+                    displayValue={diskDisplay}
+                    tab="disk"
                 />
             </section>
-        {/if}
-    </div>
 
-    <button class="prefs-btn" type="button" on:click={openPreferences}
-        >Preferences</button
-    >
-</div>
+            <div class="divider"></div>
+
+            <section class="switches">
+                <Toggle
+                    id="wm"
+                    label="Window Manager"
+                    checked={windowManagerEnabled}
+                    onchange={(enabled) => updateWindowManager({ enabled })}
+                />
+                <Toggle
+                    id="cb"
+                    label="Clipboard History"
+                    checked={clipboardEnabled}
+                    onchange={(enabled) => updateClipboard({ enabled })}
+                />
+            </section>
+
+            {#if monitorDimmingEnabled}
+                <div class="divider"></div>
+
+                <section class="brightness-section">
+                    <BrightnessSlider
+                        value={monitorDim}
+                        onchange={(v) => updateGeneral({ monitor_dim: v })}
+                    />
+                </section>
+            {/if}
+        </div>
+
+        <button class="prefs-btn" type="button" on:click={openPreferences}
+            >Preferences</button
+        >
+    </div>
+</WindowAnimation>
 
 <style>
     .page {

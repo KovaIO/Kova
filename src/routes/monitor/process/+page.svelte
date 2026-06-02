@@ -15,13 +15,23 @@
     import type { FlatProcess, Metrics, ProcessNode } from "$types/metrics";
     import { metricLabel } from "$utils/format";
     import { getProcessHierarchy } from "$utils/process-tree";
+    import WindowAnimation from "$components/WindowAnimation.svelte";
+    import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 
-    const pid: number = Number(page.url.searchParams.get("pid"));
+    let pid: number = 0;
+    let activeTab: "cpu" | "ram" | "network" = "cpu";
 
-    let activeTab: "cpu" | "ram" | "network" = (() => {
-        const t = page.url.searchParams.get("tab");
-        return t === "ram" || t === "network" ? t : "cpu";
-    })();
+    const unlistenProcess = getCurrentWebviewWindow().listen<{
+        pid: number;
+        tab: string;
+    }>("set-process", (e) => {
+        pid = e.payload.pid;
+        activeTab =
+            e.payload.tab === "ram" || e.payload.tab === "network"
+                ? e.payload.tab
+                : "cpu";
+        loadProcess();
+    });
 
     let proc: FlatProcess | null = null;
     let ancestors: FlatProcess[] = [];
@@ -38,6 +48,21 @@
 
     let selectedHistoryIndex: number | null = null;
     let historyMode = false;
+
+    async function loadProcess() {
+        const [cpuH, ramH, netH] = await invoke<[number[], number[], number[]]>(
+            "get_process_history",
+            { pid },
+        );
+        cpuHistory = cpuH;
+        ramHistory = ramH;
+        networkHistory = netH;
+        ramMax = Math.max(...ramH, 1);
+        netMax = Math.max(...netH, 1);
+
+        const snap = await invoke<Metrics | null>("get_current_metrics");
+        if (snap) applyLiveMetrics(snap);
+    }
 
     async function handleBarClick(index: number) {
         if (selectedHistoryIndex === index) {
@@ -111,25 +136,13 @@
 
     let unlisten: UnlistenFn;
     onMount(async () => {
-        const [cpuH, ramH, netH] = await invoke<[number[], number[], number[]]>(
-            "get_process_history",
-            { pid },
-        );
-        cpuHistory = cpuH;
-        ramHistory = ramH;
-        networkHistory = netH;
-        ramMax = Math.max(...ramH, 1);
-        netMax = Math.max(...netH, 1);
-
-        const snap = await invoke<Metrics | null>("get_current_metrics");
-        if (snap) applyLiveMetrics(snap);
+        if (pid) await loadProcess();
 
         unlisten = await listen<Metrics>("metrics", (e) => {
             if (!historyMode) {
                 applyLiveMetrics(e.payload);
                 return;
             }
-
             appendLiveGraphPoint(e.payload);
         });
     });
@@ -148,107 +161,115 @@
         }
     }
 
-    onDestroy(() => unlisten?.());
+    onDestroy(async () => {
+        unlisten?.();
+        (await unlistenProcess)();
+    });
 </script>
 
-<div class="page">
-    <div class="card unified-card">
-        <div class="topbar">
-            <button type="button" class="back-button" onclick={openMonitor}>
-                <ArrowLeft size={14} />
-            </button>
-        </div>
+<WindowAnimation>
+    <div class="page">
+        <div class="card unified-card">
+            <div class="topbar">
+                <button type="button" class="back-button" onclick={openMonitor}>
+                    <ArrowLeft size={14} />
+                </button>
+            </div>
 
-        <MetricGraph
-            bind:activeTab
-            {cpuHistory}
-            {ramHistory}
-            networkHistory={networkHistory.map((v) => (v / netMax) * 100)}
-            {ramMax}
-            {netMax}
-            diskCleanEnabled={false}
-            onBarClick={handleBarClick}
-            selectedIndex={selectedHistoryIndex}
-            onBackgroundClick={exitHistoryMode}
-        />
+            <MetricGraph
+                bind:activeTab
+                {cpuHistory}
+                {ramHistory}
+                networkHistory={networkHistory.map((v) => (v / netMax) * 100)}
+                {ramMax}
+                {netMax}
+                diskCleanEnabled={false}
+                onBarClick={handleBarClick}
+                selectedIndex={selectedHistoryIndex}
+                onBackgroundClick={exitHistoryMode}
+            />
 
-        <div class="details-scroll">
-            {#if proc}
-                <div class="main-row">
-                    {@render procIcon(proc)}
+            <div class="details-scroll">
+                {#if proc}
+                    <div class="main-row">
+                        {@render procIcon(proc)}
 
-                    <div class="proc-name">{proc.name}</div>
-                </div>
-
-                <div class="meta-block">
-                    <div class="meta-label">Started at</div>
-                    <div class="meta-value">
-                        {new Date(proc.started_at * 1000).toLocaleString()}
+                        <div class="proc-name">{proc.name}</div>
                     </div>
-                </div>
 
-                {#if proc.exe_path}
                     <div class="meta-block">
-                        <div class="meta-label">Path</div>
-                        <div class="meta-value path">
-                            {proc.exe_path}
+                        <div class="meta-label">Started at</div>
+                        <div class="meta-value">
+                            {new Date(proc.started_at * 1000).toLocaleString()}
                         </div>
                     </div>
-                {/if}
 
-                <div class="meta-block">
-                    <div class="meta-label">Process hierarchy</div>
-                </div>
-
-                <div class="hierarchy-section">
-                    {#each ancestors.slice(0, -1) as anc, i (anc.pid)}
-                        <div
-                            class="anc-row"
-                            style:padding-left="{i * 14 + 16}px"
-                        >
-                            <span class="connector">
-                                {i > 0 ? "╰" : ""}
-                            </span>
-
-                            {@render procIcon(anc)}
-
-                            <span class="anc-name">
-                                {anc.name}
-                            </span>
-
-                            <span class="anc-pid">
-                                {anc.pid}
-                            </span>
+                    {#if proc.exe_path}
+                        <div class="meta-block">
+                            <div class="meta-label">Path</div>
+                            <div class="meta-value path">
+                                {proc.exe_path}
+                            </div>
                         </div>
-                    {/each}
-
-                    {#if rootNode}
-                        {@render treeRow(rootNode, (ancestors.length - 1) * 14)}
                     {/if}
-                </div>
-            {:else}
-                <p class="empty">Waiting for process data…</p>
-            {/if}
-        </div>
 
-        <div class="actions">
-            <button
-                type="button"
-                class="action-button danger"
-                onclick={() => quitProcess(false)}
-            >
-                Force quit
-            </button>
-            <button
-                type="button"
-                class="action-button"
-                onclick={() => quitProcess(true)}
-            >
-                Quit
-            </button>
+                    <div class="meta-block">
+                        <div class="meta-label">Process hierarchy</div>
+                    </div>
+
+                    <div class="hierarchy-section">
+                        {#each ancestors.slice(0, -1) as anc, i (anc.pid)}
+                            <div
+                                class="anc-row"
+                                style:padding-left="{i * 14 + 16}px"
+                            >
+                                <span class="connector">
+                                    {i > 0 ? "╰" : ""}
+                                </span>
+
+                                {@render procIcon(anc)}
+
+                                <span class="anc-name">
+                                    {anc.name}
+                                </span>
+
+                                <span class="anc-pid">
+                                    {anc.pid}
+                                </span>
+                            </div>
+                        {/each}
+
+                        {#if rootNode}
+                            {@render treeRow(
+                                rootNode,
+                                (ancestors.length - 1) * 14,
+                            )}
+                        {/if}
+                    </div>
+                {:else}
+                    <p class="empty">Waiting for process data…</p>
+                {/if}
+            </div>
+
+            <div class="actions">
+                <button
+                    type="button"
+                    class="action-button danger"
+                    onclick={() => quitProcess(false)}
+                >
+                    Force quit
+                </button>
+                <button
+                    type="button"
+                    class="action-button"
+                    onclick={() => quitProcess(true)}
+                >
+                    Quit
+                </button>
+            </div>
         </div>
     </div>
-</div>
+</WindowAnimation>
 
 {#snippet procIcon(p: { icon?: string | null })}
     {#if p.icon === "system"}
