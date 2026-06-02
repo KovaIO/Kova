@@ -2,6 +2,7 @@
     import { convertFileSrc } from "@tauri-apps/api/core";
     import { Cpu, Image as ImageIcon, Terminal } from "@lucide/svelte";
     import type { ClipboardItem } from "$types/clipboard";
+    import { slide } from "svelte/transition";
     import {
         formatClipboardTime,
         formatFileSize,
@@ -23,11 +24,12 @@
     interface Props {
         item: ClipboardItem;
         expanded?: boolean;
+        highlight?: string;
         ontoggle?: () => void;
         onchanged?: () => void;
     }
 
-    let { item, expanded = false, ontoggle, onchanged }: Props = $props();
+    let { item, expanded = false, highlight = "", ontoggle, onchanged }: Props = $props();
 
     let thumbFailed = $state(false);
 
@@ -43,8 +45,27 @@
         item.content_type === "image" && !!item.image_path,
     );
 
+    let highlightedPreview = $derived(highlightText(preview || "Empty text", highlight));
+
     function run(action: () => Promise<void>) {
         void action().then(() => onchanged?.());
+    }
+
+    function highlightText(text: string, query: string): string {
+        if (!query.trim()) return escapeHtml(text);
+        const escaped = escapeHtml(text);
+        const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        return escaped.replace(
+            new RegExp(`(${escapedQuery})`, "gi"),
+            "<mark>$1</mark>"
+        );
+    }
+
+    function escapeHtml(text: string): string {
+        return text
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
     }
 </script>
 
@@ -98,7 +119,7 @@
             {/if}
         {:else}
             <div class="text-preview" class:expanded>
-                {preview || "Empty text"}
+                {@html highlightedPreview}
             </div>
         {/if}
 
@@ -122,7 +143,7 @@
     </button>
 
     {#if expanded}
-        <div class="actions">
+        <div class="actions" transition:slide={{ duration: 180, axis: "y" }}>
             <button
                 type="button"
                 class="action"
@@ -181,6 +202,13 @@
 </div>
 
 <style>
+    :global(mark) {
+        background: #ffd700;
+        color: #000;
+        border-radius: 2px;
+        padding: 0 1px;
+    }
+
     .card {
         border: 2px solid transparent;
         border-radius: var(--radius-md);
@@ -213,6 +241,7 @@
         max-height: 88px;
         overflow: hidden;
         border-bottom: 1px solid var(--color-border-subtle);
+        transition: max-height 200ms cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .text-preview.expanded {

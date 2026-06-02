@@ -7,6 +7,7 @@ use crate::{
     clipboard::{
         get_installed_apps,
         models::{ClipboardContentType, ClipboardItem, InstalledApp},
+        paste::simulate_paste,
         watcher::{clear_history_files, delete_item_files, remember_image_signature, remember_text},
     },
 };
@@ -36,8 +37,43 @@ pub fn paste_clipboard_item(
     app: AppHandle,
     id: i64,
 ) -> Result<(), String> {
-    write_item_to_clipboard(&state, id)?;
-    hide_clipboard_window(&app);
+    let item = get_required_item(&state, id)?;
+
+    // Hide window immediately before doing any heavy work
+    if let Some(window) = app.get_webview_window("clipboard") {
+        let _ = window.hide();
+    }
+
+    std::thread::spawn(move || {
+        let mut clipboard = match Clipboard::new() {
+            Ok(c) => c,
+            Err(e) => { eprintln!("Clipboard error: {e}"); return; }
+        };
+
+        let success = match item.content_type {
+            ClipboardContentType::Text => {
+                if let Some(text) = item.text_content {
+                    let ok = clipboard.set_text(text.clone()).is_ok();
+                    if ok { remember_text(text); }
+                    ok
+                } else { false }
+            }
+            ClipboardContentType::Image => {
+                if let Some(path) = item.image_path {
+                    match set_clipboard_image(&mut clipboard, &path) {
+                        Ok(sig) => { remember_image_signature(sig); true }
+                        Err(e) => { eprintln!("Image clipboard error: {e}"); false }
+                    }
+                } else { false }
+            }
+        };
+
+        if success {
+            std::thread::sleep(std::time::Duration::from_millis(200));
+            simulate_paste();
+        }
+    });
+
     Ok(())
 }
 
@@ -54,12 +90,23 @@ pub fn paste_plain_clipboard_item(
 ) -> Result<(), String> {
     let item = get_required_item(&state, id)?;
     let text = plain_text_for_item(&item)?;
-    let mut clipboard = Clipboard::new().map_err(|e| e.to_string())?;
-    clipboard
-        .set_text(text.clone())
-        .map_err(|e| e.to_string())?;
-    remember_text(text);
-    hide_clipboard_window(&app);
+
+    if let Some(window) = app.get_webview_window("clipboard") {
+        let _ = window.hide();
+    }
+
+    std::thread::spawn(move || {
+        let mut clipboard = match Clipboard::new() {
+            Ok(c) => c,
+            Err(e) => { eprintln!("Clipboard error: {e}"); return; }
+        };
+        if clipboard.set_text(text.clone()).is_ok() {
+            remember_text(text);
+            std::thread::sleep(std::time::Duration::from_millis(150));
+            simulate_paste();
+        }
+    });
+
     Ok(())
 }
 
@@ -173,12 +220,6 @@ fn extract_url(item: &ClipboardItem) -> Option<String> {
         Some(text.to_string())
     } else {
         None
-    }
-}
-
-fn hide_clipboard_window(app: &AppHandle) {
-    if let Some(window) = app.get_webview_window("clipboard") {
-        let _ = window.hide();
     }
 }
 

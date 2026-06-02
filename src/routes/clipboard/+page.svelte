@@ -3,6 +3,8 @@
     import { getCurrentWindow } from "@tauri-apps/api/window";
     import { listen, type UnlistenFn } from "@tauri-apps/api/event";
     import { Search } from "@lucide/svelte";
+    import { fade } from "svelte/transition";
+    import { flip } from "svelte/animate";
     import ClipboardHistoryItem from "$components/clipboard/ClipboardHistoryItem.svelte";
     import {
         copyClipboardItem,
@@ -232,9 +234,9 @@
 
         <div class="list-card" bind:this={listEl}>
             {#if loading}
-                <p class="empty">Loading history…</p>
+                <p class="empty" transition:fade={{ duration: 120 }}>Loading history…</p>
             {:else if filteredItems.length === 0}
-                <p class="empty">
+                <p class="empty" transition:fade={{ duration: 120 }}>
                     {search.trim()
                         ? `No results for "${search.trim()}"`
                         : "Copy something to get started"}
@@ -242,10 +244,17 @@
             {:else}
                 <div class="list">
                     {#each filteredItems as item (item.id)}
-                        <div class="list-item" data-id={item.id}>
+                        <div
+                            class="list-item"
+                            data-id={item.id}
+                            animate:flip={{ duration: 200 }}
+                            in:fade={{ duration: 120 }}
+                            out:fade={{ duration: 80 }}
+                        >
                             <ClipboardHistoryItem
                                 {item}
                                 expanded={item.id === expandedId}
+                                highlight={search.trim()}
                                 ontoggle={() => toggleItem(item.id)}
                                 onchanged={() => void loadHistory()}
                             />
