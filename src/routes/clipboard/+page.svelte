@@ -50,6 +50,10 @@
             : filteredItems.findIndex((item) => item.id === expandedId),
     );
 
+    async function hideWindow() {
+        await getCurrentWindow().hide();
+    }
+
     async function loadHistory() {
         loading = true;
         try {
@@ -205,7 +209,13 @@
     });
 </script>
 
-<div class="page">
+<div
+    class="page"
+    role="presentation"
+    onclick={(e) => {
+        if (e.target === e.currentTarget) hideWindow();
+    }}
+>
     <div class="panel">
         <div class="search-card">
             <Search class="search-icon" size={14} />
@@ -254,14 +264,17 @@
         box-sizing: border-box;
         background: transparent;
         overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
     .panel {
         display: flex;
         flex-direction: column;
         gap: 8px;
-        height: 100%;
-        min-height: 0;
+        width: 100%;
+        max-height: 100%;
     }
 
     .search-card {
@@ -293,7 +306,8 @@
     }
 
     .list-card {
-        flex: 1;
+        display: flex;
+        flex-direction: column;
         min-height: 0;
         overflow-y: auto;
         padding: 4px 0 6px 0;
@@ -316,8 +330,11 @@
 
     .empty {
         text-align: center;
+        background: var(--color-main-bg);
         color: var(--color-text-dim);
         font-size: 12px;
         padding: 28px 12px;
+        border: 2px solid var(--color-border-subtle);
+        border-radius: var(--radius-md);
     }
 </style>

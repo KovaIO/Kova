@@ -39,16 +39,22 @@
             : null,
     );
     let showUrlAction = $derived(isUrl(item));
-    let showFileActions = $derived(item.content_type === "image" && !!item.image_path);
+    let showFileActions = $derived(
+        item.content_type === "image" && !!item.image_path,
+    );
 
     function run(action: () => Promise<void>) {
         void action().then(() => onchanged?.());
     }
 </script>
 
-<!-- svelte-ignore a11y_no_static_element_interactions -->
 <div class="card" class:expanded>
-    <button type="button" class="main" onclick={ontoggle} aria-expanded={expanded}>
+    <button
+        type="button"
+        class="main"
+        onclick={ontoggle}
+        aria-expanded={expanded}
+    >
         {#if item.content_type === "image"}
             <div class="image-head">
                 {#if imageSrc}
@@ -64,8 +70,11 @@
                     </div>
                 {/if}
                 <div class="image-meta">
-                    <span class="image-title">{item.image_filename ?? "Image"}</span>
-                    <span class="image-sub">{imageFolder(item.image_path)}</span>
+                    <span class="image-title"
+                        >{item.image_filename ?? "Image"}</span
+                    >
+                    <span class="image-sub">{imageFolder(item.image_path)}</span
+                    >
                 </div>
             </div>
 
@@ -88,7 +97,9 @@
                 </div>
             {/if}
         {:else}
-            <div class="text-preview" class:expanded>{preview || "Empty text"}</div>
+            <div class="text-preview" class:expanded>
+                {preview || "Empty text"}
+            </div>
         {/if}
 
         <div class="footer">
@@ -179,11 +190,6 @@
         transition:
             border-color var(--transition-fast),
             background var(--transition-fast);
-    }
-
-    .card.expanded {
-        border-color: rgba(90, 156, 255, 0.85);
-        box-shadow: 0 0 0 1px rgba(90, 156, 255, 0.2);
     }
 
     .main {
