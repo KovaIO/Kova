@@ -1,5 +1,6 @@
 pub mod apps;
 pub mod models;
+pub mod paste;
 pub mod service;
 pub mod source;
 pub mod storage;

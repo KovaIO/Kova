@@ -71,15 +71,7 @@ pub fn start(app: AppHandle, state: AppState) {
                 continue;
             }
 
-            let source = get_foreground_app();
-
-            if let Some(source) = &source {
-                if is_own_process(source) || is_app_ignored(source, &prefs.clipboard.ignored_apps) {
-                    continue;
-                }
-            }
-
-            if let Err(err) = poll_once(&app, &state, &mut clipboard, &source) {
+            if let Err(err) = poll_once(&app, &state, &mut clipboard, &prefs) {
                 eprintln!("clipboard watcher: {err}");
             }
         }
@@ -102,10 +94,10 @@ fn poll_once(
     app: &AppHandle,
     state: &AppState,
     clipboard: &mut Clipboard,
-    source: &Option<SourceApp>,
+    prefs: &crate::preferences::models::Preferences,
 ) -> Result<(), String> {
     if let Ok(image) = clipboard.get_image() {
-        if try_capture_image(app, state, &image, source)? {
+        if try_capture_image(app, state, &image, prefs)? {
             return Ok(());
         }
     }
@@ -116,7 +108,7 @@ fn poll_once(
             return Ok(());
         }
 
-        if try_capture_text(app, state, trimmed.to_string(), source)? {
+        if try_capture_text(app, state, trimmed.to_string(), prefs)? {
             return Ok(());
         }
     }
@@ -128,7 +120,7 @@ fn try_capture_text(
     app: &AppHandle,
     state: &AppState,
     text: String,
-    source: &Option<SourceApp>,
+    prefs: &crate::preferences::models::Preferences,
 ) -> Result<bool, String> {
     {
         let guard = LAST_CAPTURE.lock().map_err(|e| e.to_string())?;
@@ -137,10 +129,16 @@ fn try_capture_text(
         }
     }
 
-    let prefs = state
-        .preferences
-        .get_preferences()
-        .map_err(|e| e.to_string())?;
+    // Small delay to ensure foreground window is the one that performed the copy
+    std::thread::sleep(Duration::from_millis(50));
+
+    let source = get_foreground_app();
+
+    if let Some(source) = &source {
+        if is_own_process(source) || is_app_ignored(source, &prefs.clipboard.ignored_apps) {
+            return Ok(false);
+        }
+    }
 
     if prefs.clipboard.ignore_passwords && looks_like_password(&text) {
         return Ok(false);
@@ -185,7 +183,7 @@ fn try_capture_image(
     app: &AppHandle,
     state: &AppState,
     image: &ImageData,
-    source: &Option<SourceApp>,
+    prefs: &crate::preferences::models::Preferences,
 ) -> Result<bool, String> {
     let signature = format!("{}x{}:{}", image.width, image.height, image.bytes.len());
 
@@ -196,12 +194,18 @@ fn try_capture_image(
         }
     }
 
-    let path = save_image(state, image)?;
+    // Small delay to ensure foreground window is the one that performed the copy
+    std::thread::sleep(Duration::from_millis(50));
 
-    let prefs = state
-        .preferences
-        .get_preferences()
-        .map_err(|e| e.to_string())?;
+    let source = get_foreground_app();
+
+    if let Some(source) = &source {
+        if is_own_process(source) || is_app_ignored(source, &prefs.clipboard.ignored_apps) {
+            return Ok(false);
+        }
+    }
+
+    let path = save_image(state, image)?;
 
     let is_duplicate =
         state
