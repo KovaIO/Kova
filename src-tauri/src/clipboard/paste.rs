@@ -69,6 +69,7 @@ thread_local! {
 
 #[cfg(target_os = "windows")]
 pub fn set_image_to_clipboard_delayed(path: String) -> Result<String, String> {
+    use windows::core::PCWSTR;
     use windows::Win32::System::DataExchange::{
         CloseClipboard, EmptyClipboard, OpenClipboard, SetClipboardData,
     };
@@ -76,7 +77,6 @@ pub fn set_image_to_clipboard_delayed(path: String) -> Result<String, String> {
         CreateWindowExW, DispatchMessageW, GetMessageW, RegisterClassW, TranslateMessage,
         CS_HREDRAW, CS_VREDRAW, CW_USEDEFAULT, MSG, WNDCLASSW, WS_OVERLAPPED,
     };
-    use windows::core::PCWSTR;
 
     const CF_DIB: u32 = 8;
 
@@ -113,11 +113,20 @@ pub fn set_image_to_clipboard_delayed(path: String) -> Result<String, String> {
             PCWSTR(class_name.as_ptr()),
             PCWSTR::null(),
             WS_OVERLAPPED,
-            CW_USEDEFAULT, CW_USEDEFAULT, 0, 0,
-            None, None, None, None,
+            CW_USEDEFAULT,
+            CW_USEDEFAULT,
+            0,
+            0,
+            None,
+            None,
+            None,
+            None,
         ) {
             Ok(h) => h,
-            Err(e) => { eprintln!("CreateWindowExW failed: {e}"); return; }
+            Err(e) => {
+                eprintln!("CreateWindowExW failed: {e}");
+                return;
+            }
         };
 
         // Store pre-decoded BGR data in thread-locals
@@ -158,8 +167,8 @@ unsafe extern "system" fn clipboard_wnd_proc(
     };
     use windows::Win32::System::Memory::{GlobalAlloc, GlobalLock, GlobalUnlock, GMEM_MOVEABLE};
     use windows::Win32::UI::WindowsAndMessaging::{
-        DefWindowProcW, DestroyWindow, PostQuitMessage,
-        WM_DESTROYCLIPBOARD, WM_RENDERALLFORMATS, WM_RENDERFORMAT,
+        DefWindowProcW, DestroyWindow, PostQuitMessage, WM_DESTROYCLIPBOARD, WM_RENDERALLFORMATS,
+        WM_RENDERFORMAT,
     };
 
     const CF_DIB: u32 = 8;
@@ -197,11 +206,7 @@ unsafe extern "system" fn clipboard_wnd_proc(
                         ptr,
                         header_size,
                     );
-                    std::ptr::copy_nonoverlapping(
-                        bgr.as_ptr(),
-                        ptr.add(header_size),
-                        bgr.len(),
-                    );
+                    std::ptr::copy_nonoverlapping(bgr.as_ptr(), ptr.add(header_size), bgr.len());
                     let _ = GlobalUnlock(hmem);
 
                     if m == WM_RENDERALLFORMATS {

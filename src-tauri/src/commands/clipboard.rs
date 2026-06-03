@@ -54,34 +54,58 @@ pub async fn paste_clipboard_item(
                 if let Some(text) = item.text_content {
                     let mut clipboard = match Clipboard::new() {
                         Ok(c) => c,
-                        Err(e) => { eprintln!("Clipboard error: {e}"); return; }
+                        Err(e) => {
+                            eprintln!("Clipboard error: {e}");
+                            return;
+                        }
                     };
                     let ok = clipboard.set_text(text.clone()).is_ok();
-                    if ok { remember_text(text); }
+                    if ok {
+                        remember_text(text);
+                    }
                     ok
-                } else { false }
+                } else {
+                    false
+                }
             }
             ClipboardContentType::Image => {
                 if let Some(path) = item.image_path {
                     #[cfg(target_os = "windows")]
                     {
                         match set_image_to_clipboard_delayed(path) {
-                            Ok(sig) => { remember_image_signature(sig); true }
-                            Err(e) => { eprintln!("Image clipboard error: {e}"); false }
+                            Ok(sig) => {
+                                remember_image_signature(sig);
+                                true
+                            }
+                            Err(e) => {
+                                eprintln!("Image clipboard error: {e}");
+                                false
+                            }
                         }
                     }
                     #[cfg(not(target_os = "windows"))]
                     {
                         let mut clipboard = match Clipboard::new() {
                             Ok(c) => c,
-                            Err(e) => { eprintln!("Clipboard error: {e}"); return; }
+                            Err(e) => {
+                                eprintln!("Clipboard error: {e}");
+                                return;
+                            }
                         };
                         match set_clipboard_image(&mut clipboard, &path) {
-                            Ok(sig) => { remember_image_signature(sig); true }
-                            Err(e) => { eprintln!("Image clipboard error: {e}"); false }
+                            Ok(sig) => {
+                                remember_image_signature(sig);
+                                true
+                            }
+                            Err(e) => {
+                                eprintln!("Image clipboard error: {e}");
+                                false
+                            }
                         }
                     }
-                } else { false }
+                } else {
+                    false
+                }
             }
         };
 
@@ -115,7 +139,10 @@ pub async fn paste_plain_clipboard_item(
     tokio::task::spawn_blocking(move || {
         let mut clipboard = match Clipboard::new() {
             Ok(c) => c,
-            Err(e) => { eprintln!("Clipboard error: {e}"); return; }
+            Err(e) => {
+                eprintln!("Clipboard error: {e}");
+                return;
+            }
         };
         if clipboard.set_text(text.clone()).is_ok() {
             remember_text(text);
@@ -202,7 +229,9 @@ fn write_item_to_clipboard(state: &AppState, id: i64) -> Result<(), String> {
             let text = item
                 .text_content
                 .ok_or_else(|| "Clipboard item has no text".to_string())?;
-            clipboard.set_text(text.clone()).map_err(|e| e.to_string())?;
+            clipboard
+                .set_text(text.clone())
+                .map_err(|e| e.to_string())?;
             remember_text(text);
         }
         ClipboardContentType::Image => {

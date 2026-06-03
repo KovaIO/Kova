@@ -32,16 +32,16 @@ struct LastCapture {
 }
 
 pub fn remember_text(text: String) {
-    if let Ok(mut guard) = LAST_CAPTURE.lock() {
-        guard.text = Some(text);
-        guard.image_signature = None;
+    if let Ok(mut g) = LAST_CAPTURE.lock() {
+        g.text = Some(text);
+        g.image_signature = None;
     }
 }
 
-pub fn remember_image_signature(signature: String) {
-    if let Ok(mut guard) = LAST_CAPTURE.lock() {
-        guard.image_signature = Some(signature);
-        guard.text = None;
+pub fn remember_image_signature(sig: String) {
+    if let Ok(mut g) = LAST_CAPTURE.lock() {
+        g.image_signature = Some(sig);
+        g.text = None;
     }
 }
 
@@ -50,11 +50,191 @@ pub fn start(app: AppHandle, state: AppState) {
         return;
     }
 
+    #[cfg(target_os = "windows")]
+    start_windows(app, state);
+
+    #[cfg(not(target_os = "windows"))]
+    start_polling(app, state);
+}
+
+#[cfg(target_os = "windows")]
+fn start_windows(app: AppHandle, state: AppState) {
+    // Shared between the message-loop thread and the worker thread
+    struct PendingCapture {
+        source: Option<SourceApp>,
+    }
+
+    static PENDING: Mutex<Option<PendingCapture>> = Mutex::new(None);
+
+    // Worker thread: processes captures off the message loop
+    let app_worker = app.clone();
+    let state_worker = state.clone();
+    std::thread::Builder::new()
+        .name("clipboard-worker".into())
+        .spawn(move || {
+            let mut clipboard = match Clipboard::new() {
+                Ok(c) => c,
+                Err(e) => {
+                    eprintln!("clipboard worker: {e}");
+                    return;
+                }
+            };
+
+            loop {
+                // Check for pending capture
+                let pending = {
+                    let mut guard = PENDING.lock().unwrap();
+                    guard.take()
+                };
+
+                if let Some(capture) = pending {
+                    let prefs = match state_worker.preferences.get_preferences() {
+                        Ok(p) => p,
+                        Err(_) => {
+                            std::thread::sleep(Duration::from_millis(50));
+                            continue;
+                        }
+                    };
+                    if prefs.clipboard.enabled {
+                        if let Err(e) = process_clipboard(
+                            &app_worker,
+                            &state_worker,
+                            &mut clipboard,
+                            capture.source,
+                            &prefs,
+                        ) {
+                            eprintln!("clipboard worker: {e}");
+                        }
+                    }
+                } else {
+                    std::thread::sleep(Duration::from_millis(30));
+                }
+            }
+        })
+        .expect("failed to spawn clipboard-worker");
+
+    // Message-loop thread: owns the hidden window, receives WM_CLIPBOARDUPDATE
+    std::thread::Builder::new()
+        .name("clipboard-listener".into())
+        .spawn(move || unsafe {
+            use windows::core::PCWSTR;
+            use windows::Win32::System::DataExchange::AddClipboardFormatListener;
+            use windows::Win32::UI::WindowsAndMessaging::{
+                CreateWindowExW, DispatchMessageW, GetMessageW, RegisterClassW, TranslateMessage,
+                CS_HREDRAW, CS_VREDRAW, CW_USEDEFAULT, MSG, WNDCLASSW, WS_OVERLAPPED,
+            };
+
+            unsafe extern "system" fn wnd_proc(
+                hwnd: windows::Win32::Foundation::HWND,
+                msg: u32,
+                wparam: windows::Win32::Foundation::WPARAM,
+                lparam: windows::Win32::Foundation::LPARAM,
+            ) -> windows::Win32::Foundation::LRESULT {
+                use windows::Win32::UI::WindowsAndMessaging::{DefWindowProcW, WM_CLIPBOARDUPDATE};
+
+                if msg == WM_CLIPBOARDUPDATE {
+                    // Snapshot foreground app immediately — this fires the
+                    // instant the clipboard changes, before any app switch
+                    let source = get_foreground_app();
+
+                    if let Ok(mut guard) = PENDING.lock() {
+                        *guard = Some(PendingCapture { source });
+                    }
+                }
+
+                DefWindowProcW(hwnd, msg, wparam, lparam)
+            }
+
+            let class_name: Vec<u16> = "KovaWatcher\0".encode_utf16().collect();
+            let wc = WNDCLASSW {
+                style: CS_HREDRAW | CS_VREDRAW,
+                lpfnWndProc: Some(wnd_proc),
+                lpszClassName: PCWSTR(class_name.as_ptr()),
+                ..Default::default()
+            };
+            RegisterClassW(&wc);
+
+            let hwnd = match CreateWindowExW(
+                Default::default(),
+                PCWSTR(class_name.as_ptr()),
+                PCWSTR::null(),
+                WS_OVERLAPPED,
+                CW_USEDEFAULT,
+                CW_USEDEFAULT,
+                0,
+                0,
+                None,
+                None,
+                None,
+                None,
+            ) {
+                Ok(h) => h,
+                Err(e) => {
+                    eprintln!("clipboard listener: CreateWindowExW: {e}");
+                    return;
+                }
+            };
+
+            if let Err(e) = AddClipboardFormatListener(hwnd) {
+                eprintln!("clipboard listener: AddClipboardFormatListener: {e}");
+                return;
+            }
+
+            eprintln!("[watcher] listening for WM_CLIPBOARDUPDATE");
+
+            let mut msg = MSG::default();
+            while GetMessageW(&mut msg, None, 0, 0).as_bool() {
+                let _ = TranslateMessage(&msg);
+                DispatchMessageW(&msg);
+            }
+        })
+        .expect("failed to spawn clipboard-listener");
+}
+
+#[cfg(target_os = "windows")]
+fn process_clipboard(
+    app: &AppHandle,
+    state: &AppState,
+    clipboard: &mut Clipboard,
+    source: Option<SourceApp>,
+    prefs: &crate::preferences::models::Preferences,
+) -> Result<(), String> {
+    // Filter our own process before doing any clipboard reads
+    if let Some(ref s) = source {
+        if is_own_process(s) || is_app_ignored(s, &prefs.clipboard.ignored_apps) {
+            return Ok(());
+        }
+    }
+
+    if let Ok(image) = clipboard.get_image() {
+        let signature = format!("{}x{}:{}", image.width, image.height, image.bytes.len());
+        let is_known = {
+            let g = LAST_CAPTURE.lock().map_err(|e| e.to_string())?;
+            g.image_signature.as_ref() == Some(&signature)
+        };
+        if !is_known {
+            try_capture_image(app, state, &image, &signature, &source, prefs)?;
+        }
+        return Ok(());
+    }
+
+    if let Ok(text) = clipboard.get_text() {
+        let trimmed = text.trim().to_string();
+        if !trimmed.is_empty() {
+            try_capture_text(app, state, trimmed, &source, prefs)?;
+        }
+    }
+
+    Ok(())
+}
+
+#[cfg(not(target_os = "windows"))]
+fn start_polling(app: AppHandle, state: AppState) {
     std::thread::spawn(move || {
         let mut clipboard = match Clipboard::new() {
             Ok(c) => c,
-            Err(err) => {
-                eprintln!("clipboard watcher: failed to open clipboard: {err}");
+            Err(e) => {
+                eprintln!("clipboard watcher: {e}");
                 return;
             }
         };
@@ -66,50 +246,50 @@ pub fn start(app: AppHandle, state: AppState) {
                 Ok(p) => p,
                 Err(_) => continue,
             };
-
             if !prefs.clipboard.enabled {
                 continue;
             }
 
-            if let Err(err) = poll_once(&app, &state, &mut clipboard, &prefs) {
-                eprintln!("clipboard watcher: {err}");
+            // Snapshot source immediately at poll time
+            let source = get_foreground_app();
+
+            if let Err(e) = process_clipboard_poll(&app, &state, &mut clipboard, source, &prefs) {
+                eprintln!("clipboard watcher: {e}");
             }
         }
     });
 }
 
-fn is_own_process(source: &SourceApp) -> bool {
-    if let Ok(exe) = std::env::current_exe() {
-        let own = exe.to_string_lossy().to_lowercase();
-        let current = source.path.to_lowercase();
-        if !current.is_empty() && current == own {
-            return true;
-        }
-    }
-
-    source.name.eq_ignore_ascii_case("kova") || source.name.eq_ignore_ascii_case("app")
-}
-
-fn poll_once(
+#[cfg(not(target_os = "windows"))]
+fn process_clipboard_poll(
     app: &AppHandle,
     state: &AppState,
     clipboard: &mut Clipboard,
+    source: Option<SourceApp>,
     prefs: &crate::preferences::models::Preferences,
 ) -> Result<(), String> {
-    if let Ok(image) = clipboard.get_image() {
-        if try_capture_image(app, state, &image, prefs)? {
+    if let Some(ref s) = source {
+        if is_own_process(s) || is_app_ignored(s, &prefs.clipboard.ignored_apps) {
             return Ok(());
         }
     }
 
-    if let Ok(text) = clipboard.get_text() {
-        let trimmed = text.trim();
-        if trimmed.is_empty() {
-            return Ok(());
+    if let Ok(image) = clipboard.get_image() {
+        let signature = format!("{}x{}:{}", image.width, image.height, image.bytes.len());
+        let is_known = {
+            let g = LAST_CAPTURE.lock().map_err(|e| e.to_string())?;
+            g.image_signature.as_ref() == Some(&signature)
+        };
+        if !is_known {
+            try_capture_image(app, state, &image, &signature, &source, prefs)?;
         }
+        return Ok(());
+    }
 
-        if try_capture_text(app, state, trimmed.to_string(), prefs)? {
-            return Ok(());
+    if let Ok(text) = clipboard.get_text() {
+        let trimmed = text.trim().to_string();
+        if !trimmed.is_empty() {
+            try_capture_text(app, state, trimmed, &source, prefs)?;
         }
     }
 
@@ -120,22 +300,12 @@ fn try_capture_text(
     app: &AppHandle,
     state: &AppState,
     text: String,
+    source: &Option<SourceApp>,
     prefs: &crate::preferences::models::Preferences,
 ) -> Result<bool, String> {
     {
-        let guard = LAST_CAPTURE.lock().map_err(|e| e.to_string())?;
-        if guard.text.as_ref() == Some(&text) {
-            return Ok(false);
-        }
-    }
-
-    // Small delay to ensure foreground window is the one that performed the copy
-    std::thread::sleep(Duration::from_millis(50));
-
-    let source = get_foreground_app();
-
-    if let Some(source) = &source {
-        if is_own_process(source) || is_app_ignored(source, &prefs.clipboard.ignored_apps) {
+        let g = LAST_CAPTURE.lock().map_err(|e| e.to_string())?;
+        if g.text.as_ref() == Some(&text) {
             return Ok(false);
         }
     }
@@ -144,37 +314,30 @@ fn try_capture_text(
         return Ok(false);
     }
 
-    let is_duplicate =
-        state
-            .clipboard
-            .latest_matches(ClipboardContentType::Text, Some(&text), None)?;
-
-    if is_duplicate {
+    if state
+        .clipboard
+        .latest_matches(ClipboardContentType::Text, Some(&text), None)?
+    {
         return Ok(false);
     }
 
     let created_at = chrono_timestamp();
-    let source_name = source.as_ref().map(|s| s.name.as_str());
-    let source_path = source
-        .as_ref()
-        .map(|s| s.path.as_str())
-        .filter(|p| !p.is_empty());
-
     state.clipboard.insert_item(
         ClipboardContentType::Text,
         Some(&text),
         None,
-        source_name,
-        source_path,
+        source.as_ref().map(|s| s.name.as_str()),
+        source
+            .as_ref()
+            .map(|s| s.path.as_str())
+            .filter(|p| !p.is_empty()),
         created_at,
     )?;
     let removed = state
         .clipboard
         .trim_to_limit(prefs.clipboard.history_limit)?;
     cleanup_image_files(&removed);
-
     remember_text(text);
-
     emit_updated(app);
     Ok(true)
 }
@@ -183,62 +346,38 @@ fn try_capture_image(
     app: &AppHandle,
     state: &AppState,
     image: &ImageData,
+    signature: &str,
+    source: &Option<SourceApp>,
     prefs: &crate::preferences::models::Preferences,
 ) -> Result<bool, String> {
-    let signature = format!("{}x{}:{}", image.width, image.height, image.bytes.len());
-
-    {
-        let guard = LAST_CAPTURE.lock().map_err(|e| e.to_string())?;
-        if guard.image_signature.as_ref() == Some(&signature) {
-            return Ok(false);
-        }
-    }
-
-    // Small delay to ensure foreground window is the one that performed the copy
-    std::thread::sleep(Duration::from_millis(50));
-
-    let source = get_foreground_app();
-
-    if let Some(source) = &source {
-        if is_own_process(source) || is_app_ignored(source, &prefs.clipboard.ignored_apps) {
-            return Ok(false);
-        }
-    }
-
     let path = save_image(state, image)?;
 
-    let is_duplicate =
-        state
-            .clipboard
-            .latest_matches(ClipboardContentType::Image, None, Some(&path))?;
-
-    if is_duplicate {
+    if state
+        .clipboard
+        .latest_matches(ClipboardContentType::Image, None, Some(&path))?
+    {
         let _ = std::fs::remove_file(&path);
+        remember_image_signature(signature.to_string());
         return Ok(false);
     }
 
     let created_at = chrono_timestamp();
-    let source_name = source.as_ref().map(|s| s.name.as_str());
-    let source_path = source
-        .as_ref()
-        .map(|s| s.path.as_str())
-        .filter(|p| !p.is_empty());
-
     state.clipboard.insert_item(
         ClipboardContentType::Image,
         None,
         Some(&path),
-        source_name,
-        source_path,
+        source.as_ref().map(|s| s.name.as_str()),
+        source
+            .as_ref()
+            .map(|s| s.path.as_str())
+            .filter(|p| !p.is_empty()),
         created_at,
     )?;
     let removed = state
         .clipboard
         .trim_to_limit(prefs.clipboard.history_limit)?;
     cleanup_image_files(&removed);
-
-    remember_image_signature(signature);
-
+    remember_image_signature(signature.to_string());
     emit_updated(app);
     Ok(true)
 }
@@ -246,42 +385,51 @@ fn try_capture_image(
 fn save_image(state: &AppState, image: &ImageData) -> Result<String, String> {
     let file_name = format!("{}.png", uuid_simple());
     let path = state.clipboard_images_dir.join(&file_name);
-
     let img = image::RgbaImage::from_raw(
         image.width as u32,
         image.height as u32,
         image.bytes.to_vec(),
     )
-    .ok_or_else(|| "invalid clipboard image dimensions".to_string())?;
+    .ok_or_else(|| "invalid image dimensions".to_string())?;
+    let mut buffer = Vec::with_capacity(img.len());
+    image::codecs::png::PngEncoder::new_with_quality(
+        &mut buffer,
+        image::codecs::png::CompressionType::Fast,
+        image::codecs::png::FilterType::NoFilter,
+    )
+    .write_image(
+        img.as_raw(),
+        img.width(),
+        img.height(),
+        image::ExtendedColorType::Rgba8,
+    )
+    .map_err(|e| e.to_string())?;
+    std::fs::write(&path, &buffer).map_err(|e| e.to_string())?;
+    Ok(path.to_string_lossy().into_owned())
+}
 
-    let mut buffer = Vec::new();
-    image::codecs::png::PngEncoder::new(&mut buffer)
-        .write_image(
-            img.as_raw(),
-            img.width(),
-            img.height(),
-            image::ExtendedColorType::Rgba8,
-        )
-        .map_err(|e| e.to_string())?;
-
-    std::fs::write(&path, buffer).map_err(|e| e.to_string())?;
-
-    Ok(path.to_string_lossy().to_string())
+fn is_own_process(source: &SourceApp) -> bool {
+    if let Ok(exe) = std::env::current_exe() {
+        let own = exe.to_string_lossy().to_lowercase();
+        let cur = source.path.to_lowercase();
+        if !cur.is_empty() && cur == own {
+            return true;
+        }
+    }
+    source.name.eq_ignore_ascii_case("kova") || source.name.eq_ignore_ascii_case("app")
 }
 
 fn looks_like_password(text: &str) -> bool {
     if text.len() > 128 {
         return false;
     }
-
-    let has_upper = text.chars().any(|c| c.is_uppercase());
-    let has_lower = text.chars().any(|c| c.is_lowercase());
-    let has_digit = text.chars().any(|c| c.is_ascii_digit());
-    let has_symbol = text
-        .chars()
-        .any(|c| !c.is_alphanumeric() && !c.is_whitespace());
-
-    text.len() >= 12 && has_upper && has_lower && has_digit && has_symbol
+    text.len() >= 12
+        && text.chars().any(|c| c.is_uppercase())
+        && text.chars().any(|c| c.is_lowercase())
+        && text.chars().any(|c| c.is_ascii_digit())
+        && text
+            .chars()
+            .any(|c| !c.is_alphanumeric() && !c.is_whitespace())
 }
 
 fn chrono_timestamp() -> i64 {
@@ -292,13 +440,10 @@ fn chrono_timestamp() -> i64 {
 }
 
 fn uuid_simple() -> String {
-    use std::time::{SystemTime, UNIX_EPOCH};
-
-    let nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_nanos())
         .unwrap_or(0);
-
     format!("{:x}", nanos)
 }
 
@@ -307,14 +452,13 @@ fn emit_updated(app: &AppHandle) {
 }
 
 pub fn cleanup_image_files(paths: &[String]) {
-    for path in paths {
-        let _ = std::fs::remove_file(path);
+    for p in paths {
+        let _ = std::fs::remove_file(p);
     }
 }
 
 pub fn clear_history_files(state: &AppState) -> Result<(), String> {
-    let paths = state.clipboard.clear_history()?;
-    cleanup_image_files(&paths);
+    cleanup_image_files(&state.clipboard.clear_history()?);
     Ok(())
 }
 
