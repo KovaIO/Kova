@@ -94,8 +94,6 @@
                     <span class="image-title"
                         >{item.image_filename ?? "Image"}</span
                     >
-                    <span class="image-sub">{imageFolder(item.image_path)}</span
-                    >
                 </div>
             </div>
 

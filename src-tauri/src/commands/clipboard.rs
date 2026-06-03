@@ -14,6 +14,9 @@ use crate::{
     },
 };
 
+#[cfg(target_os = "windows")]
+use crate::clipboard::paste::set_image_to_clipboard_delayed;
+
 #[tauri::command]
 pub fn get_apps() -> Vec<InstalledApp> {
     get_installed_apps()
@@ -34,55 +37,56 @@ pub fn get_clipboard_history(
 }
 
 #[tauri::command]
-pub fn paste_clipboard_item(state: State<AppState>, app: AppHandle, id: i64) -> Result<(), String> {
+pub async fn paste_clipboard_item(
+    state: State<'_, AppState>,
+    app: AppHandle,
+    id: i64,
+) -> Result<(), String> {
     let item = get_required_item(&state, id)?;
 
-    // Hide window immediately before doing any heavy work
     if let Some(window) = app.get_webview_window("clipboard") {
         let _ = window.hide();
     }
 
-    std::thread::spawn(move || {
-        let mut clipboard = match Clipboard::new() {
-            Ok(c) => c,
-            Err(e) => {
-                eprintln!("Clipboard error: {e}");
-                return;
-            }
-        };
-
+    tokio::task::spawn_blocking(move || {
         let success = match item.content_type {
             ClipboardContentType::Text => {
                 if let Some(text) = item.text_content {
+                    let mut clipboard = match Clipboard::new() {
+                        Ok(c) => c,
+                        Err(e) => { eprintln!("Clipboard error: {e}"); return; }
+                    };
                     let ok = clipboard.set_text(text.clone()).is_ok();
-                    if ok {
-                        remember_text(text);
-                    }
+                    if ok { remember_text(text); }
                     ok
-                } else {
-                    false
-                }
+                } else { false }
             }
             ClipboardContentType::Image => {
                 if let Some(path) = item.image_path {
-                    match set_clipboard_image(&mut clipboard, &path) {
-                        Ok(sig) => {
-                            remember_image_signature(sig);
-                            true
-                        }
-                        Err(e) => {
-                            eprintln!("Image clipboard error: {e}");
-                            false
+                    #[cfg(target_os = "windows")]
+                    {
+                        match set_image_to_clipboard_delayed(path) {
+                            Ok(sig) => { remember_image_signature(sig); true }
+                            Err(e) => { eprintln!("Image clipboard error: {e}"); false }
                         }
                     }
-                } else {
-                    false
-                }
+                    #[cfg(not(target_os = "windows"))]
+                    {
+                        let mut clipboard = match Clipboard::new() {
+                            Ok(c) => c,
+                            Err(e) => { eprintln!("Clipboard error: {e}"); return; }
+                        };
+                        match set_clipboard_image(&mut clipboard, &path) {
+                            Ok(sig) => { remember_image_signature(sig); true }
+                            Err(e) => { eprintln!("Image clipboard error: {e}"); false }
+                        }
+                    }
+                } else { false }
             }
         };
 
         if success {
-            std::thread::sleep(std::time::Duration::from_millis(200));
+            std::thread::sleep(std::time::Duration::from_millis(150));
             simulate_paste();
         }
     });
@@ -96,8 +100,8 @@ pub fn copy_clipboard_item(state: State<AppState>, id: i64) -> Result<(), String
 }
 
 #[tauri::command]
-pub fn paste_plain_clipboard_item(
-    state: State<AppState>,
+pub async fn paste_plain_clipboard_item(
+    state: State<'_, AppState>,
     app: AppHandle,
     id: i64,
 ) -> Result<(), String> {
@@ -108,13 +112,10 @@ pub fn paste_plain_clipboard_item(
         let _ = window.hide();
     }
 
-    std::thread::spawn(move || {
+    tokio::task::spawn_blocking(move || {
         let mut clipboard = match Clipboard::new() {
             Ok(c) => c,
-            Err(e) => {
-                eprintln!("Clipboard error: {e}");
-                return;
-            }
+            Err(e) => { eprintln!("Clipboard error: {e}"); return; }
         };
         if clipboard.set_text(text.clone()).is_ok() {
             remember_text(text);
@@ -146,7 +147,6 @@ pub fn reveal_clipboard_item(
         .image_path
         .as_deref()
         .ok_or_else(|| "This item has no file to reveal".to_string())?;
-
     app.opener()
         .reveal_item_in_dir(path)
         .map_err(|e| e.to_string())
@@ -163,7 +163,6 @@ pub fn preview_clipboard_item(
         .image_path
         .as_deref()
         .ok_or_else(|| "This item has no file to preview".to_string())?;
-
     app.opener()
         .open_path(path, None::<&str>)
         .map_err(|e| e.to_string())
@@ -203,9 +202,7 @@ fn write_item_to_clipboard(state: &AppState, id: i64) -> Result<(), String> {
             let text = item
                 .text_content
                 .ok_or_else(|| "Clipboard item has no text".to_string())?;
-            clipboard
-                .set_text(text.clone())
-                .map_err(|e| e.to_string())?;
+            clipboard.set_text(text.clone()).map_err(|e| e.to_string())?;
             remember_text(text);
         }
         ClipboardContentType::Image => {
@@ -244,17 +241,13 @@ fn set_clipboard_image(clipboard: &mut Clipboard, path: &str) -> Result<String, 
     let image = image::load_from_memory(&bytes).map_err(|e| e.to_string())?;
     let rgba = image.to_rgba8();
     let (width, height) = rgba.dimensions();
-
     let raw = rgba.into_raw();
     let signature = format!("{}x{}:{}", width, height, raw.len());
-
     let data = ImageData {
         width: width as usize,
         height: height as usize,
         bytes: raw.into(),
     };
-
     clipboard.set_image(data).map_err(|e| e.to_string())?;
-
     Ok(signature)
 }
