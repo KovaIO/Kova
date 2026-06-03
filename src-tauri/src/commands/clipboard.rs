@@ -8,7 +8,9 @@ use crate::{
         get_installed_apps,
         models::{ClipboardContentType, ClipboardItem, InstalledApp},
         paste::simulate_paste,
-        watcher::{clear_history_files, delete_item_files, remember_image_signature, remember_text},
+        watcher::{
+            clear_history_files, delete_item_files, remember_image_signature, remember_text,
+        },
     },
 };
 
@@ -32,11 +34,7 @@ pub fn get_clipboard_history(
 }
 
 #[tauri::command]
-pub fn paste_clipboard_item(
-    state: State<AppState>,
-    app: AppHandle,
-    id: i64,
-) -> Result<(), String> {
+pub fn paste_clipboard_item(state: State<AppState>, app: AppHandle, id: i64) -> Result<(), String> {
     let item = get_required_item(&state, id)?;
 
     // Hide window immediately before doing any heavy work
@@ -47,24 +45,39 @@ pub fn paste_clipboard_item(
     std::thread::spawn(move || {
         let mut clipboard = match Clipboard::new() {
             Ok(c) => c,
-            Err(e) => { eprintln!("Clipboard error: {e}"); return; }
+            Err(e) => {
+                eprintln!("Clipboard error: {e}");
+                return;
+            }
         };
 
         let success = match item.content_type {
             ClipboardContentType::Text => {
                 if let Some(text) = item.text_content {
                     let ok = clipboard.set_text(text.clone()).is_ok();
-                    if ok { remember_text(text); }
+                    if ok {
+                        remember_text(text);
+                    }
                     ok
-                } else { false }
+                } else {
+                    false
+                }
             }
             ClipboardContentType::Image => {
                 if let Some(path) = item.image_path {
                     match set_clipboard_image(&mut clipboard, &path) {
-                        Ok(sig) => { remember_image_signature(sig); true }
-                        Err(e) => { eprintln!("Image clipboard error: {e}"); false }
+                        Ok(sig) => {
+                            remember_image_signature(sig);
+                            true
+                        }
+                        Err(e) => {
+                            eprintln!("Image clipboard error: {e}");
+                            false
+                        }
                     }
-                } else { false }
+                } else {
+                    false
+                }
             }
         };
 
@@ -98,7 +111,10 @@ pub fn paste_plain_clipboard_item(
     std::thread::spawn(move || {
         let mut clipboard = match Clipboard::new() {
             Ok(c) => c,
-            Err(e) => { eprintln!("Clipboard error: {e}"); return; }
+            Err(e) => {
+                eprintln!("Clipboard error: {e}");
+                return;
+            }
         };
         if clipboard.set_text(text.clone()).is_ok() {
             remember_text(text);
@@ -111,11 +127,7 @@ pub fn paste_plain_clipboard_item(
 }
 
 #[tauri::command]
-pub fn open_clipboard_url(
-    state: State<AppState>,
-    app: AppHandle,
-    id: i64,
-) -> Result<(), String> {
+pub fn open_clipboard_url(state: State<AppState>, app: AppHandle, id: i64) -> Result<(), String> {
     let item = get_required_item(&state, id)?;
     let url = extract_url(&item).ok_or_else(|| "No URL found in this item".to_string())?;
     app.opener()
@@ -158,7 +170,11 @@ pub fn preview_clipboard_item(
 }
 
 #[tauri::command]
-pub fn delete_clipboard_item(state: State<AppState>, app: AppHandle, id: i64) -> Result<(), String> {
+pub fn delete_clipboard_item(
+    state: State<AppState>,
+    app: AppHandle,
+    id: i64,
+) -> Result<(), String> {
     delete_item_files(&state, id)?;
     let _ = app.emit("clipboard-history-updated", ());
     Ok(())

@@ -18,6 +18,7 @@
     } from "$services/clipboard";
     import type { ClipboardItem } from "$types/clipboard";
     import { isUrl } from "$types/clipboard";
+    import WindowAnimation from "$components/WindowAnimation.svelte";
 
     let items: ClipboardItem[] = $state([]);
     let expandedId: number | null = $state(null);
@@ -211,60 +212,64 @@
     });
 </script>
 
-<div
-    class="page"
-    role="presentation"
-    onclick={(e) => {
-        if (e.target === e.currentTarget) hideWindow();
-    }}
->
-    <div class="panel">
-        <div class="search-card">
-            <Search class="search-icon" size={14} />
-            <input
-                bind:this={searchInput}
-                class="search-input"
-                type="search"
-                placeholder="Press S to search"
-                bind:value={search}
-                onfocus={() => (searchFocused = true)}
-                onblur={() => (searchFocused = false)}
-            />
-        </div>
+<WindowAnimation>
+    <div
+        class="page"
+        role="presentation"
+        onclick={(e) => {
+            if (e.target === e.currentTarget) hideWindow();
+        }}
+    >
+        <div class="panel">
+            <div class="search-card">
+                <Search class="search-icon" size={14} />
+                <input
+                    bind:this={searchInput}
+                    class="search-input"
+                    type="search"
+                    placeholder="Press S to search"
+                    bind:value={search}
+                    onfocus={() => (searchFocused = true)}
+                    onblur={() => (searchFocused = false)}
+                />
+            </div>
 
-        <div class="list-card" bind:this={listEl}>
-            {#if loading}
-                <p class="empty" transition:fade={{ duration: 120 }}>Loading history…</p>
-            {:else if filteredItems.length === 0}
-                <p class="empty" transition:fade={{ duration: 120 }}>
-                    {search.trim()
-                        ? `No results for "${search.trim()}"`
-                        : "Copy something to get started"}
-                </p>
-            {:else}
-                <div class="list">
-                    {#each filteredItems as item (item.id)}
-                        <div
-                            class="list-item"
-                            data-id={item.id}
-                            animate:flip={{ duration: 200 }}
-                            in:fade={{ duration: 120 }}
-                            out:fade={{ duration: 80 }}
-                        >
-                            <ClipboardHistoryItem
-                                {item}
-                                expanded={item.id === expandedId}
-                                highlight={search.trim()}
-                                ontoggle={() => toggleItem(item.id)}
-                                onchanged={() => void loadHistory()}
-                            />
-                        </div>
-                    {/each}
-                </div>
-            {/if}
+            <div class="list-card" bind:this={listEl}>
+                {#if loading}
+                    <p class="empty" transition:fade={{ duration: 120 }}>
+                        Loading history…
+                    </p>
+                {:else if filteredItems.length === 0}
+                    <p class="empty" transition:fade={{ duration: 120 }}>
+                        {search.trim()
+                            ? `No results for "${search.trim()}"`
+                            : "Copy something to get started"}
+                    </p>
+                {:else}
+                    <div class="list">
+                        {#each filteredItems as item (item.id)}
+                            <div
+                                class="list-item"
+                                data-id={item.id}
+                                animate:flip={{ duration: 200 }}
+                                in:fade={{ duration: 120 }}
+                                out:fade={{ duration: 80 }}
+                            >
+                                <ClipboardHistoryItem
+                                    {item}
+                                    expanded={item.id === expandedId}
+                                    highlight={search.trim()}
+                                    ontoggle={() => toggleItem(item.id)}
+                                    onchanged={() => void loadHistory()}
+                                />
+                            </div>
+                        {/each}
+                    </div>
+                {/if}
+            </div>
         </div>
     </div>
-</div>
+</WindowAnimation>
 
 <style>
     .page {

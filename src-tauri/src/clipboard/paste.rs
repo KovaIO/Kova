@@ -1,9 +1,7 @@
 #[cfg(target_os = "windows")]
 pub fn simulate_paste() {
     use std::mem::size_of;
-    use winapi::um::winuser::{
-        SendInput, INPUT, KEYEVENTF_KEYUP, VK_CONTROL,
-    };
+    use winapi::um::winuser::{SendInput, INPUT, KEYEVENTF_KEYUP, VK_CONTROL};
 
     let vk_v: u16 = 0x56; // V key
 
@@ -46,7 +44,27 @@ fn make_key_input(vk: u16, flags: u32) -> winapi::um::winuser::INPUT {
     input
 }
 
-#[cfg(not(target_os = "windows"))]
+#[cfg(target_os = "macos")]
 pub fn simulate_paste() {
-    // no-op on non-Windows for now
+    use core_graphics::event::{CGEvent, CGEventFlags, CGEventTapLocation, CGKeyCode};
+    use core_graphics::event_source::{CGEventSource, CGEventSourceStateID};
+
+    let source = match CGEventSource::new(CGEventSourceStateID::HIDSystemState) {
+        Ok(s) => s,
+        Err(_) => return,
+    };
+
+    let cmd_v: CGKeyCode = 0x09; // 'V' key
+
+    // Cmd+V down
+    if let Ok(event) = CGEvent::new_keyboard_event(source.clone(), cmd_v, true) {
+        event.set_flags(CGEventFlags::CGEventFlagCommand);
+        event.post(CGEventTapLocation::HID);
+    }
+
+    // Cmd+V up
+    if let Ok(event) = CGEvent::new_keyboard_event(source, cmd_v, false) {
+        event.set_flags(CGEventFlags::CGEventFlagCommand);
+        event.post(CGEventTapLocation::HID);
+    }
 }
