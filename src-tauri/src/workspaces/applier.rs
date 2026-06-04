@@ -22,26 +22,49 @@ pub fn apply_window(app_handle: &AppHandle, workspace_app: &WorkspaceApp, matche
     move_window(&workspace_app.name, &rect);
 }
 
-pub fn focus_window(handle: usize, _app_name: &str) {
+pub fn focus_window(_handle: usize, _app_name: &str) {
     #[cfg(target_os = "windows")]
     {
         use windows::Win32::{
             Foundation::HWND,
+            System::Threading::{AttachThreadInput, GetCurrentThreadId},
             UI::WindowsAndMessaging::{
-                BringWindowToTop, SetForegroundWindow, ShowWindow, SW_RESTORE,
+                BringWindowToTop, GetForegroundWindow, GetWindowThreadProcessId,
+                SetForegroundWindow, ShowWindow, SW_RESTORE,
             },
         };
+
         unsafe {
-            let hwnd = HWND(handle as *mut core::ffi::c_void);
+            let hwnd = HWND(_handle as *mut core::ffi::c_void);
             let _ = ShowWindow(hwnd, SW_RESTORE);
-            let _ = BringWindowToTop(hwnd);
-            let _ = SetForegroundWindow(hwnd);
+
+            let foreground = GetForegroundWindow();
+            let mut fg_pid = 0u32;
+            let fg_thread = GetWindowThreadProcessId(foreground, Some(&mut fg_pid));
+            let mut target_pid = 0u32;
+            let target_thread = GetWindowThreadProcessId(hwnd, Some(&mut target_pid));
+            let current_thread = GetCurrentThreadId();
+
+            let attached_fg = fg_thread != current_thread
+                && AttachThreadInput(current_thread, fg_thread, true).as_bool();
+            let attached_target = target_thread != current_thread
+                && target_thread != fg_thread
+                && AttachThreadInput(current_thread, target_thread, true).as_bool();
+
+            BringWindowToTop(hwnd).ok();
+            let _ = SetForegroundWindow(hwnd).ok();
+
+            if attached_fg {
+                let _ = AttachThreadInput(current_thread, fg_thread, false).ok();
+            }
+            if attached_target {
+                let _ = AttachThreadInput(current_thread, target_thread, false).ok();
+            }
         }
     }
 
     #[cfg(target_os = "macos")]
     {
-        let _ = handle;
         let script = format!(r#"tell application "{}" to activate"#, _app_name);
         let _ = std::process::Command::new("osascript")
             .arg("-e")
@@ -54,24 +77,49 @@ pub fn focus_window(handle: usize, _app_name: &str) {
 pub fn move_window(hwnd: usize, rect: &WindowRect) {
     use windows::Win32::{
         Foundation::HWND,
+        System::Threading::{AttachThreadInput, GetCurrentThreadId},
         UI::WindowsAndMessaging::{
-            BringWindowToTop, SetForegroundWindow, SetWindowPos, ShowWindow, SWP_FRAMECHANGED,
-            SWP_NOZORDER, SWP_SHOWWINDOW, SW_RESTORE,
+            BringWindowToTop, GetForegroundWindow, GetWindowThreadProcessId, SetForegroundWindow,
+            SetWindowPos, ShowWindow, SWP_FRAMECHANGED, SWP_NOZORDER, SWP_SHOWWINDOW, SW_RESTORE,
         },
     };
+
     unsafe {
         let hwnd = HWND(hwnd as *mut core::ffi::c_void);
         let _ = ShowWindow(hwnd, SW_RESTORE);
+
         let x = rect.x as i32;
         let y = rect.y as i32;
         let w = rect.width as i32;
         let h = rect.height as i32;
         let flags = SWP_NOZORDER | SWP_FRAMECHANGED | SWP_SHOWWINDOW;
-        let _ = SetWindowPos(hwnd, None, x, y, w, h, flags);
+
+        SetWindowPos(hwnd, None, x, y, w, h, flags).ok();
         std::thread::sleep(std::time::Duration::from_millis(150));
-        let _ = SetWindowPos(hwnd, None, x, y, w, h, flags);
-        let _ = BringWindowToTop(hwnd);
-        let _ = SetForegroundWindow(hwnd);
+        SetWindowPos(hwnd, None, x, y, w, h, flags).ok();
+
+        let foreground = GetForegroundWindow();
+        let mut fg_pid = 0u32;
+        let fg_thread = GetWindowThreadProcessId(foreground, Some(&mut fg_pid));
+        let mut target_pid = 0u32;
+        let target_thread = GetWindowThreadProcessId(hwnd, Some(&mut target_pid));
+        let current_thread = GetCurrentThreadId();
+
+        let attached_fg = fg_thread != current_thread
+            && AttachThreadInput(current_thread, fg_thread, true).as_bool();
+        let attached_target = target_thread != current_thread
+            && target_thread != fg_thread
+            && AttachThreadInput(current_thread, target_thread, true).as_bool();
+
+        BringWindowToTop(hwnd).ok();
+        let _ = SetForegroundWindow(hwnd).ok();
+
+        if attached_fg {
+            let _ = AttachThreadInput(current_thread, fg_thread, false).ok();
+        }
+        if attached_target {
+            let _ = AttachThreadInput(current_thread, target_thread, false).ok();
+        }
     }
 }
 
