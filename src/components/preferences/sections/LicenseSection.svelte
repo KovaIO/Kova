@@ -3,10 +3,6 @@
     import { license } from "$stores/license";
 
     $: tierLabel = $license?.tier === "pro" ? "Pro" : "Free";
-    $: historyLimitLabel =
-        $license?.limits.clipboard_history_unlimited
-            ? "Up to 100 items, or unlimited"
-            : "Up to 100 items";
 </script>
 
 <PreferencesSection
@@ -21,20 +17,10 @@
             </span>
         </div>
         <div class="license-item">
-            <span class="license-label">Clipboard history</span>
-            <span class="license-value">{historyLimitLabel}</span>
-        </div>
-        <div class="license-item">
             <span class="license-label">Version</span>
             <span class="license-value">0.1.0</span>
         </div>
     </div>
-    {#if $license?.tier === "free"}
-        <p class="upgrade-note">
-            Upgrade to Pro to unlock unlimited clipboard history and other
-            premium features.
-        </p>
-    {/if}
 </PreferencesSection>
 
 <style>
@@ -68,15 +54,5 @@
 
     .license-value.pro {
         color: var(--color-accent);
-    }
-
-    .upgrade-note {
-        font-size: 12px;
-        color: var(--color-text-muted);
-        line-height: 1.5;
-        padding: 12px 16px;
-        background: var(--color-surface-elevated);
-        border-radius: var(--radius-sm);
-        border: 1px solid var(--color-border-subtle);
     }
 </style>
