@@ -6,19 +6,19 @@
     import PreferencesSidebar from "$components/preferences/PreferencesSidebar.svelte";
     import GeneralSection from "$components/preferences/sections/GeneralSection.svelte";
     import LicenseSection from "$components/preferences/sections/LicenseSection.svelte";
-    import WindowManagerSection from "$components/preferences/sections/WindowManagerSection.svelte";
     import ClipboardHistorySection from "$components/preferences/sections/ClipboardHistorySection.svelte";
     import KeyboardShortcutsSection from "$components/preferences/sections/KeyboardShortcutsSection.svelte";
     import PowerManagementSection from "$components/preferences/sections/PowerManagementSection.svelte";
     import HelpFeedbackSection from "$components/preferences/sections/HelpFeedbackSection.svelte";
     import DeveloperViewSection from "$components/preferences/sections/DeveloperViewSection.svelte";
+    import WorkspacesSection from "$components/preferences/sections/WorkspacesSection.svelte";
 
     let activeSection = $state("general");
 
     const sections = [
         { id: "general", label: "General" },
         { id: "license", label: "License" },
-        { id: "window-manager", label: "Window Manager" },
+        { id: "workspace-profiles", label: "Workspace Profiles" },
         { id: "clipboard-history", label: "Clipboard History" },
         { id: "keyboard-shortcuts", label: "Keyboard Shortcuts" },
         { id: "power-management", label: "Power Management" },
@@ -58,8 +58,8 @@
                 <GeneralSection />
             {:else if activeSection === "license"}
                 <LicenseSection />
-            {:else if activeSection === "window-manager"}
-                <WindowManagerSection />
+            {:else if activeSection === "workspace-profiles"}
+                <WorkspacesSection />
             {:else if activeSection === "clipboard-history"}
                 <ClipboardHistorySection />
             {:else if activeSection === "keyboard-shortcuts"}

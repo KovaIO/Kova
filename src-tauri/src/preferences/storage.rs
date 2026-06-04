@@ -97,13 +97,21 @@ impl PreferencesStorage {
     }
 
     fn load_ignored_apps(&self) -> Result<Vec<InstalledApp>> {
-        let mut stmt = self.conn.prepare("SELECT name, path FROM ignored_apps")?;
+        let mut stmt = self
+            .conn
+            .prepare("SELECT name, path, exe_path FROM ignored_apps")?;
         let rows = stmt.query_map([], |row| {
             let name: String = row.get(0)?;
             let path: String = row.get(1)?;
+            let exe_path: Option<String> = row.get(2)?;
             let icon = get_process_icon(&name, Some(&path));
 
-            Ok(InstalledApp { name, path, icon })
+            Ok(InstalledApp {
+                name,
+                path,
+                exe_path,
+                icon,
+            })
         })?;
         let mut apps = vec![];
         for row in rows {

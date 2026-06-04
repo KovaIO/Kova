@@ -22,10 +22,16 @@ impl Default for Preferences {
             clipboard: ClipboardPreferences::default(),
             window_manager: WindowManagerPreferences::default(),
             power: PowerPreferences::default(),
-            shortcuts: vec![Shortcut {
-                action: ShortcutAction::OpenClipboardHistory,
-                keys: "Ctrl + alt + Space".to_string(),
-            }],
+            shortcuts: vec![
+                Shortcut {
+                    action: ShortcutAction::OpenClipboardHistory,
+                    keys: "Ctrl + alt + Space".to_string(),
+                },
+                Shortcut {
+                    action: ShortcutAction::ApplyWorkspace,
+                    keys: "Alt + Shift + W".to_string(),
+                },
+            ],
         }
     }
 }
@@ -130,11 +136,7 @@ impl ToSql for Theme {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ShortcutAction {
-    MoveWindowToNextScreen,
-    MatchWithAnotherWindow,
-    AutoLayoutWindows,
-    CenterWindow,
-    MakeWindow16By9,
+    ApplyWorkspace,
 
     OpenWindowSwitcher,
     PreviousWindow,
@@ -152,11 +154,7 @@ pub enum ShortcutAction {
 impl FromSql for ShortcutAction {
     fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
         match value.as_str()? {
-            "move_window_to_next_screen" => Ok(Self::MoveWindowToNextScreen),
-            "match_with_another_window" => Ok(Self::MatchWithAnotherWindow),
-            "auto_layout_windows" => Ok(Self::AutoLayoutWindows),
-            "center_window" => Ok(Self::CenterWindow),
-            "make_window_16_by_9" => Ok(Self::MakeWindow16By9),
+            "apply_workspace" => Ok(Self::ApplyWorkspace),
 
             "open_window_switcher" => Ok(Self::OpenWindowSwitcher),
             "previous_window" => Ok(Self::PreviousWindow),
@@ -180,11 +178,7 @@ impl FromSql for ShortcutAction {
 impl ToSql for ShortcutAction {
     fn to_sql(&self) -> rusqlite::Result<ToSqlOutput<'_>> {
         Ok(match self {
-            Self::MoveWindowToNextScreen => "move_window_to_next_screen".into(),
-            Self::MatchWithAnotherWindow => "match_with_another_window".into(),
-            Self::AutoLayoutWindows => "auto_layout_windows".into(),
-            Self::CenterWindow => "center_window".into(),
-            Self::MakeWindow16By9 => "make_window_16_by_9".into(),
+            Self::ApplyWorkspace => "apply_workspace".into(),
 
             Self::OpenWindowSwitcher => "open_window_switcher".into(),
             Self::PreviousWindow => "previous_window".into(),

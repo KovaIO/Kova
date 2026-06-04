@@ -36,10 +36,28 @@ export interface PowerPreferences {
 export interface IgnoredApp {
   name: string;
   path: string;
+  exe_path?: string;
   icon?: string;
 }
 
 export interface Shortcut {
   action: string;
   keys: string;
+}
+
+export interface WorkspaceApp {
+  name: string;
+  path: string;
+  exe_path?: string;
+  icon?: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface WorkspaceProfile {
+  id: string;
+  name: string;
+  apps: WorkspaceApp[];
 }

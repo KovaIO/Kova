@@ -39,13 +39,22 @@
 
         if (!selected) return;
 
-        const path = selected as string;
-        const name = path.split("\\").pop() ?? path;
-        onpick({ name, path });
+        const exePath = selected as string;
+        const name =
+            exePath
+                .split("\\")
+                .pop()
+                ?.replace(/\.exe$/i, "") ?? exePath;
+
+        onpick({ name, path: exePath, exe_path: exePath });
     }
 
     function pick(p: IgnoredApp) {
         onpick(p);
+    }
+
+    function displayPath(p: IgnoredApp): string {
+        return p.exe_path ?? p.path;
     }
 
     function handleBackdrop(e: MouseEvent) {
@@ -53,7 +62,6 @@
     }
 </script>
 
-<!-- svelte-ignore a11y-click-events-have-key-events -->
 <div
     class="backdrop"
     on:click={handleBackdrop}
@@ -64,7 +72,7 @@
 >
     <div class="modal">
         <div class="modal-header">
-            <span class="modal-title">Select an app to ignore</span>
+            <span class="modal-title">Select an app</span>
             <button
                 class="close-btn"
                 aria-label="Close"
@@ -103,7 +111,7 @@
             <input
                 class="search-input"
                 type="text"
-                placeholder="Search running apps..."
+                placeholder="Search installed apps..."
                 bind:value={search}
                 bind:this={searchInput}
             />
@@ -111,7 +119,7 @@
 
         <div class="process-list">
             {#if loading}
-                <div class="state-msg">Loading processes…</div>
+                <div class="state-msg">Loading apps…</div>
             {:else if filtered.length === 0}
                 <div class="state-msg">No results for "{search}"</div>
             {:else}
@@ -132,7 +140,7 @@
                         {/if}
                         <div class="process-info">
                             <span class="process-name">{p.name}</span>
-                            <span class="process-path">{p.path}</span>
+                            <span class="process-path">{displayPath(p)}</span>
                         </div>
                     </button>
                 {/each}
@@ -246,9 +254,11 @@
         font-family: inherit;
         transition: border-color var(--transition-fast);
     }
+
     .search-input::placeholder {
         color: var(--color-text-dim);
     }
+
     .search-input:focus {
         outline: none;
         border-color: var(--color-accent-border);

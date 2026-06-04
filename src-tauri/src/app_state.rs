@@ -7,12 +7,14 @@ use crate::{
     license::{LicenseService, LicenseStorage},
     migration::run_migrations,
     preferences::{service::PreferencesService, PreferencesStorage},
+    workspaces::{WorkspaceService, WorkspaceStorage},
 };
 
 #[derive(Clone)]
 pub struct AppState {
     pub preferences: Arc<PreferencesService>,
     pub clipboard: Arc<ClipboardService>,
+    pub workspaces: Arc<WorkspaceService>,
     pub license: Arc<LicenseService>,
     pub app_handle: AppHandle,
 
@@ -23,6 +25,7 @@ impl AppState {
     pub fn new(
         preferences: PreferencesService,
         clipboard: Arc<ClipboardService>,
+        workspaces: Arc<WorkspaceService>,
         license: Arc<LicenseService>,
         app_handle: AppHandle,
         clipboard_images_dir: PathBuf,
@@ -30,6 +33,7 @@ impl AppState {
         Self {
             preferences: Arc::new(preferences),
             clipboard,
+            workspaces,
             license,
             app_handle,
             clipboard_images_dir,
@@ -59,12 +63,18 @@ pub fn initialize_app_state(app: &tauri::App) -> Result<AppState, Box<dyn std::e
     run_migrations(storage.connection())?;
 
     let license = Arc::new(LicenseService::new(LicenseStorage::new(db_path.clone())?));
-    let clipboard = Arc::new(ClipboardService::new(ClipboardStorage::new(db_path)?));
+    let clipboard = Arc::new(ClipboardService::new(ClipboardStorage::new(
+        db_path.clone(),
+    )?));
+    let workspaces = Arc::new(WorkspaceService::new(WorkspaceStorage::new(
+        db_path.clone(),
+    )?));
     let preferences_service = PreferencesService::new(storage, license.clone(), clipboard.clone());
 
     Ok(AppState::new(
         preferences_service,
         clipboard,
+        workspaces,
         license,
         app.handle().clone(),
         images_dir,

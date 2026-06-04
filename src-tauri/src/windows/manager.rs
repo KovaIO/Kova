@@ -70,3 +70,28 @@ pub fn attach_focus_hide(window: WebviewWindow) {
         }
     });
 }
+
+#[derive(Debug)]
+pub struct WindowRect {
+    pub x: f64,
+    pub y: f64,
+    pub width: f64,
+    pub height: f64,
+}
+
+pub fn resolve_rect(app: &AppHandle, fx: f32, fy: f32, fw: f32, fh: f32) -> Option<WindowRect> {
+    let window = app.get_webview_window("home")?;
+    let monitor = window.primary_monitor().ok()??;
+    let size = monitor.size();
+    let pos = monitor.position();
+
+    let sw = size.width as f64;
+    let sh = size.height as f64;
+
+    Some(WindowRect {
+        x: pos.x as f64 + fx as f64 * sw,
+        y: pos.y as f64 + fy as f64 * sh,
+        width: fw as f64 * sw,
+        height: fh as f64 * sh,
+    })
+}

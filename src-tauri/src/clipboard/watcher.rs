@@ -180,8 +180,6 @@ fn start_windows(app: AppHandle, state: AppState) {
                 return;
             }
 
-            eprintln!("[watcher] listening for WM_CLIPBOARDUPDATE");
-
             let mut msg = MSG::default();
             while GetMessageW(&mut msg, None, 0, 0).as_bool() {
                 let _ = TranslateMessage(&msg);

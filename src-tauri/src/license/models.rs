@@ -14,6 +14,7 @@ pub struct LicenseLimits {
     pub disk_clean: bool,
     pub auto_layout: bool,
     pub window_switcher: bool,
+    pub workspace_profiles: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

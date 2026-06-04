@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 pub struct InstalledApp {
     pub name: String,
     pub path: String,
+    pub exe_path: Option<String>,
     pub icon: Option<String>,
 }
 

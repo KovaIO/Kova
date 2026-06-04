@@ -5,13 +5,11 @@ mod parser;
 #[cfg(target_os = "macos")]
 use std::sync::Arc;
 
-use std::{
-    collections::HashMap,
-    sync::Mutex,
-};
+use std::{collections::HashMap, sync::Mutex};
 
 use crate::{app_state::AppState, preferences::ShortcutAction, windows::toggle_window};
 
+use tauri::Manager;
 #[cfg(target_os = "windows")]
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut};
 
@@ -62,6 +60,27 @@ pub fn handle_action(app: &tauri::AppHandle, action: &ShortcutAction) {
     match action {
         ShortcutAction::OpenClipboardHistory => {
             toggle_window(app, "clipboard");
+        }
+        ShortcutAction::ApplyWorkspace => {
+            let app_handle = app.clone();
+
+            tauri::async_runtime::spawn(async move {
+                let state = app_handle.state::<crate::app_state::AppState>();
+
+                let profiles = match state.workspaces.get_profiles() {
+                    Ok(p) => p,
+                    Err(_) => return,
+                };
+
+                let Some(profile) = profiles.first() else {
+                    return;
+                };
+
+                let _ = state
+                    .workspaces
+                    .apply_profile(&profile.id, &app_handle)
+                    .await;
+            });
         }
         _ => {}
     }

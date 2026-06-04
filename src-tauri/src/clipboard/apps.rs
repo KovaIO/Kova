@@ -123,6 +123,7 @@ fn scan_macos_dir(dir: &PathBuf, apps: &mut Vec<InstalledApp>, depth: u32) {
                 apps.push(InstalledApp {
                     name,
                     path: path_str,
+                    exe_path: None,
                     icon,
                 });
             }
@@ -305,8 +306,14 @@ fn parse_uninstall_entry(subkey: HKEY) -> Option<InstalledApp> {
 
     let icon = get_process_icon(&name, icon_source.as_deref());
 
+    let exe_path = icon_source
+        .as_ref()
+        .filter(|p| p.to_lowercase().ends_with(".exe"))
+        .cloned();
+
     Some(InstalledApp {
         name,
+        exe_path,
         path: stored_path,
         icon,
     })
@@ -430,6 +437,7 @@ fn get_app_paths_apps() -> Vec<InstalledApp> {
 
                             apps.push(InstalledApp {
                                 name,
+                                exe_path: Some(exe_path.clone()),
                                 path: stored_path,
                                 icon,
                             });
@@ -613,6 +621,7 @@ fn scan_start_menu_dir(dir: &std::path::Path, apps: &mut Vec<InstalledApp>) {
 
                 apps.push(InstalledApp {
                     name,
+                    exe_path: Some(target.clone()),
                     path: target.to_string(),
                     icon,
                 });
@@ -680,6 +689,7 @@ fn get_store_apps() -> Vec<InstalledApp> {
 
         apps.push(InstalledApp {
             name: name.to_string(),
+            exe_path: None,
             path: String::new(),
             icon: None,
         });

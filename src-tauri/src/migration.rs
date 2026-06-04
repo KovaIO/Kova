@@ -33,6 +33,7 @@ pub fn run_migrations(conn: &Connection) -> Result<()> {
 
         CREATE TABLE IF NOT EXISTS ignored_apps (
             path TEXT PRIMARY KEY,
+            exe_path TEXT,
             name TEXT NOT NULL,
             icon TEXT
         );
@@ -50,6 +51,26 @@ pub fn run_migrations(conn: &Connection) -> Result<()> {
             source_app TEXT,
             source_app_path TEXT,
             created_at INTEGER NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS workspace_profiles (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS workspace_apps (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            profile_id TEXT NOT NULL,
+
+            name TEXT NOT NULL,
+            path TEXT NOT NULL,
+            exe_path TEXT,
+            icon TEXT,
+
+            x REAL NOT NULL DEFAULT 0.0,
+            y REAL NOT NULL DEFAULT 0.0,
+            width REAL NOT NULL DEFAULT 0.5,
+            height REAL NOT NULL DEFAULT 0.5
         );
 
         CREATE TABLE IF NOT EXISTS license (
@@ -122,7 +143,7 @@ fn seed_defaults(conn: &Connection) -> Result<()> {
     conn.execute(
         "
         INSERT INTO license (tier)
-        SELECT 'free'
+        SELECT 'pro'
         WHERE NOT EXISTS (
             SELECT 1 FROM license
         )

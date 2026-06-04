@@ -8,6 +8,7 @@ mod preferences;
 mod processes;
 mod shortcuts;
 mod windows;
+mod workspaces;
 
 use std::sync::{
     atomic::{AtomicBool, Ordering},
@@ -19,12 +20,14 @@ use tauri::{Manager, WindowEvent};
 use tauri_plugin_positioner::{Position, WindowExt};
 
 use commands::{
-    clear_clipboard_history, copy_clipboard_item, delete_clipboard_item, force_quit_process_cmd,
-    get_apps, get_clipboard_history, get_current_metrics, get_license, get_preferences,
-    get_process_history, get_snapshot, open_clipboard_url, open_monitor, open_preferences,
-    open_process, paste_clipboard_item, paste_plain_clipboard_item, preview_clipboard_item,
-    quit_process_cmd, reveal_clipboard_item, update_clipboard_preferences,
-    update_general_preferences, update_shortcuts, update_window_manager_preferences,
+    apply_workspace, clear_clipboard_history, copy_clipboard_item, delete_clipboard_item,
+    delete_workspace_profile, force_quit_process_cmd, get_apps, get_clipboard_history,
+    get_current_metrics, get_license, get_preferences, get_process_history, get_snapshot,
+    get_workspace_profile, get_workspace_profiles, open_clipboard_url, open_monitor,
+    open_preferences, open_process, paste_clipboard_item, paste_plain_clipboard_item,
+    preview_clipboard_item, quit_process_cmd, reveal_clipboard_item, save_workspace_profile,
+    update_clipboard_preferences, update_general_preferences, update_shortcuts,
+    update_window_manager_preferences,
 };
 
 use clipboard::start_clipboard_watcher;
@@ -74,6 +77,8 @@ pub fn run() {
             get_snapshot,
             get_process_history,
             get_apps,
+            quit_process_cmd,
+            force_quit_process_cmd,
             get_clipboard_history,
             paste_clipboard_item,
             copy_clipboard_item,
@@ -83,8 +88,11 @@ pub fn run() {
             preview_clipboard_item,
             delete_clipboard_item,
             clear_clipboard_history,
-            quit_process_cmd,
-            force_quit_process_cmd,
+            apply_workspace,
+            get_workspace_profile,
+            get_workspace_profiles,
+            save_workspace_profile,
+            delete_workspace_profile,
             open_preferences,
             open_monitor,
             open_process

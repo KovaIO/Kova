@@ -10,29 +10,9 @@ export type ShortcutCatalogEntry = {
 
 export const SHORTCUT_CATALOG: ShortcutCatalogEntry[] = [
   {
-    action: "move_window_to_next_screen",
-    label: "Move window to next screen",
-    section: "Window Manager",
-  },
-  {
-    action: "match_with_another_window",
-    label: "Match with another window",
-    section: "Window Manager",
-  },
-  {
-    action: "auto_layout_windows",
-    label: "Auto layout windows",
-    section: "Window Manager",
-  },
-  {
-    action: "center_window",
-    label: "Center window",
-    section: "Window Manager",
-  },
-  {
-    action: "make_window_16_by_9",
-    label: "Make window 16 by 9",
-    section: "Window Manager",
+    action: "apply_workspace",
+    label: "Apply Workspace",
+    section: "Apply Workspace",
   },
   {
     action: "open_window_switcher",

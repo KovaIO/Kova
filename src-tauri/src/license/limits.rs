@@ -11,6 +11,7 @@ pub fn limits_for_tier(tier: &LicenseTier) -> LicenseLimits {
             disk_clean: false,
             auto_layout: false,
             window_switcher: false,
+            workspace_profiles: false,
         },
         LicenseTier::Pro => LicenseLimits {
             clipboard_history_unlimited: true,
@@ -18,6 +19,7 @@ pub fn limits_for_tier(tier: &LicenseTier) -> LicenseLimits {
             disk_clean: true,
             auto_layout: true,
             window_switcher: true,
+            workspace_profiles: true,
         },
     }
 }

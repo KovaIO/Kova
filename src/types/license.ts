@@ -6,6 +6,7 @@ export interface LicenseLimits {
   disk_clean: boolean;
   auto_layout: boolean;
   window_switcher: boolean;
+  workspace_profiles: boolean;
 }
 
 export interface LicenseInfo {
