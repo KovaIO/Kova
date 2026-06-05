@@ -4,13 +4,12 @@ use std::sync::{Arc, Mutex};
 use crate::{
     clipboard::{service::ClipboardService, watcher::cleanup_image_files},
     license::{
-        sanitize_clipboard_history_limit, sanitize_window_manager_preferences,
-        validate_clipboard_history_limit, validate_monitor_dim,
-        validate_window_manager_preferences, LicenseService,
+        sanitize_clipboard_history_limit, validate_clipboard_history_limit, validate_monitor_dim,
+        LicenseService,
     },
     preferences::{
-        ClipboardPreferences, GeneralPreferences, Preferences, PreferencesStorage, Shortcut,
-        WindowManagerPreferences,
+        AppearancePreferences, ClipboardPreferences, GeneralPreferences, Preferences,
+        PreferencesStorage, Shortcut,
     },
 };
 
@@ -39,8 +38,6 @@ impl PreferencesService {
         let tier = self.license.tier()?;
         preferences.clipboard.history_limit =
             sanitize_clipboard_history_limit(preferences.clipboard.history_limit, &tier);
-        preferences.window_manager =
-            sanitize_window_manager_preferences(preferences.window_manager, &tier);
         Ok(preferences)
     }
 
@@ -95,24 +92,22 @@ impl PreferencesService {
         Ok(())
     }
 
-    pub fn update_window_manager_preferences(
-        &self,
-        prefs: WindowManagerPreferences,
-    ) -> Result<(), String> {
-        let tier = self.license.tier().map_err(|e| e.to_string())?;
-        let validated = validate_window_manager_preferences(prefs, &tier)?;
-
-        let storage = self.storage.lock().unwrap();
-        storage
-            .save_window_manager_preferences(&validated)
-            .map_err(|e| e.to_string())
-    }
-
     pub fn update_shortcuts(&self, shortcuts: Vec<Shortcut>) -> Result<(), String> {
         let storage = self.storage.lock().unwrap();
 
         storage
             .save_shortcuts(&shortcuts)
+            .map_err(|e| e.to_string())
+    }
+
+    pub fn update_appearance_preferences(
+        &self,
+        prefs: AppearancePreferences,
+    ) -> Result<(), String> {
+        let storage = self.storage.lock().unwrap();
+
+        storage
+            .save_appearance_preferences(&prefs)
             .map_err(|e| e.to_string())
     }
 }

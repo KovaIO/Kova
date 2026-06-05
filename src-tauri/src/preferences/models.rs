@@ -10,7 +10,7 @@ use crate::clipboard::models::InstalledApp;
 pub struct Preferences {
     pub general: GeneralPreferences,
     pub clipboard: ClipboardPreferences,
-    pub window_manager: WindowManagerPreferences,
+    pub appearance: AppearancePreferences,
     pub power: PowerPreferences,
     pub shortcuts: Vec<Shortcut>,
 }
@@ -20,7 +20,7 @@ impl Default for Preferences {
         Self {
             general: GeneralPreferences::default(),
             clipboard: ClipboardPreferences::default(),
-            window_manager: WindowManagerPreferences::default(),
+            appearance: AppearancePreferences::default(),
             power: PowerPreferences::default(),
             shortcuts: vec![
                 Shortcut {
@@ -41,7 +41,6 @@ pub struct GeneralPreferences {
     pub launch_at_startup: bool,
     pub show_menu_bar: bool,
     pub language: String,
-    pub theme: Theme,
     pub monitor_dim: u8,
 }
 
@@ -51,7 +50,6 @@ impl Default for GeneralPreferences {
             launch_at_startup: true,
             show_menu_bar: true,
             language: "en".to_string(),
-            theme: Theme::System,
             monitor_dim: 90,
         }
     }
@@ -77,19 +75,82 @@ impl Default for ClipboardPreferences {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct WindowManagerPreferences {
-    pub enabled: bool,
-    pub auto_layout: bool,
-    pub window_switcher: bool,
+pub struct AppearancePreferences {
+    pub accent_color: AccentColor,
+    pub window_density: WindowDensity,
 }
 
-impl Default for WindowManagerPreferences {
+impl Default for AppearancePreferences {
     fn default() -> Self {
         Self {
-            enabled: true,
-            auto_layout: true,
-            window_switcher: true,
+            accent_color: AccentColor::Purple,
+            window_density: WindowDensity::Normal,
         }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum AccentColor {
+    Blue,
+    Purple,
+    Green,
+    Orange,
+    White,
+}
+
+impl FromSql for AccentColor {
+    fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
+        match value.as_str()? {
+            "blue" => Ok(Self::Blue),
+            "purple" => Ok(Self::Purple),
+            "green" => Ok(Self::Green),
+            "orange" => Ok(Self::Orange),
+            "white" => Ok(Self::White),
+            _ => Err(FromSqlError::Other(
+                format!("Unknown shortcut action: {}", value.as_str()?).into(),
+            )),
+        }
+    }
+}
+
+impl ToSql for AccentColor {
+    fn to_sql(&self) -> rusqlite::Result<ToSqlOutput<'_>> {
+        Ok(match self {
+            Self::Blue => "blue".into(),
+            Self::Purple => "purple".into(),
+            Self::Green => "green".into(),
+            Self::Orange => "orange".into(),
+            Self::White => "white".into(),
+        })
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum WindowDensity {
+    Normal,
+    Wide,
+}
+
+impl FromSql for WindowDensity {
+    fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
+        match value.as_str()? {
+            "normal" => Ok(Self::Normal),
+            "wide" => Ok(Self::Wide),
+            _ => Err(FromSqlError::Other(
+                format!("Unknown shortcut action: {}", value.as_str()?).into(),
+            )),
+        }
+    }
+}
+
+impl ToSql for WindowDensity {
+    fn to_sql(&self) -> rusqlite::Result<ToSqlOutput<'_>> {
+        Ok(match self {
+            Self::Normal => "normal".into(),
+            Self::Wide => "wide".into(),
+        })
     }
 }
 
@@ -114,24 +175,6 @@ impl Default for PowerPreferences {
 pub struct Shortcut {
     pub action: ShortcutAction,
     pub keys: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum Theme {
-    Dark,
-    Light,
-    System,
-}
-
-impl ToSql for Theme {
-    fn to_sql(&self) -> rusqlite::Result<ToSqlOutput<'_>> {
-        Ok(match self {
-            Self::Dark => "dark".into(),
-            Self::Light => "light".into(),
-            Self::System => "system".into(),
-        })
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

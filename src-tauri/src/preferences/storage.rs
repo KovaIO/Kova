@@ -4,8 +4,8 @@ use std::path::PathBuf;
 use crate::{
     clipboard::models::InstalledApp,
     preferences::{
-        ClipboardPreferences, GeneralPreferences, PowerPreferences, Preferences, Shortcut, Theme,
-        WindowManagerPreferences,
+        AppearancePreferences, ClipboardPreferences, GeneralPreferences, PowerPreferences,
+        Preferences, Shortcut,
     },
     processes::get_process_icon,
 };
@@ -28,7 +28,7 @@ impl PreferencesStorage {
         let mut preferences = Preferences::default();
         preferences.general = self.load_general_preferences()?;
         preferences.clipboard = self.load_clipboard_preferences()?;
-        preferences.window_manager = self.load_window_manager_preferences()?;
+        preferences.appearance = self.load_appearance_preferences()?;
         preferences.power = self.load_power_preferences()?;
         preferences.shortcuts = self.load_shortcuts()?;
         Ok(preferences)
@@ -36,21 +36,14 @@ impl PreferencesStorage {
 
     pub fn load_general_preferences(&self) -> Result<GeneralPreferences> {
         let mut stmt = self.conn.prepare(
-            "SELECT launch_at_startup, show_menu_bar, language, theme, monitor_dim FROM general_preferences LIMIT 1",
+            "SELECT launch_at_startup, show_menu_bar, language, monitor_dim FROM general_preferences LIMIT 1",
         )?;
         let prefs = stmt.query_row([], |row| {
-            let theme_str: String = row.get(3)?;
-            let theme = match theme_str.as_str() {
-                "dark" => Theme::Dark,
-                "light" => Theme::Light,
-                _ => Theme::System,
-            };
             Ok(GeneralPreferences {
                 launch_at_startup: row.get(0)?,
                 show_menu_bar: row.get(1)?,
                 language: row.get(2)?,
-                theme,
-                monitor_dim: row.get(4)?,
+                monitor_dim: row.get(3)?,
             })
         })?;
         Ok(prefs)
@@ -72,15 +65,17 @@ impl PreferencesStorage {
         Ok(prefs)
     }
 
-    fn load_window_manager_preferences(&self) -> Result<WindowManagerPreferences> {
+    pub fn load_appearance_preferences(&self) -> Result<AppearancePreferences> {
         let mut stmt = self.conn.prepare(
-            "SELECT enabled, auto_layout, window_switcher FROM window_manager_preferences LIMIT 1",
+            "SELECT accent_color, window_density
+             FROM appearance_preferences
+             LIMIT 1",
         )?;
+
         stmt.query_row([], |row| {
-            Ok(WindowManagerPreferences {
-                enabled: row.get(0)?,
-                auto_layout: row.get(1)?,
-                window_switcher: row.get(2)?,
+            Ok(AppearancePreferences {
+                accent_color: row.get(0)?,
+                window_density: row.get(1)?,
             })
         })
     }
@@ -136,14 +131,9 @@ impl PreferencesStorage {
     }
 
     pub fn save_general_preferences(&self, prefs: &GeneralPreferences) -> Result<()> {
-        let theme = match prefs.theme {
-            Theme::Dark => "dark",
-            Theme::Light => "light",
-            Theme::System => "system",
-        };
         self.conn.execute(
-            "UPDATE general_preferences SET launch_at_startup = ?1, show_menu_bar = ?2, language = ?3, theme = ?4, monitor_dim = ?5",
-            params![ prefs.launch_at_startup, prefs.show_menu_bar, prefs.language, theme, prefs.monitor_dim ],)?;
+            "UPDATE general_preferences SET launch_at_startup = ?1, show_menu_bar = ?2, language = ?3, monitor_dim = ?4",
+            params![ prefs.launch_at_startup, prefs.show_menu_bar, prefs.language, prefs.monitor_dim ],)?;
         Ok(())
     }
 
@@ -158,21 +148,6 @@ impl PreferencesStorage {
                 params![app.name, app.path],
             )?;
         }
-        Ok(())
-    }
-
-    pub fn save_window_manager_preferences(&self, prefs: &WindowManagerPreferences) -> Result<()> {
-        self.conn.execute(
-            "
-            UPDATE window_manager_preferences
-            SET
-                enabled = ?1,
-                auto_layout = ?2,
-                window_switcher = ?3
-            ",
-            params![prefs.enabled, prefs.auto_layout, prefs.window_switcher],
-        )?;
-
         Ok(())
     }
 
@@ -192,6 +167,18 @@ impl PreferencesStorage {
         }
 
         tx.commit()?;
+
+        Ok(())
+    }
+
+    pub fn save_appearance_preferences(&self, prefs: &AppearancePreferences) -> Result<()> {
+        self.conn.execute(
+            "
+            UPDATE appearance_preferences
+            SET accent_color = ?1, window_density = ?2
+            ",
+            params![prefs.accent_color, prefs.window_density,],
+        )?;
 
         Ok(())
     }

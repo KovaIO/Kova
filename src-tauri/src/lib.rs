@@ -26,8 +26,8 @@ use commands::{
     get_workspace_profile, get_workspace_profiles, open_clipboard_url, open_monitor,
     open_preferences, open_process, paste_clipboard_item, paste_plain_clipboard_item,
     preview_clipboard_item, quit_process_cmd, reveal_clipboard_item, save_workspace_profile,
-    update_clipboard_preferences, update_general_preferences, update_shortcuts,
-    update_window_manager_preferences,
+    update_appearance_preferences, update_clipboard_preferences, update_general_preferences,
+    update_shortcuts,
 };
 
 use clipboard::start_clipboard_watcher;
@@ -71,7 +71,7 @@ pub fn run() {
             get_license,
             update_general_preferences,
             update_clipboard_preferences,
-            update_window_manager_preferences,
+            update_appearance_preferences,
             update_shortcuts,
             get_current_metrics,
             get_snapshot,

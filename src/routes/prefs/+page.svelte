@@ -12,6 +12,7 @@
     import HelpFeedbackSection from "$components/preferences/sections/HelpFeedbackSection.svelte";
     import DeveloperViewSection from "$components/preferences/sections/DeveloperViewSection.svelte";
     import WorkspacesSection from "$components/preferences/sections/WorkspacesSection.svelte";
+    import AppearanceSection from "$components/preferences/sections/AppearanceSection.svelte";
 
     let activeSection = $state("general");
 
@@ -21,6 +22,7 @@
         { id: "workspace-profiles", label: "Workspace Profiles" },
         { id: "clipboard-history", label: "Clipboard History" },
         { id: "keyboard-shortcuts", label: "Keyboard Shortcuts" },
+        { id: "appearance", label: "Appareance" },
         { id: "power-management", label: "Power Management" },
         { id: "help-feedback", label: "Help & Feedback" },
         { id: "developer-view", label: "Developer View" },
@@ -64,6 +66,8 @@
                 <ClipboardHistorySection />
             {:else if activeSection === "keyboard-shortcuts"}
                 <KeyboardShortcutsSection />
+            {:else if activeSection === "appearance"}
+                <AppearanceSection />
             {:else if activeSection === "power-management"}
                 <PowerManagementSection />
             {:else if activeSection === "help-feedback"}

@@ -1,7 +1,7 @@
 export interface Preferences {
   general: GeneralPreferences;
   clipboard: ClipboardPreferences;
-  window_manager: WindowManagerPreferences;
+  appearance: AppearancePreferences;
   power: PowerPreferences;
   shortcuts: Shortcut[];
 }
@@ -21,10 +21,13 @@ export interface ClipboardPreferences {
   ignored_apps: IgnoredApp[];
 }
 
-export interface WindowManagerPreferences {
-  enabled: boolean;
-  auto_layout: boolean;
-  window_switcher: boolean;
+export type AccentColor = "blue" | "purple" | "green" | "orange" | "white";
+
+export type WindowDensity = "normal" | "wide";
+
+export interface AppearancePreferences {
+  accent_color: AccentColor;
+  window_density: WindowDensity;
 }
 
 export interface PowerPreferences {

@@ -9,7 +9,6 @@ pub fn run_migrations(conn: &Connection) -> Result<()> {
             launch_at_startup INTEGER NOT NULL DEFAULT 0,
             show_menu_bar INTEGER NOT NULL DEFAULT 1,
             language TEXT NOT NULL DEFAULT 'en',
-            theme TEXT NOT NULL DEFAULT 'system',
             monitor_dim INTEGER NOT NULL DEFAULT 90
         );
 
@@ -19,10 +18,9 @@ pub fn run_migrations(conn: &Connection) -> Result<()> {
             ignore_passwords INTEGER NOT NULL DEFAULT 1
         );
 
-        CREATE TABLE IF NOT EXISTS window_manager_preferences (
-            enabled INTEGER NOT NULL DEFAULT 1,
-            auto_layout INTEGER NOT NULL DEFAULT 1,
-            window_switcher INTEGER NOT NULL DEFAULT 1
+        CREATE TABLE IF NOT EXISTS appearance_preferences (
+            accent_color TEXT NOT NULL DEFAULT 'purple',
+            window_density TEXT NOT NULL DEFAULT 'normal'
         );
 
         CREATE TABLE IF NOT EXISTS power_preferences (
@@ -88,18 +86,17 @@ fn seed_defaults(conn: &Connection) -> Result<()> {
     let prefs = Preferences::default();
     let g = &prefs.general;
     let c = &prefs.clipboard;
-    let w = &prefs.window_manager;
     let p = &prefs.power;
+    let a = &prefs.appearance;
 
     conn.execute(
-        "INSERT INTO general_preferences (launch_at_startup, show_menu_bar, language, theme, monitor_dim)
-         SELECT ?1, ?2, ?3, ?4, ?5
+        "INSERT INTO general_preferences (launch_at_startup, show_menu_bar, language, monitor_dim)
+         SELECT ?1, ?2, ?3, ?4
          WHERE NOT EXISTS (SELECT 1 FROM general_preferences)",
         params![
             g.launch_at_startup as i32,
             g.show_menu_bar as i32,
             g.language,
-            g.theme,
             g.monitor_dim,
         ],
     )?;
@@ -112,14 +109,14 @@ fn seed_defaults(conn: &Connection) -> Result<()> {
     )?;
 
     conn.execute(
-        "INSERT INTO window_manager_preferences (enabled, auto_layout, window_switcher)
-         SELECT ?1, ?2, ?3
-         WHERE NOT EXISTS (SELECT 1 FROM window_manager_preferences)",
-        params![
-            w.enabled as i32,
-            w.auto_layout as i32,
-            w.window_switcher as i32,
-        ],
+        "
+            INSERT INTO appearance_preferences (accent_color, window_density)
+            SELECT ?1, ?2
+            WHERE NOT EXISTS (
+                SELECT 1 FROM appearance_preferences
+            )
+            ",
+        params![a.accent_color, a.window_density],
     )?;
 
     conn.execute(

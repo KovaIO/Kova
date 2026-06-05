@@ -56,33 +56,3 @@ pub fn validate_monitor_dim(monitor_dim: u8, tier: &LicenseTier) -> Result<u8, S
 
     Err("Monitor dimming requires a Pro license".into())
 }
-
-pub fn validate_window_manager_preferences(
-    prefs: crate::preferences::WindowManagerPreferences,
-    tier: &LicenseTier,
-) -> Result<crate::preferences::WindowManagerPreferences, String> {
-    if tier == &LicenseTier::Pro {
-        return Ok(prefs);
-    }
-
-    if prefs.auto_layout || prefs.window_switcher {
-        return Err("This feature requires a Pro license".into());
-    }
-
-    Ok(prefs)
-}
-
-pub fn sanitize_window_manager_preferences(
-    prefs: crate::preferences::WindowManagerPreferences,
-    tier: &LicenseTier,
-) -> crate::preferences::WindowManagerPreferences {
-    if tier == &LicenseTier::Pro {
-        return prefs;
-    }
-
-    crate::preferences::WindowManagerPreferences {
-        enabled: prefs.enabled,
-        auto_layout: false,
-        window_switcher: false,
-    }
-}

@@ -3,23 +3,26 @@ import { invoke } from "@tauri-apps/api/core";
 
 import { preferences, normalizePreferences } from "$stores/preferences";
 import type {
+  AppearancePreferences,
   ClipboardPreferences,
   GeneralPreferences,
   Preferences,
   Shortcut,
-  WindowManagerPreferences,
 } from "$types/preferences";
-import { shortcutsForApi, normalizeStoredShortcuts } from "$utils/keyboard-shortcuts";
+import {
+  shortcutsForApi,
+  normalizeStoredShortcuts,
+} from "$utils/keyboard-shortcuts";
 
 type UpdatableSection = keyof Pick<
   Preferences,
-  "general" | "clipboard" | "window_manager"
+  "general" | "clipboard" | "appearance"
 >;
 
 const UPDATE_COMMANDS: Record<UpdatableSection, string> = {
   general: "update_general_preferences",
   clipboard: "update_clipboard_preferences",
-  window_manager: "update_window_manager_preferences",
+  appearance: "update_appearance_preferences",
 };
 
 async function updateSection<S extends UpdatableSection>(
@@ -44,8 +47,8 @@ export function updateClipboard(patch: Partial<ClipboardPreferences>) {
   return updateSection("clipboard", patch);
 }
 
-export function updateWindowManager(patch: Partial<WindowManagerPreferences>) {
-  return updateSection("window_manager", patch);
+export function updateAppearance(patch: Partial<AppearancePreferences>) {
+  return updateSection("appearance", patch);
 }
 
 export function updateShortcuts(shortcuts: Shortcut[]) {

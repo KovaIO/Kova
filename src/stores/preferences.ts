@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 
 import type { Preferences } from "$types/preferences";
 import { normalizeStoredShortcuts } from "$utils/keyboard-shortcuts";
+import { applyAccentColor } from "$utils/accent-colors";
 
 export const preferences = writable<Preferences | null>(null);
 
@@ -14,7 +15,11 @@ export function normalizePreferences(prefs: Preferences): Preferences {
 }
 
 export function setPreferences(prefs: Preferences) {
-  preferences.set(normalizePreferences(prefs));
+  const normalized = normalizePreferences(prefs);
+
+  applyAccentColor(normalized.appearance.accent_color);
+
+  preferences.set(normalized);
 }
 
 export async function loadPreferences() {

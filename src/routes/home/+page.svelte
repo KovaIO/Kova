@@ -6,11 +6,7 @@
     import Toggle from "$components/Toggle.svelte";
     import BrightnessSlider from "$components/BrightnessSlider.svelte";
     import { Cpu, MemoryStick, HardDrive } from "@lucide/svelte";
-    import {
-        updateClipboard,
-        updateGeneral,
-        updateWindowManager,
-    } from "$services/preferences";
+    import { updateClipboard, updateGeneral } from "$services/preferences";
     import { canUse, license } from "$stores/license";
     import { preferences } from "$stores/preferences";
     import WindowAnimation from "$components/WindowAnimation.svelte";
@@ -59,7 +55,6 @@
     onDestroy(() => unlisten?.());
 
     $: clipboardEnabled = $preferences?.clipboard.enabled ?? true;
-    $: windowManagerEnabled = $preferences?.window_manager.enabled ?? true;
     $: monitorDim = $preferences?.general.monitor_dim ?? 90;
     $: monitorDimmingEnabled = canUse("monitor_dimming", $license);
 
@@ -98,12 +93,6 @@
             <div class="divider"></div>
 
             <section class="switches">
-                <Toggle
-                    id="wm"
-                    label="Window Manager"
-                    checked={windowManagerEnabled}
-                    onchange={(enabled) => updateWindowManager({ enabled })}
-                />
                 <Toggle
                     id="cb"
                     label="Clipboard History"
