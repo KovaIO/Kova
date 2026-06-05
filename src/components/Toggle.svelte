@@ -14,7 +14,13 @@
 <label class="toggle-row" class:disabled for={id}>
     <span class="toggle-label">{label}</span>
     <div class="switch">
-        <input type="checkbox" {id} bind:checked {disabled} on:change={handleChange} />
+        <input
+            type="checkbox"
+            {id}
+            bind:checked
+            {disabled}
+            on:change={handleChange}
+        />
         <span class="track">
             <span class="thumb"></span>
         </span>
@@ -82,6 +88,6 @@
 
     input:checked ~ .track .thumb {
         transform: translateX(16px);
-        background: var(--color-input-active);
+        background: var(--color-accent-text);
     }
 </style>

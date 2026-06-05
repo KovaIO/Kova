@@ -32,7 +32,7 @@ export const ACCENT_COLORS: {
   },
 ];
 
-export function applyAccentColor(color: string) {
+export function applyAccentColor(color: AccentColor) {
   const root = document.documentElement;
 
   switch (color) {
@@ -42,6 +42,7 @@ export function applyAccentColor(color: string) {
       root.style.setProperty("--color-accent-soft", "rgba(140,180,245,0.10)");
       root.style.setProperty("--color-accent-border", "rgba(140,180,245,0.25)");
       root.style.setProperty("--color-border-accent", "rgba(140,180,245,0.20)");
+      root.style.setProperty("--color-accent-text", "#ebebf0");
       break;
 
     case "green":
@@ -50,6 +51,7 @@ export function applyAccentColor(color: string) {
       root.style.setProperty("--color-accent-soft", "rgba(154,219,179,0.10)");
       root.style.setProperty("--color-accent-border", "rgba(154,219,179,0.25)");
       root.style.setProperty("--color-border-accent", "rgba(154,219,179,0.20)");
+      root.style.setProperty("--color-accent-text", "#1f2937");
       break;
 
     case "orange":
@@ -58,6 +60,7 @@ export function applyAccentColor(color: string) {
       root.style.setProperty("--color-accent-soft", "rgba(245,183,147,0.10)");
       root.style.setProperty("--color-accent-border", "rgba(245,183,147,0.25)");
       root.style.setProperty("--color-border-accent", "rgba(245,183,147,0.20)");
+      root.style.setProperty("--color-accent-text", "#1f2937");
       break;
 
     case "white":
@@ -66,6 +69,7 @@ export function applyAccentColor(color: string) {
       root.style.setProperty("--color-accent-soft", "rgba(225,227,230,0.10)");
       root.style.setProperty("--color-accent-border", "rgba(225,227,230,0.25)");
       root.style.setProperty("--color-border-accent", "rgba(225,227,230,0.20)");
+      root.style.setProperty("--color-accent-text", "#111827");
       break;
 
     default:
@@ -74,5 +78,6 @@ export function applyAccentColor(color: string) {
       root.style.setProperty("--color-accent-soft", "rgba(155,124,240,0.10)");
       root.style.setProperty("--color-accent-border", "rgba(155,124,240,0.25)");
       root.style.setProperty("--color-border-accent", "rgba(155,124,240,0.20)");
+      root.style.setProperty("--color-accent-text", "#ffffff");
   }
 }

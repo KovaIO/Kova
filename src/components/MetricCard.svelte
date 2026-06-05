@@ -27,13 +27,30 @@
     >
         <div class="fill" style="height: {value}%;"></div>
 
-        <div class="content">
+        <div class="content normal">
             <div class="icon-wrap" class:hidden={hovered}>
                 <svelte:component this={icon} size={18} strokeWidth={1.5} />
             </div>
+
             <div class="value-wrap" class:visible={hovered}>
                 <span class="val">{displayValue}</span>
             </div>
+
+            <span class="label">{label}</span>
+        </div>
+
+        <div
+            class="content accent"
+            style="clip-path: inset({100 - value}% 0 0 0)"
+        >
+            <div class="icon-wrap" class:hidden={hovered}>
+                <svelte:component this={icon} size={18} strokeWidth={1.5} />
+            </div>
+
+            <div class="value-wrap" class:visible={hovered}>
+                <span class="val">{displayValue}</span>
+            </div>
+
             <span class="label">{label}</span>
         </div>
     </button>
@@ -79,6 +96,19 @@
         gap: 0;
     }
 
+    .content.accent {
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        pointer-events: none;
+    }
+
+    .content.accent .icon-wrap,
+    .content.accent .val,
+    .content.accent .label {
+        color: var(--color-accent-text);
+    }
+
     .icon-wrap,
     .value-wrap {
         position: absolute;
@@ -115,7 +145,6 @@
         transform: translateY(-60%) scale(1);
         color: var(--color-text-primary);
         opacity: 0.85;
-        filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
     }
 
     .val {
@@ -134,6 +163,5 @@
         letter-spacing: 0.04em;
         color: var(--color-text-secondary);
         text-transform: uppercase;
-        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
     }
 </style>

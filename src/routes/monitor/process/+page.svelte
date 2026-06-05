@@ -705,7 +705,7 @@
         border: none;
         border-radius: var(--radius-md);
         background: var(--color-accent);
-        color: var(--color-text-primary);
+        color: var(--color-accent-text);
         font: inherit;
         font-size: 12px;
         font-weight: 500;
@@ -717,6 +717,7 @@
 
     .action-button.danger {
         background: var(--color-track-fill);
+        color: var(--color-text-primary);
     }
     .action-button.danger:hover {
         background: var(--color-danger);

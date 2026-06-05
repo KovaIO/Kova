@@ -24,6 +24,8 @@
 
     --color-accent-border: rgba(155, 124, 240, 0.25);
 
+    --color-accent-text: #ebebf0;
+
     /* Accent semantics */
     --color-success: #57d38c;
     --color-success-soft: rgba(87, 211, 140, 0.14);
