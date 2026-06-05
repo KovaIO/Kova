@@ -21,6 +21,7 @@
     let loading = true;
     let saving = false;
     let showAppPicker = false;
+    let noSpaceError = false;
 
     // drag state
     let dragging: WorkspaceApp | null = null;
@@ -34,6 +35,18 @@
     onMount(async () => {
         try {
             profiles = await getWorkspaceProfiles();
+            // Convert percentages to grid cells for UI
+            profiles = profiles.map(p => ({
+                ...p,
+                apps: p.apps.map(app => ({
+                    ...app,
+                    x: percentToGrid(app.x, COLS),
+                    y: percentToGrid(app.y, ROWS),
+                    width: percentToGrid(app.width, COLS),
+                    height: percentToGrid(app.height, ROWS),
+                }))
+            }));
+            if (profiles.length > 0) selected = profiles[0];
         } finally {
             loading = false;
         }
@@ -94,7 +107,18 @@
         if (!selected) return;
         saving = true;
         try {
-            await saveWorkspaceProfile(selected);
+            // Convert grid cells to percentages for backend
+            const profileToSave = {
+                ...selected,
+                apps: selected.apps.map(app => ({
+                    ...app,
+                    x: gridToPercent(app.x, COLS),
+                    y: gridToPercent(app.y, ROWS),
+                    width: gridToPercent(app.width, COLS),
+                    height: gridToPercent(app.height, ROWS),
+                }))
+            };
+            await saveWorkspaceProfile(profileToSave);
             profiles = profiles.map((p) =>
                 p.id === selected!.id ? selected! : p,
             );
@@ -116,11 +140,29 @@
     function onAppPicked(app: IgnoredApp) {
         if (!selected) return;
 
-        // Default slot size: 4 cols × 4 rows
-        const w = 4;
-        const h = 4;
-        const pos = findFreeRegion(selected.apps, w, h) ?? { x: 0, y: 0 };
+        const sizes = [
+            { w: 6, h: 8 }, { w: 6, h: 4 }, { w: 4, h: 8 },
+            { w: 4, h: 4 }, { w: 4, h: 2 }, { w: 2, h: 4 },
+            { w: 3, h: 3 }, { w: 2, h: 2 }, { w: 1, h: 1 },
+        ];
 
+        let pos: { x: number; y: number } | null = null;
+        let chosenW = 4;
+        let chosenH = 4;
+
+        for (const { w, h } of sizes) {
+            pos = findFreeRegion(selected.apps, w, h);
+            if (pos) { chosenW = w; chosenH = h; break; }
+        }
+
+        if (!pos) {
+            noSpaceError = true;
+            setTimeout(() => noSpaceError = false, 3000);
+            showAppPicker = false;
+            return;
+        }
+
+        noSpaceError = false;
         const newApp: WorkspaceApp = {
             name: app.name,
             path: app.path,
@@ -128,8 +170,8 @@
             icon: app.icon,
             x: pos.x,
             y: pos.y,
-            width: w,
-            height: h,
+            width: chosenW,
+            height: chosenH,
         };
         selected = { ...selected, apps: [...selected.apps, newApp] };
         showAppPicker = false;
@@ -210,18 +252,14 @@
         window.removeEventListener("mouseup", stopDrag);
     }
 
-    const PALETTE = ["#7c6af7", "#f7824c", "#4cf7a0", "#f7e04c", "#c44cf7", "#4cf0f7"];
-    function colorFor(app: WorkspaceApp) {
-        // Use app name for stable color that doesn't change when apps are deleted
-        let hash = 0;
-        for (let i = 0; i < app.name.length; i++) {
-            hash = app.name.charCodeAt(i) + ((hash << 5) - hash);
-        }
-        return PALETTE[Math.abs(hash) % PALETTE.length];
-    }
-
     // Convert grid coords to percentage for CSS
     function toPercent(val: number, total: number) { return (val / total) * 100; }
+
+    // Convert grid cells to percentages for backend
+    function gridToPercent(val: number, total: number) { return val / total; }
+
+    // Convert percentages from backend to grid cells
+    function percentToGrid(val: number, total: number) { return Math.round(val * total); }
 </script>
 
 {#if !isPro}
@@ -273,6 +311,9 @@
                     <div class="editor-header">
                         <input class="name-input" bind:value={selected.name} placeholder="Profile name" />
                         <div class="header-actions">
+                            {#if noSpaceError}
+                                <span class="no-space-msg">No space left in layout</span>
+                            {/if}
                             <button class="add-app-btn" on:click={() => (showAppPicker = true)}>
                                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
                                     <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
@@ -320,7 +361,8 @@
                                         top:{toPercent(app.y, ROWS)}%;
                                         width:{toPercent(app.width, COLS)}%;
                                         height:{toPercent(app.height, ROWS)}%;
-                                        --slot-color:{colorFor(app)};
+                                        --fill-mix:{[8, 12, 16, 6, 10][i % 5]}%;
+                                        --border-mix:{[20, 30, 40, 15, 35][i % 5]}%;
                                     "
                                     on:mousedown={(e) => startDrag(e, app, "move")}
                                 >
@@ -390,7 +432,7 @@
 
     /* Sidebar */
     .profile-list {
-        border-right: 1px solid var(--color-border-medium);
+        border-right: 1px solid var(--color-border-subtle);
         display: flex;
         flex-direction: column;
         background: rgba(0, 0, 0, 0.16);
@@ -410,7 +452,7 @@
     .profile-row {
         display: flex;
         flex-direction: column;
-        gap: 2px;
+        gap: 5px;
         padding: 9px 12px;
         border: none;
         background: transparent;
@@ -575,7 +617,6 @@
         width: 100%;
         aspect-ratio: 16/9;
         background: var(--color-surface-elevated);
-        border: 1px solid var(--color-border-subtle);
         border-radius: var(--radius-sm);
         overflow: hidden;
         user-select: none;
@@ -595,19 +636,19 @@
     /* App slots */
     .app-slot {
         position: absolute;
-        background: color-mix(in srgb, var(--slot-color) 8%, transparent);
-        border: 1px solid var(--slot-color);
+        background: color-mix(in srgb, var(--color-accent) var(--fill-mix), transparent);
+        border: 1px solid color-mix(in srgb, var(--color-accent) var(--border-mix), transparent);
         border-radius: var(--radius-sm);
         cursor: grab;
         box-sizing: border-box;
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: box-shadow 120ms ease;
+        transition: box-shadow 120ms ease, background 120ms ease;
         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
     }
     .app-slot:hover:not(.dragging) {
-        background: color-mix(in srgb, var(--slot-color) 12%, transparent);
+        background: color-mix(in srgb, var(--color-accent) calc(var(--fill-mix) + 8%), transparent);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
     .app-slot.dragging {
@@ -636,7 +677,7 @@
         width: 24px;
         height: 24px;
         border-radius: 4px;
-        background: var(--slot-color);
+        background: color-mix(in srgb, var(--color-accent) 60%, transparent);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -652,7 +693,7 @@
         right: 3px;
         background: none;
         border: none;
-        color: var(--slot-color);
+        color: var(--color-accent);
         font-size: 16px;
         line-height: 1;
         padding: 2px 6px;
@@ -668,7 +709,7 @@
         position: absolute;
         width: 12px;
         height: 12px;
-        background: linear-gradient(135deg, transparent 50%, var(--slot-color) 50%);
+        background: linear-gradient(135deg, transparent 50%, var(--color-accent) 50%);
         opacity: 0.6;
         cursor: pointer;
         transition: opacity 120ms ease;
@@ -679,28 +720,28 @@
         top: 0;
         left: 0;
         cursor: nw-resize;
-        background: linear-gradient(135deg, var(--slot-color) 50%, transparent 50%);
+        background: linear-gradient(135deg, var(--color-accent) 50%, transparent 50%);
         border-top-left-radius: 3px;
     }
     .resize-ne {
         top: 0;
         right: 0;
         cursor: ne-resize;
-        background: linear-gradient(-135deg, var(--slot-color) 50%, transparent 50%);
+        background: linear-gradient(-135deg, var(--color-accent) 50%, transparent 50%);
         border-top-right-radius: 3px;
     }
     .resize-sw {
         bottom: 0;
         left: 0;
         cursor: sw-resize;
-        background: linear-gradient(45deg, var(--slot-color) 50%, transparent 50%);
+        background: linear-gradient(45deg, var(--color-accent) 50%, transparent 50%);
         border-bottom-left-radius: 3px;
     }
     .resize-se {
         bottom: 0;
         right: 0;
         cursor: se-resize;
-        background: linear-gradient(-45deg, var(--slot-color) 50%, transparent 50%);
+        background: linear-gradient(-45deg, var(--color-accent) 50%, transparent 50%);
         border-bottom-right-radius: 3px;
     }
 
@@ -751,4 +792,15 @@
         transition: opacity var(--transition-fast);
     }
     .upgrade-btn:hover { opacity: 0.85; }
+
+    .no-space-msg {
+        font-size: 12px;
+        color: var(--color-danger);
+        animation: fade-in 150ms ease;
+    }
+
+    @keyframes fade-in {
+        from { opacity: 0; transform: translateX(4px); }
+        to   { opacity: 1; transform: translateX(0); }
+    }
 </style>
