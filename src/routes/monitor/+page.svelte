@@ -155,6 +155,7 @@
             <MetricGraph
                 bind:activeTab
                 {diskCleanEnabled}
+                showDiskTab={true}
                 {cpuHistory}
                 {ramHistory}
                 {networkHistory}
