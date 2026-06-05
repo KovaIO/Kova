@@ -292,13 +292,6 @@
         text-overflow: ellipsis;
     }
 
-    .image-sub {
-        font-size: 11.5px;
-        color: var(--color-text-muted);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
 
     .meta-grid {
         display: flex;

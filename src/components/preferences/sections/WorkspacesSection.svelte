@@ -9,23 +9,27 @@
         getWorkspaceProfiles,
         saveWorkspaceProfile,
         deleteWorkspaceProfile,
-        applyWorkspace,
     } from "$services/workspaces";
 
     $: isPro = canUse("workspace_profiles", $license);
+
+    const COLS = 12;
+    const ROWS = 8;
 
     let profiles: WorkspaceProfile[] = [];
     let selected: WorkspaceProfile | null = null;
     let loading = true;
     let saving = false;
-    let applyingId: string | null = null;
     let showAppPicker = false;
 
     // drag state
     let dragging: WorkspaceApp | null = null;
     let dragMode: "move" | "resize" = "move";
-    let dragStart = { mx: 0, my: 0, ox: 0, oy: 0, ow: 0, oh: 0 };
+    let resizeCorner: "nw" | "ne" | "sw" | "se" = "se";
+    let dragStartCell = { col: 0, row: 0 };
+    let dragStartApp = { x: 0, y: 0, width: 0, height: 0 };
     let canvasEl: HTMLDivElement;
+    let hoveredCell: { col: number; row: number } | null = null;
 
     onMount(async () => {
         try {
@@ -34,6 +38,50 @@
             loading = false;
         }
     });
+
+    function getCellFromMouse(e: MouseEvent): { col: number; row: number } {
+        const rect = canvasEl.getBoundingClientRect();
+        const col = Math.floor(((e.clientX - rect.left) / rect.width) * COLS);
+        const row = Math.floor(((e.clientY - rect.top) / rect.height) * ROWS);
+        return {
+            col: Math.max(0, Math.min(COLS - 1, col)),
+            row: Math.max(0, Math.min(ROWS - 1, row)),
+        };
+    }
+
+    function findFreeRegion(
+        apps: WorkspaceApp[],
+        w: number,
+        h: number,
+    ): { x: number; y: number } | null {
+        for (let row = 0; row <= ROWS - h; row++) {
+            for (let col = 0; col <= COLS - w; col++) {
+                if (!overlapsAny(apps, col, row, w, h, null)) {
+                    return { x: col, y: row };
+                }
+            }
+        }
+        return null;
+    }
+
+    function overlapsAny(
+        apps: WorkspaceApp[],
+        x: number,
+        y: number,
+        w: number,
+        h: number,
+        exclude: WorkspaceApp | null,
+    ): boolean {
+        return apps.some((a) => {
+            if (a === exclude) return false;
+            return !(
+                x >= a.x + a.width ||
+                x + w <= a.x ||
+                y >= a.y + a.height ||
+                y + h <= a.y
+            );
+        });
+    }
 
     function newProfile() {
         const id = crypto.randomUUID();
@@ -59,33 +107,29 @@
 
     async function deleteSelected() {
         if (!selected) return;
+        const { deleteWorkspaceProfile } = await import("$services/workspaces");
         await deleteWorkspaceProfile(selected.id);
         profiles = profiles.filter((p) => p.id !== selected!.id);
         selected = profiles[0] ?? null;
     }
 
-    async function handleApply(profileId: string) {
-        applyingId = profileId;
-        try {
-            await applyWorkspace(profileId);
-        } catch (e) {
-            console.error(e);
-        } finally {
-            applyingId = null;
-        }
-    }
-
     function onAppPicked(app: IgnoredApp) {
         if (!selected) return;
+
+        // Default slot size: 4 cols × 4 rows
+        const w = 4;
+        const h = 4;
+        const pos = findFreeRegion(selected.apps, w, h) ?? { x: 0, y: 0 };
+
         const newApp: WorkspaceApp = {
             name: app.name,
             path: app.path,
             exe_path: app.exe_path,
             icon: app.icon,
-            x: 0,
-            y: 0,
-            width: 0.4,
-            height: 0.5,
+            x: pos.x,
+            y: pos.y,
+            width: w,
+            height: h,
         };
         selected = { ...selected, apps: [...selected.apps, newApp] };
         showAppPicker = false;
@@ -98,52 +142,66 @@
         selected = { ...selected, apps };
     }
 
-    function startDrag(
-        e: MouseEvent,
-        app: WorkspaceApp,
-        mode: "move" | "resize",
-    ) {
+    function startDrag(e: MouseEvent, app: WorkspaceApp, mode: "move" | "resize", corner: "nw" | "ne" | "sw" | "se" = "se") {
         if (!isPro || !canvasEl) return;
         e.preventDefault();
         dragging = app;
         dragMode = mode;
-        dragStart = {
-            mx: e.clientX,
-            my: e.clientY,
-            ox: app.x,
-            oy: app.y,
-            ow: app.width,
-            oh: app.height,
-        };
+        resizeCorner = corner;
+        dragStartCell = getCellFromMouse(e);
+        dragStartApp = { x: app.x, y: app.y, width: app.width, height: app.height };
         window.addEventListener("mousemove", onDrag);
         window.addEventListener("mouseup", stopDrag);
     }
 
     function onDrag(e: MouseEvent) {
         if (!dragging || !selected || !canvasEl) return;
-        const rect = canvasEl.getBoundingClientRect();
-        const dx = (e.clientX - dragStart.mx) / rect.width;
-        const dy = (e.clientY - dragStart.my) / rect.height;
+        const cell = getCellFromMouse(e);
+        const dcol = cell.col - dragStartCell.col;
+        const drow = cell.row - dragStartCell.row;
 
-        const app = dragging;
+        let newX = dragStartApp.x;
+        let newY = dragStartApp.y;
+        let newW = dragStartApp.width;
+        let newH = dragStartApp.height;
+
         if (dragMode === "move") {
-            app.x = Math.max(0, Math.min(1 - app.width, dragStart.ox + dx));
-            app.y = Math.max(0, Math.min(1 - app.height, dragStart.oy + dy));
-            clampApp(app);
+            newX = Math.max(0, Math.min(COLS - dragStartApp.width, dragStartApp.x + dcol));
+            newY = Math.max(0, Math.min(ROWS - dragStartApp.height, dragStartApp.y + drow));
         } else {
-            app.width = Math.max(0.1, Math.min(1 - app.x, dragStart.ow + dx));
-            app.height = Math.max(0.1, Math.min(1 - app.y, dragStart.oh + dy));
-            clampApp(app);
+            // Handle different resize corners
+            switch (resizeCorner) {
+                case "se": // bottom-right
+                    newW = Math.max(1, Math.min(COLS - dragStartApp.x, dragStartApp.width + dcol));
+                    newH = Math.max(1, Math.min(ROWS - dragStartApp.y, dragStartApp.height + drow));
+                    break;
+                case "sw": // bottom-left
+                    newX = Math.max(0, Math.min(dragStartApp.x + dragStartApp.width - 1, dragStartApp.x + dcol));
+                    newW = dragStartApp.width + (dragStartApp.x - newX);
+                    newH = Math.max(1, Math.min(ROWS - dragStartApp.y, dragStartApp.height + drow));
+                    break;
+                case "ne": // top-right
+                    newY = Math.max(0, Math.min(dragStartApp.y + dragStartApp.height - 1, dragStartApp.y + drow));
+                    newH = dragStartApp.height + (dragStartApp.y - newY);
+                    newW = Math.max(1, Math.min(COLS - dragStartApp.x, dragStartApp.width + dcol));
+                    break;
+                case "nw": // top-left
+                    newX = Math.max(0, Math.min(dragStartApp.x + dragStartApp.width - 1, dragStartApp.x + dcol));
+                    newY = Math.max(0, Math.min(dragStartApp.y + dragStartApp.height - 1, dragStartApp.y + drow));
+                    newW = dragStartApp.width + (dragStartApp.x - newX);
+                    newH = dragStartApp.height + (dragStartApp.y - newY);
+                    break;
+            }
         }
-        selected = { ...selected, apps: [...selected.apps] };
-    }
 
-    function clampApp(app: WorkspaceApp) {
-        app.width = Math.max(0.1, Math.min(1, app.width));
-        app.height = Math.max(0.1, Math.min(1, app.height));
-
-        app.x = Math.max(0, Math.min(1 - app.width, app.x));
-        app.y = Math.max(0, Math.min(1 - app.height, app.y));
+        // Only apply if no overlap with other apps
+        if (!overlapsAny(selected.apps, newX, newY, newW, newH, dragging)) {
+            dragging.x = newX;
+            dragging.y = newY;
+            dragging.width = newW;
+            dragging.height = newH;
+            selected = { ...selected, apps: [...selected.apps] };
+        }
     }
 
     function stopDrag() {
@@ -152,51 +210,37 @@
         window.removeEventListener("mouseup", stopDrag);
     }
 
-    const PALETTE = [
-        "#4C8EF7",
-        "#F7824C",
-        "#4CF7A0",
-        "#F7E04C",
-        "#C44CF7",
-        "#4CF0F7",
-    ];
-    function colorFor(i: number) {
-        return PALETTE[i % PALETTE.length];
+    const PALETTE = ["#7c6af7", "#f7824c", "#4cf7a0", "#f7e04c", "#c44cf7", "#4cf0f7"];
+    function colorFor(app: WorkspaceApp) {
+        // Use app name for stable color that doesn't change when apps are deleted
+        let hash = 0;
+        for (let i = 0; i < app.name.length; i++) {
+            hash = app.name.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        return PALETTE[Math.abs(hash) % PALETTE.length];
     }
+
+    // Convert grid coords to percentage for CSS
+    function toPercent(val: number, total: number) { return (val / total) * 100; }
 </script>
 
 {#if !isPro}
-    <PreferencesSection
-        title="Workspace Profiles"
-        description="Save and restore complete app layouts"
-    >
+    <PreferencesSection title="Workspace Profiles" description="Save and restore complete app layouts">
         <div class="pro-gate">
-            <svg
-                width="32"
-                height="32"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.5"
-                stroke-linecap="round"
-            >
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
                 <rect x="3" y="11" width="18" height="11" rx="2" />
                 <path d="M7 11V7a5 5 0 0 1 10 0v4" />
             </svg>
             <p class="pro-title">Pro feature</p>
-            <p class="pro-desc">
-                Workspace Profiles let you save app arrangements and restore
-                them instantly. Upgrade to Pro to unlock.
-            </p>
+            <p class="pro-desc">Workspace Profiles let you save app arrangements and restore them instantly. Upgrade to Pro to unlock.</p>
             <button class="upgrade-btn">Upgrade to Pro</button>
         </div>
     </PreferencesSection>
 {:else}
-    <PreferencesSection
-        title="Workspace Profiles"
-        description="Save and restore complete app layouts with one click"
-    >
+    <PreferencesSection title="Workspace Profiles" description="Save and restore complete app layouts with one click">
         <div class="workspaces-root">
+
+            <!-- Sidebar -->
             <div class="profile-list">
                 {#if loading}
                     <div class="list-empty">Loading…</div>
@@ -210,235 +254,146 @@
                             on:click={() => (selected = p)}
                         >
                             <span class="profile-name">{p.name}</span>
-                            <span class="app-count"
-                                >{p.apps.length} app{p.apps.length !== 1
-                                    ? "s"
-                                    : ""}</span
-                            >
+                            <span class="app-count">{p.apps.length} app{p.apps.length !== 1 ? "s" : ""}</span>
                         </button>
                     {/each}
                 {/if}
 
                 <button class="new-profile-btn" on:click={newProfile}>
-                    <svg
-                        width="12"
-                        height="12"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2.5"
-                        stroke-linecap="round"
-                    >
-                        <line x1="12" y1="5" x2="12" y2="19" /><line
-                            x1="5"
-                            y1="12"
-                            x2="19"
-                            y2="12"
-                        />
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
                     </svg>
                     New profile
                 </button>
             </div>
 
+            <!-- Editor -->
             {#if selected}
                 <div class="profile-editor">
                     <div class="editor-header">
-                        <input
-                            class="name-input"
-                            bind:value={selected.name}
-                            placeholder="Profile name"
-                        />
+                        <input class="name-input" bind:value={selected.name} placeholder="Profile name" />
                         <div class="header-actions">
-                            <button
-                                class="apply-btn"
-                                disabled={applyingId === selected.id}
-                                on:click={() => handleApply(selected!.id)}
-                            >
-                                {applyingId === selected.id
-                                    ? "Launching…"
-                                    : "▶ Apply"}
+                            <button class="add-app-btn" on:click={() => (showAppPicker = true)}>
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                                </svg>
+                                Add app
                             </button>
-                            <button
-                                class="save-btn"
-                                disabled={saving}
-                                on:click={saveSelected}
-                            >
+                            <button class="save-btn" disabled={saving} on:click={saveSelected}>
                                 {saving ? "Saving…" : "Save"}
                             </button>
-                            <button
-                                class="delete-btn"
-                                on:click={deleteSelected}
-                                aria-label="Delete profile"
-                            >
-                                <svg
-                                    width="13"
-                                    height="13"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    stroke-linecap="round"
-                                >
-                                    <polyline points="3 6 5 6 21 6" /><path
-                                        d="M19 6l-1 14H6L5 6"
-                                    /><path d="M10 11v6" /><path
-                                        d="M14 11v6"
-                                    /><path d="M9 6V4h6v2" />
+                            <button class="delete-btn" on:click={deleteSelected} aria-label="Delete profile">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
                                 </svg>
                             </button>
                         </div>
                     </div>
 
+                    <!-- Canvas -->
                     <div class="canvas-wrap">
-                        <div class="canvas-label">
-                            Layout <span class="canvas-hint"
-                                >drag to move · corner to resize</span
-                            >
-                        </div>
+                        <!-- svelte-ignore a11y-no-static-element-interactions -->
                         <div class="canvas" bind:this={canvasEl}>
-                            <!-- screen grid lines -->
-                            <div class="grid-line v" style="left:33.3%"></div>
-                            <div class="grid-line v" style="left:66.6%"></div>
-                            <div class="grid-line h" style="top:50%"></div>
+                            <!-- Grid cells -->
+                            {#each Array(ROWS) as _, row}
+                                {#each Array(COLS) as _, col}
+                                    <div
+                                        class="grid-cell"
+                                        style="
+                                            left:{toPercent(col, COLS)}%;
+                                            top:{toPercent(row, ROWS)}%;
+                                            width:{toPercent(1, COLS)}%;
+                                            height:{toPercent(1, ROWS)}%;
+                                        "
+                                    ></div>
+                                {/each}
+                            {/each}
 
+                            <!-- App slots -->
                             {#each selected.apps as app, i}
                                 <!-- svelte-ignore a11y-no-static-element-interactions -->
                                 <div
                                     class="app-slot"
+                                    class:dragging={dragging === app}
                                     style="
-                                left:{app.x * 100}%;
-                                top:{app.y * 100}%;
-                                width:{app.width * 100}%;
-                                height:{app.height * 100}%;
-                                --slot-color:{colorFor(i)};
-                                "
-                                    on:mousedown={(e) =>
-                                        startDrag(e, app, "move")}
+                                        left:{toPercent(app.x, COLS)}%;
+                                        top:{toPercent(app.y, ROWS)}%;
+                                        width:{toPercent(app.width, COLS)}%;
+                                        height:{toPercent(app.height, ROWS)}%;
+                                        --slot-color:{colorFor(app)};
+                                    "
+                                    on:mousedown={(e) => startDrag(e, app, "move")}
                                 >
-                                    {#if app.icon}
-                                        <img
-                                            class="slot-icon"
-                                            src="data:image/png;base64,{app.icon}"
-                                            alt=""
-                                        />
-                                    {/if}
-                                    <span class="slot-name">{app.name}</span>
+                                    <div class="slot-inner">
+                                        {#if app.icon}
+                                            <img class="slot-icon" src="data:image/png;base64,{app.icon}" alt={app.name} />
+                                        {:else}
+                                            <div class="slot-icon-fallback">
+                                                {app.name.charAt(0).toUpperCase()}
+                                            </div>
+                                        {/if}
+                                    </div>
+
                                     <button
                                         class="slot-remove"
-                                        on:click|stopPropagation={() =>
-                                            removeApp(i)}
-                                        aria-label="Remove {app.name}">×</button
-                                    >
-                                    <!-- resize handle -->
+                                        on:click|stopPropagation={() => removeApp(i)}
+                                        aria-label="Remove {app.name}"
+                                    >×</button>
+
+                                    <!-- Resize handles for all corners -->
                                     <!-- svelte-ignore a11y-no-static-element-interactions -->
                                     <div
-                                        class="resize-handle"
-                                        on:mousedown|stopPropagation={(e) =>
-                                            startDrag(e, app, "resize")}
+                                        class="resize-handle resize-nw"
+                                        on:mousedown|stopPropagation={(e) => startDrag(e, app, "resize", "nw")}
+                                    ></div>
+                                    <!-- svelte-ignore a11y-no-static-element-interactions -->
+                                    <div
+                                        class="resize-handle resize-ne"
+                                        on:mousedown|stopPropagation={(e) => startDrag(e, app, "resize", "ne")}
+                                    ></div>
+                                    <!-- svelte-ignore a11y-no-static-element-interactions -->
+                                    <div
+                                        class="resize-handle resize-sw"
+                                        on:mousedown|stopPropagation={(e) => startDrag(e, app, "resize", "sw")}
+                                    ></div>
+                                    <!-- svelte-ignore a11y-no-static-element-interactions -->
+                                    <div
+                                        class="resize-handle resize-se"
+                                        on:mousedown|stopPropagation={(e) => startDrag(e, app, "resize", "se")}
                                     ></div>
                                 </div>
                             {/each}
                         </div>
                     </div>
                 </div>
-
-                <!-- app list below canvas -->
-                <div class="app-list-header">
-                    <span class="app-list-title">Apps in this profile</span>
-                    <button
-                        class="add-app-btn"
-                        on:click={() => (showAppPicker = true)}
-                    >
-                        <svg
-                            width="11"
-                            height="11"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2.5"
-                            stroke-linecap="round"
-                        >
-                            <line x1="12" y1="5" x2="12" y2="19" /><line
-                                x1="5"
-                                y1="12"
-                                x2="19"
-                                y2="12"
-                            />
-                        </svg>
-                        Add app
-                    </button>
-                </div>
-
-                {#if selected.apps.length === 0}
-                    <div class="apps-empty">
-                        Add apps to define this workspace
-                    </div>
-                {:else}
-                    <div class="app-rows">
-                        {#each selected.apps as app, i}
-                            <div class="app-row">
-                                <span
-                                    class="app-dot"
-                                    style="background:{colorFor(i)}"
-                                ></span>
-                                {#if app.icon}
-                                    <img
-                                        class="app-icon"
-                                        src="data:image/png;base64,{app.icon}"
-                                        alt=""
-                                    />
-                                {:else}
-                                    <div class="app-icon placeholder"></div>
-                                {/if}
-                                <span class="app-name">{app.name}</span>
-                                <span class="app-coords">
-                                    {Math.round(app.x * 100)}%,{Math.round(
-                                        app.y * 100,
-                                    )}% · {Math.round(
-                                        app.width * 100,
-                                    )}×{Math.round(app.height * 100)}%
-                                </span>
-                                <button
-                                    class="row-remove"
-                                    on:click={() => removeApp(i)}
-                                    aria-label="Remove">×</button
-                                >
-                            </div>
-                        {/each}
-                    </div>
-                {/if}
             {:else}
-                <div class="no-selection">
-                    Select a profile or create one to get started
-                </div>
+                <div class="no-selection">Select a profile or create a new one</div>
             {/if}
         </div>
     </PreferencesSection>
 {/if}
 
 {#if showAppPicker}
-    <AppPickerModal
-        onpick={onAppPicked}
-        onclose={() => (showAppPicker = false)}
-    />
+    <AppPickerModal onpick={onAppPicked} onclose={() => (showAppPicker = false)} />
 {/if}
 
 <style>
     .workspaces-root {
         display: grid;
-        grid-template-columns: 180px 1fr;
-        gap: 0;
-        min-height: 420px;
-        border: 1px solid var(--color-border-subtle);
+        grid-template-columns: 128px 1fr;
+        min-height: 440px;
         border-radius: var(--radius-md);
         overflow: hidden;
+        background: var(--color-surface-elevated);
+        border: 1px solid var(--color-border-subtle);
     }
 
+    /* Sidebar */
     .profile-list {
-        border-right: 1px solid var(--color-border-subtle);
+        border-right: 1px solid var(--color-border-medium);
         display: flex;
         flex-direction: column;
-        background: var(--color-surface);
+        background: rgba(0, 0, 0, 0.16);
     }
 
     .list-empty {
@@ -456,23 +411,36 @@
         display: flex;
         flex-direction: column;
         gap: 2px;
-        padding: 10px 12px;
+        padding: 9px 12px;
         border: none;
         background: transparent;
         text-align: left;
         cursor: pointer;
         border-bottom: 1px solid var(--color-border-subtle);
         transition: background var(--transition-fast);
+        position: relative;
     }
-    .profile-row:hover {
-        background: var(--color-button-bg-hover);
-    }
+    .profile-row:hover { background: var(--color-button-bg); }
     .profile-row.active {
-        background: var(--color-button-bg);
+        background: transparent;
+    }
+    .profile-row.active::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 6px;
+        bottom: 6px;
+        width: 3px;
+        border-radius: 0 3px 3px 0;
+        background: var(--color-accent);
+    }
+    .profile-row.active .profile-name {
+        color: var(--color-accent);
+        font-weight: 600;
     }
 
     .profile-name {
-        font-size: 13px;
+        font-size: 12.5px;
         font-weight: 500;
         color: var(--color-text-primary);
     }
@@ -497,41 +465,41 @@
         transition: all var(--transition-fast);
     }
     .new-profile-btn:hover {
-        color: var(--color-text-primary);
+        color: var(--color-text-secondary);
         border-color: var(--color-border-strong);
-        background: var(--color-button-bg);
     }
 
+    /* Editor */
     .profile-editor {
         display: flex;
         flex-direction: column;
-        gap: 0;
-        overflow-y: auto;
-        scrollbar-width: none;
     }
 
     .editor-header {
         display: flex;
         align-items: center;
         gap: 8px;
-        padding: 12px 14px;
+        padding: 10px 12px;
         border-bottom: 1px solid var(--color-border-subtle);
     }
 
     .name-input {
         flex: 1;
-        padding: 6px 10px;
+        padding: 5px 9px;
         border-radius: var(--radius-sm);
-        border: 1px solid var(--color-border-medium);
-        background: var(--color-button-bg);
+        border: 1px solid transparent;
+        background: transparent;
         color: var(--color-text-primary);
         font-size: 13px;
         font-family: inherit;
         font-weight: 500;
+        transition: border-color var(--transition-fast);
     }
+    .name-input:hover { border-color: var(--color-border-medium); }
     .name-input:focus {
         outline: none;
         border-color: var(--color-accent-border);
+        background: var(--color-button-bg);
     }
 
     .header-actions {
@@ -540,184 +508,6 @@
         gap: 6px;
     }
 
-    .apply-btn,
-    .save-btn {
-        padding: 6px 12px;
-        border-radius: var(--radius-sm);
-        border: 1px solid var(--color-border-medium);
-        background: var(--color-button-bg);
-        color: var(--color-text-secondary);
-        font-size: 12px;
-        font-family: inherit;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all var(--transition-fast);
-    }
-    .apply-btn {
-        border-color: var(--color-accent-border);
-        color: var(--color-accent);
-    }
-    .apply-btn:hover:not(:disabled) {
-        background: var(--color-accent);
-        color: #fff;
-    }
-    .save-btn:hover:not(:disabled) {
-        background: var(--color-button-bg-hover);
-        color: var(--color-text-primary);
-    }
-    .apply-btn:disabled,
-    .save-btn:disabled {
-        opacity: 0.5;
-        cursor: default;
-    }
-
-    .delete-btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 28px;
-        height: 28px;
-        border: none;
-        background: transparent;
-        color: var(--color-text-dim);
-        border-radius: var(--radius-sm);
-        cursor: pointer;
-        transition: all var(--transition-fast);
-    }
-    .delete-btn:hover {
-        background: var(--color-button-bg-hover);
-        color: #ef4444;
-    }
-
-    .canvas-wrap {
-        padding: 14px;
-        border-bottom: 1px solid var(--color-border-subtle);
-    }
-
-    .canvas-label {
-        font-size: 11px;
-        font-weight: 600;
-        color: var(--color-text-dim);
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-        margin-bottom: 8px;
-    }
-    .canvas-hint {
-        font-weight: 400;
-        text-transform: none;
-        letter-spacing: 0;
-        margin-left: 6px;
-        opacity: 0.7;
-    }
-
-    .canvas {
-        position: relative;
-        width: 100%;
-        aspect-ratio: 16/9;
-        background: var(--color-surface);
-        border: 1px solid var(--color-border-medium);
-        border-radius: var(--radius-sm);
-        overflow: hidden;
-        user-select: none;
-    }
-
-    .grid-line {
-        position: absolute;
-        background: var(--color-border-subtle);
-        pointer-events: none;
-    }
-    .grid-line.v {
-        top: 0;
-        bottom: 0;
-        width: 1px;
-    }
-    .grid-line.h {
-        left: 0;
-        right: 0;
-        height: 1px;
-    }
-
-    .app-slot {
-        position: absolute;
-        background: color-mix(in srgb, var(--slot-color) 18%, transparent);
-        border: 2px solid var(--slot-color);
-        border-radius: 4px;
-        display: flex;
-        align-items: flex-start;
-        gap: 4px;
-        padding: 4px 6px;
-        cursor: grab;
-        overflow: hidden;
-        min-width: 0;
-        box-sizing: border-box;
-    }
-    .app-slot:active {
-        cursor: grabbing;
-    }
-
-    .slot-icon {
-        width: 14px;
-        height: 14px;
-        flex-shrink: 0;
-        border-radius: 2px;
-        object-fit: contain;
-        margin-top: 1px;
-    }
-
-    .slot-name {
-        font-size: 10px;
-        font-weight: 600;
-        color: var(--slot-color);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        flex: 1;
-        min-width: 0;
-    }
-
-    .slot-remove {
-        flex-shrink: 0;
-        background: none;
-        border: none;
-        color: var(--slot-color);
-        font-size: 13px;
-        line-height: 1;
-        padding: 0 2px;
-        cursor: pointer;
-        opacity: 0.7;
-    }
-    .slot-remove:hover {
-        opacity: 1;
-    }
-
-    .resize-handle {
-        position: absolute;
-        bottom: 0;
-        right: 0;
-        width: 12px;
-        height: 12px;
-        cursor: se-resize;
-        background: linear-gradient(
-            135deg,
-            transparent 50%,
-            var(--slot-color) 50%
-        );
-        opacity: 0.8;
-    }
-
-    .app-list-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 10px 14px 6px;
-    }
-    .app-list-title {
-        font-size: 11px;
-        font-weight: 600;
-        color: var(--color-text-dim);
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-    }
     .add-app-btn {
         display: inline-flex;
         align-items: center;
@@ -737,82 +527,194 @@
         color: var(--color-text-primary);
     }
 
-    .apps-empty {
-        padding: 12px 14px;
+    .save-btn {
+        padding: 5px 12px;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--color-border-medium);
+        background: var(--color-button-bg);
+        color: var(--color-text-secondary);
         font-size: 12px;
+        font-family: inherit;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all var(--transition-fast);
+    }
+    .save-btn:hover:not(:disabled) {
+        background: var(--color-button-bg-hover);
+        color: var(--color-text-primary);
+    }
+    .save-btn:disabled { opacity: 0.5; cursor: default; }
+
+    .delete-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border: none;
+        background: transparent;
         color: var(--color-text-dim);
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        transition: all var(--transition-fast);
+    }
+    .delete-btn:hover {
+        background: var(--color-danger-soft);
+        color: var(--color-danger);
     }
 
-    .app-rows {
-        display: flex;
-        flex-direction: column;
-        padding: 0 14px 14px;
-        gap: 4px;
+    /* Canvas */
+    .canvas-wrap {
+        padding: 16px;
+        flex: 1;
+        background: rgba(0, 0, 0, 0.08);
     }
 
-    .app-row {
+    .canvas {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 16/9;
+        background: var(--color-surface-elevated);
+        border: 1px solid var(--color-border-subtle);
+        border-radius: var(--radius-sm);
+        overflow: hidden;
+        user-select: none;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    }
+
+    /* Grid cells — subtle dotted guide */
+    .grid-cell {
+        position: absolute;
+        box-sizing: border-box;
+        border-right: 1px solid var(--color-border-subtle);
+        border-bottom: 1px solid var(--color-border-subtle);
+        pointer-events: none;
+        opacity: 0.5;
+    }
+
+    /* App slots */
+    .app-slot {
+        position: absolute;
+        background: color-mix(in srgb, var(--slot-color) 8%, transparent);
+        border: 1px solid var(--slot-color);
+        border-radius: var(--radius-sm);
+        cursor: grab;
+        box-sizing: border-box;
         display: flex;
         align-items: center;
-        gap: 8px;
-        padding: 6px 8px;
-        border-radius: var(--radius-sm);
-        background: var(--color-button-bg);
+        justify-content: center;
+        transition: box-shadow 120ms ease;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
     }
-    .app-dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        flex-shrink: 0;
+    .app-slot:hover:not(.dragging) {
+        background: color-mix(in srgb, var(--slot-color) 12%, transparent);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
-    .app-icon {
-        width: 18px;
-        height: 18px;
-        border-radius: 3px;
+    .app-slot.dragging {
+        cursor: grabbing;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+        z-index: 10;
+    }
+    .app-slot:active { cursor: grabbing; }
+
+    .slot-inner {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+    }
+
+    .slot-icon {
+        width: 24px;
+        height: 24px;
+        border-radius: 4px;
         object-fit: contain;
-        flex-shrink: 0;
+        opacity: 0.9;
     }
-    .app-icon.placeholder {
-        background: var(--color-border-subtle);
-    }
-    .app-name {
-        font-size: 12px;
-        font-weight: 500;
-        color: var(--color-text-secondary);
-        flex: 1;
-        min-width: 0;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-    .app-coords {
+
+    .slot-icon-fallback {
+        width: 24px;
+        height: 24px;
+        border-radius: 4px;
+        background: var(--slot-color);
+        display: flex;
+        align-items: center;
+        justify-content: center;
         font-size: 11px;
-        color: var(--color-text-dim);
-        white-space: nowrap;
+        font-weight: 700;
+        color: #000;
+        opacity: 0.7;
     }
-    .row-remove {
+
+    .slot-remove {
+        position: absolute;
+        top: 3px;
+        right: 3px;
         background: none;
         border: none;
-        color: var(--color-text-dim);
-        font-size: 14px;
-        cursor: pointer;
-        padding: 0 2px;
+        color: var(--slot-color);
+        font-size: 16px;
         line-height: 1;
+        padding: 2px 6px;
+        cursor: pointer;
+        opacity: 0;
+        border-radius: 4px;
+        transition: opacity 120ms ease;
     }
-    .row-remove:hover {
-        color: #ef4444;
+    .app-slot:hover .slot-remove { opacity: 0.7; }
+    .slot-remove:hover { opacity: 1 !important; }
+
+    .resize-handle {
+        position: absolute;
+        width: 12px;
+        height: 12px;
+        background: linear-gradient(135deg, transparent 50%, var(--slot-color) 50%);
+        opacity: 0.6;
+        cursor: pointer;
+        transition: opacity 120ms ease;
+    }
+    .resize-handle:hover { opacity: 1; }
+
+    .resize-nw {
+        top: 0;
+        left: 0;
+        cursor: nw-resize;
+        background: linear-gradient(135deg, var(--slot-color) 50%, transparent 50%);
+        border-top-left-radius: 3px;
+    }
+    .resize-ne {
+        top: 0;
+        right: 0;
+        cursor: ne-resize;
+        background: linear-gradient(-135deg, var(--slot-color) 50%, transparent 50%);
+        border-top-right-radius: 3px;
+    }
+    .resize-sw {
+        bottom: 0;
+        left: 0;
+        cursor: sw-resize;
+        background: linear-gradient(45deg, var(--slot-color) 50%, transparent 50%);
+        border-bottom-left-radius: 3px;
+    }
+    .resize-se {
+        bottom: 0;
+        right: 0;
+        cursor: se-resize;
+        background: linear-gradient(-45deg, var(--slot-color) 50%, transparent 50%);
+        border-bottom-right-radius: 3px;
     }
 
     .no-selection {
         display: flex;
         align-items: center;
         justify-content: center;
-        height: 100%;
         font-size: 13px;
         color: var(--color-text-dim);
         padding: 32px;
         text-align: center;
     }
 
+    /* Pro gate */
     .pro-gate {
         display: flex;
         flex-direction: column;
@@ -848,7 +750,5 @@
         cursor: pointer;
         transition: opacity var(--transition-fast);
     }
-    .upgrade-btn:hover {
-        opacity: 0.85;
-    }
+    .upgrade-btn:hover { opacity: 0.85; }
 </style>
