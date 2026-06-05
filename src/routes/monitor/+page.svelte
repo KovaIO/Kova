@@ -60,6 +60,10 @@
             }
 
             updateGraph(e.payload);
+
+            if (selectedHistoryIndex !== null) {
+                selectedHistoryIndex--;
+            }
         });
     });
 

@@ -144,6 +144,10 @@
                 return;
             }
             appendLiveGraphPoint(e.payload);
+
+            if (selectedHistoryIndex !== null) {
+                selectedHistoryIndex--;
+            }
         });
     });
 
