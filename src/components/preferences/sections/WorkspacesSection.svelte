@@ -36,15 +36,15 @@
         try {
             profiles = await getWorkspaceProfiles();
             // Convert percentages to grid cells for UI
-            profiles = profiles.map(p => ({
+            profiles = profiles.map((p) => ({
                 ...p,
-                apps: p.apps.map(app => ({
+                apps: p.apps.map((app) => ({
                     ...app,
                     x: percentToGrid(app.x, COLS),
                     y: percentToGrid(app.y, ROWS),
                     width: percentToGrid(app.width, COLS),
                     height: percentToGrid(app.height, ROWS),
-                }))
+                })),
             }));
             if (profiles.length > 0) selected = profiles[0];
         } finally {
@@ -110,13 +110,13 @@
             // Convert grid cells to percentages for backend
             const profileToSave = {
                 ...selected,
-                apps: selected.apps.map(app => ({
+                apps: selected.apps.map((app) => ({
                     ...app,
                     x: gridToPercent(app.x, COLS),
                     y: gridToPercent(app.y, ROWS),
                     width: gridToPercent(app.width, COLS),
                     height: gridToPercent(app.height, ROWS),
-                }))
+                })),
             };
             await saveWorkspaceProfile(profileToSave);
             profiles = profiles.map((p) =>
@@ -131,7 +131,6 @@
 
     async function deleteSelected() {
         if (!selected) return;
-        const { deleteWorkspaceProfile } = await import("$services/workspaces");
         await deleteWorkspaceProfile(selected.id);
         profiles = profiles.filter((p) => p.id !== selected!.id);
         selected = profiles[0] ?? null;
@@ -141,9 +140,15 @@
         if (!selected) return;
 
         const sizes = [
-            { w: 6, h: 8 }, { w: 6, h: 4 }, { w: 4, h: 8 },
-            { w: 4, h: 4 }, { w: 4, h: 2 }, { w: 2, h: 4 },
-            { w: 3, h: 3 }, { w: 2, h: 2 }, { w: 1, h: 1 },
+            { w: 6, h: 8 },
+            { w: 6, h: 4 },
+            { w: 4, h: 8 },
+            { w: 4, h: 4 },
+            { w: 4, h: 2 },
+            { w: 2, h: 4 },
+            { w: 3, h: 3 },
+            { w: 2, h: 2 },
+            { w: 1, h: 1 },
         ];
 
         let pos: { x: number; y: number } | null = null;
@@ -152,12 +157,16 @@
 
         for (const { w, h } of sizes) {
             pos = findFreeRegion(selected.apps, w, h);
-            if (pos) { chosenW = w; chosenH = h; break; }
+            if (pos) {
+                chosenW = w;
+                chosenH = h;
+                break;
+            }
         }
 
         if (!pos) {
             noSpaceError = true;
-            setTimeout(() => noSpaceError = false, 3000);
+            setTimeout(() => (noSpaceError = false), 3000);
             showAppPicker = false;
             return;
         }
@@ -184,14 +193,24 @@
         selected = { ...selected, apps };
     }
 
-    function startDrag(e: MouseEvent, app: WorkspaceApp, mode: "move" | "resize", corner: "nw" | "ne" | "sw" | "se" = "se") {
+    function startDrag(
+        e: MouseEvent,
+        app: WorkspaceApp,
+        mode: "move" | "resize",
+        corner: "nw" | "ne" | "sw" | "se" = "se",
+    ) {
         if (!isPro || !canvasEl) return;
         e.preventDefault();
         dragging = app;
         dragMode = mode;
         resizeCorner = corner;
         dragStartCell = getCellFromMouse(e);
-        dragStartApp = { x: app.x, y: app.y, width: app.width, height: app.height };
+        dragStartApp = {
+            x: app.x,
+            y: app.y,
+            width: app.width,
+            height: app.height,
+        };
         window.addEventListener("mousemove", onDrag);
         window.addEventListener("mouseup", stopDrag);
     }
@@ -208,28 +227,82 @@
         let newH = dragStartApp.height;
 
         if (dragMode === "move") {
-            newX = Math.max(0, Math.min(COLS - dragStartApp.width, dragStartApp.x + dcol));
-            newY = Math.max(0, Math.min(ROWS - dragStartApp.height, dragStartApp.y + drow));
+            newX = Math.max(
+                0,
+                Math.min(COLS - dragStartApp.width, dragStartApp.x + dcol),
+            );
+            newY = Math.max(
+                0,
+                Math.min(ROWS - dragStartApp.height, dragStartApp.y + drow),
+            );
         } else {
             // Handle different resize corners
             switch (resizeCorner) {
                 case "se": // bottom-right
-                    newW = Math.max(1, Math.min(COLS - dragStartApp.x, dragStartApp.width + dcol));
-                    newH = Math.max(1, Math.min(ROWS - dragStartApp.y, dragStartApp.height + drow));
+                    newW = Math.max(
+                        1,
+                        Math.min(
+                            COLS - dragStartApp.x,
+                            dragStartApp.width + dcol,
+                        ),
+                    );
+                    newH = Math.max(
+                        1,
+                        Math.min(
+                            ROWS - dragStartApp.y,
+                            dragStartApp.height + drow,
+                        ),
+                    );
                     break;
                 case "sw": // bottom-left
-                    newX = Math.max(0, Math.min(dragStartApp.x + dragStartApp.width - 1, dragStartApp.x + dcol));
+                    newX = Math.max(
+                        0,
+                        Math.min(
+                            dragStartApp.x + dragStartApp.width - 1,
+                            dragStartApp.x + dcol,
+                        ),
+                    );
                     newW = dragStartApp.width + (dragStartApp.x - newX);
-                    newH = Math.max(1, Math.min(ROWS - dragStartApp.y, dragStartApp.height + drow));
+                    newH = Math.max(
+                        1,
+                        Math.min(
+                            ROWS - dragStartApp.y,
+                            dragStartApp.height + drow,
+                        ),
+                    );
                     break;
                 case "ne": // top-right
-                    newY = Math.max(0, Math.min(dragStartApp.y + dragStartApp.height - 1, dragStartApp.y + drow));
+                    newY = Math.max(
+                        0,
+                        Math.min(
+                            dragStartApp.y + dragStartApp.height - 1,
+                            dragStartApp.y + drow,
+                        ),
+                    );
                     newH = dragStartApp.height + (dragStartApp.y - newY);
-                    newW = Math.max(1, Math.min(COLS - dragStartApp.x, dragStartApp.width + dcol));
+                    newW = Math.max(
+                        1,
+                        Math.min(
+                            COLS - dragStartApp.x,
+                            dragStartApp.width + dcol,
+                        ),
+                    );
                     break;
                 case "nw": // top-left
-                    newX = Math.max(0, Math.min(dragStartApp.x + dragStartApp.width - 1, dragStartApp.x + dcol));
-                    newY = Math.max(0, Math.min(dragStartApp.y + dragStartApp.height - 1, dragStartApp.y + drow));
+                    newX = Math.max(
+                        0,
+                        Math.min(
+                            dragStartApp.x + dragStartApp.width - 1,
+                            dragStartApp.x + dcol,
+                        ),
+                    );
+                    newY = Math.max(
+                        0,
+                        Math.min(
+                            dragStartApp.y + dragStartApp.height - 1,
+                            dragStartApp.y + drow,
+                        ),
+                    );
                     newW = dragStartApp.width + (dragStartApp.x - newX);
                     newH = dragStartApp.height + (dragStartApp.y - newY);
                     break;
@@ -253,31 +326,53 @@
     }
 
     // Convert grid coords to percentage for CSS
-    function toPercent(val: number, total: number) { return (val / total) * 100; }
+    function toPercent(val: number, total: number) {
+        return (val / total) * 100;
+    }
 
     // Convert grid cells to percentages for backend
-    function gridToPercent(val: number, total: number) { return val / total; }
+    function gridToPercent(val: number, total: number) {
+        return val / total;
+    }
 
     // Convert percentages from backend to grid cells
-    function percentToGrid(val: number, total: number) { return Math.round(val * total); }
+    function percentToGrid(val: number, total: number) {
+        return Math.round(val * total);
+    }
 </script>
 
 {#if !isPro}
-    <PreferencesSection title="Workspace Profiles" description="Save and restore complete app layouts">
+    <PreferencesSection
+        title="Workspace Profiles"
+        description="Save and restore complete app layouts"
+    >
         <div class="pro-gate">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+            <svg
+                width="32"
+                height="32"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+            >
                 <rect x="3" y="11" width="18" height="11" rx="2" />
                 <path d="M7 11V7a5 5 0 0 1 10 0v4" />
             </svg>
             <p class="pro-title">Pro feature</p>
-            <p class="pro-desc">Workspace Profiles let you save app arrangements and restore them instantly. Upgrade to Pro to unlock.</p>
+            <p class="pro-desc">
+                Workspace Profiles let you save app arrangements and restore
+                them instantly. Upgrade to Pro to unlock.
+            </p>
             <button class="upgrade-btn">Upgrade to Pro</button>
         </div>
     </PreferencesSection>
 {:else}
-    <PreferencesSection title="Workspace Profiles" description="Save and restore complete app layouts with one click">
+    <PreferencesSection
+        title="Workspace Profiles"
+        description="Save and restore complete app layouts with one click"
+    >
         <div class="workspaces-root">
-
             <!-- Sidebar -->
             <div class="profile-list">
                 {#if loading}
@@ -292,14 +387,31 @@
                             on:click={() => (selected = p)}
                         >
                             <span class="profile-name">{p.name}</span>
-                            <span class="app-count">{p.apps.length} app{p.apps.length !== 1 ? "s" : ""}</span>
+                            <span class="app-count"
+                                >{p.apps.length} app{p.apps.length !== 1
+                                    ? "s"
+                                    : ""}</span
+                            >
                         </button>
                     {/each}
                 {/if}
 
                 <button class="new-profile-btn" on:click={newProfile}>
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-                        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                    <svg
+                        width="11"
+                        height="11"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.5"
+                        stroke-linecap="round"
+                    >
+                        <line x1="12" y1="5" x2="12" y2="19" /><line
+                            x1="5"
+                            y1="12"
+                            x2="19"
+                            y2="12"
+                        />
                     </svg>
                     New profile
                 </button>
@@ -309,23 +421,65 @@
             {#if selected}
                 <div class="profile-editor">
                     <div class="editor-header">
-                        <input class="name-input" bind:value={selected.name} placeholder="Profile name" />
+                        <input
+                            class="name-input"
+                            bind:value={selected.name}
+                            placeholder="Profile name"
+                        />
                         <div class="header-actions">
                             {#if noSpaceError}
-                                <span class="no-space-msg">No space left in layout</span>
+                                <span class="no-space-msg"
+                                    >No space left in layout</span
+                                >
                             {/if}
-                            <button class="add-app-btn" on:click={() => (showAppPicker = true)}>
-                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-                                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                            <button
+                                class="add-app-btn"
+                                on:click={() => (showAppPicker = true)}
+                            >
+                                <svg
+                                    width="11"
+                                    height="11"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2.5"
+                                    stroke-linecap="round"
+                                >
+                                    <line x1="12" y1="5" x2="12" y2="19" /><line
+                                        x1="5"
+                                        y1="12"
+                                        x2="19"
+                                        y2="12"
+                                    />
                                 </svg>
                                 Add app
                             </button>
-                            <button class="save-btn" disabled={saving} on:click={saveSelected}>
+                            <button
+                                class="save-btn"
+                                disabled={saving}
+                                on:click={saveSelected}
+                            >
                                 {saving ? "Saving…" : "Save"}
                             </button>
-                            <button class="delete-btn" on:click={deleteSelected} aria-label="Delete profile">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                                    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+                            <button
+                                class="delete-btn"
+                                on:click={deleteSelected}
+                                aria-label="Delete profile"
+                            >
+                                <svg
+                                    width="13"
+                                    height="13"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                >
+                                    <polyline points="3 6 5 6 21 6" /><path
+                                        d="M19 6l-1 14H6L5 6"
+                                    /><path d="M10 11v6" /><path
+                                        d="M14 11v6"
+                                    /><path d="M9 6V4h6v2" />
                                 </svg>
                             </button>
                         </div>
@@ -362,46 +516,60 @@
                                         width:{toPercent(app.width, COLS)}%;
                                         height:{toPercent(app.height, ROWS)}%;
                                         --fill-mix:{[8, 12, 16, 6, 10][i % 5]}%;
-                                        --border-mix:{[20, 30, 40, 15, 35][i % 5]}%;
+                                        --border-mix:{[20, 30, 40, 15, 35][
+                                        i % 5
+                                    ]}%;
                                     "
-                                    on:mousedown={(e) => startDrag(e, app, "move")}
+                                    on:mousedown={(e) =>
+                                        startDrag(e, app, "move")}
                                 >
                                     <div class="slot-inner">
                                         {#if app.icon}
-                                            <img class="slot-icon" src="data:image/png;base64,{app.icon}" alt={app.name} />
+                                            <img
+                                                class="slot-icon"
+                                                src="data:image/png;base64,{app.icon}"
+                                                alt={app.name}
+                                            />
                                         {:else}
                                             <div class="slot-icon-fallback">
-                                                {app.name.charAt(0).toUpperCase()}
+                                                {app.name
+                                                    .charAt(0)
+                                                    .toUpperCase()}
                                             </div>
                                         {/if}
                                     </div>
 
                                     <button
                                         class="slot-remove"
-                                        on:click|stopPropagation={() => removeApp(i)}
-                                        aria-label="Remove {app.name}"
-                                    >×</button>
+                                        on:click|stopPropagation={() =>
+                                            removeApp(i)}
+                                        aria-label="Remove {app.name}">×</button
+                                    >
 
                                     <!-- Resize handles for all corners -->
                                     <!-- svelte-ignore a11y-no-static-element-interactions -->
                                     <div
                                         class="resize-handle resize-nw"
-                                        on:mousedown|stopPropagation={(e) => startDrag(e, app, "resize", "nw")}
+                                        on:mousedown|stopPropagation={(e) =>
+                                            startDrag(e, app, "resize", "nw")}
                                     ></div>
                                     <!-- svelte-ignore a11y-no-static-element-interactions -->
                                     <div
                                         class="resize-handle resize-ne"
-                                        on:mousedown|stopPropagation={(e) => startDrag(e, app, "resize", "ne")}
+                                        on:mousedown|stopPropagation={(e) =>
+                                            startDrag(e, app, "resize", "ne")}
                                     ></div>
                                     <!-- svelte-ignore a11y-no-static-element-interactions -->
                                     <div
                                         class="resize-handle resize-sw"
-                                        on:mousedown|stopPropagation={(e) => startDrag(e, app, "resize", "sw")}
+                                        on:mousedown|stopPropagation={(e) =>
+                                            startDrag(e, app, "resize", "sw")}
                                     ></div>
                                     <!-- svelte-ignore a11y-no-static-element-interactions -->
                                     <div
                                         class="resize-handle resize-se"
-                                        on:mousedown|stopPropagation={(e) => startDrag(e, app, "resize", "se")}
+                                        on:mousedown|stopPropagation={(e) =>
+                                            startDrag(e, app, "resize", "se")}
                                     ></div>
                                 </div>
                             {/each}
@@ -409,14 +577,19 @@
                     </div>
                 </div>
             {:else}
-                <div class="no-selection">Select a profile or create a new one</div>
+                <div class="no-selection">
+                    Select a profile or create a new one
+                </div>
             {/if}
         </div>
     </PreferencesSection>
 {/if}
 
 {#if showAppPicker}
-    <AppPickerModal onpick={onAppPicked} onclose={() => (showAppPicker = false)} />
+    <AppPickerModal
+        onpick={onAppPicked}
+        onclose={() => (showAppPicker = false)}
+    />
 {/if}
 
 <style>
@@ -462,7 +635,9 @@
         transition: background var(--transition-fast);
         position: relative;
     }
-    .profile-row:hover { background: var(--color-button-bg); }
+    .profile-row:hover {
+        background: var(--color-button-bg);
+    }
     .profile-row.active {
         background: transparent;
     }
@@ -537,7 +712,9 @@
         font-weight: 500;
         transition: border-color var(--transition-fast);
     }
-    .name-input:hover { border-color: var(--color-border-medium); }
+    .name-input:hover {
+        border-color: var(--color-border-medium);
+    }
     .name-input:focus {
         outline: none;
         border-color: var(--color-accent-border);
@@ -585,7 +762,10 @@
         background: var(--color-button-bg-hover);
         color: var(--color-text-primary);
     }
-    .save-btn:disabled { opacity: 0.5; cursor: default; }
+    .save-btn:disabled {
+        opacity: 0.5;
+        cursor: default;
+    }
 
     .delete-btn {
         display: inline-flex;
@@ -636,19 +816,34 @@
     /* App slots */
     .app-slot {
         position: absolute;
-        background: color-mix(in srgb, var(--color-accent) var(--fill-mix), transparent);
-        border: 1px solid color-mix(in srgb, var(--color-accent) var(--border-mix), transparent);
+        background: color-mix(
+            in srgb,
+            var(--color-accent) var(--fill-mix),
+            transparent
+        );
+        border: 1px solid
+            color-mix(
+                in srgb,
+                var(--color-accent) var(--border-mix),
+                transparent
+            );
         border-radius: var(--radius-sm);
         cursor: grab;
         box-sizing: border-box;
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: box-shadow 120ms ease, background 120ms ease;
+        transition:
+            box-shadow 120ms ease,
+            background 120ms ease;
         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
     }
     .app-slot:hover:not(.dragging) {
-        background: color-mix(in srgb, var(--color-accent) calc(var(--fill-mix) + 8%), transparent);
+        background: color-mix(
+            in srgb,
+            var(--color-accent) calc(var(--fill-mix) + 8%),
+            transparent
+        );
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
     .app-slot.dragging {
@@ -656,7 +851,9 @@
         box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
         z-index: 10;
     }
-    .app-slot:active { cursor: grabbing; }
+    .app-slot:active {
+        cursor: grabbing;
+    }
 
     .slot-inner {
         display: flex;
@@ -702,46 +899,72 @@
         border-radius: 4px;
         transition: opacity 120ms ease;
     }
-    .app-slot:hover .slot-remove { opacity: 0.7; }
-    .slot-remove:hover { opacity: 1 !important; }
+    .app-slot:hover .slot-remove {
+        opacity: 0.7;
+    }
+    .slot-remove:hover {
+        opacity: 1 !important;
+    }
 
     .resize-handle {
         position: absolute;
         width: 12px;
         height: 12px;
-        background: linear-gradient(135deg, transparent 50%, var(--color-accent) 50%);
+        background: linear-gradient(
+            135deg,
+            transparent 50%,
+            var(--color-accent) 50%
+        );
         opacity: 0.6;
         cursor: pointer;
         transition: opacity 120ms ease;
     }
-    .resize-handle:hover { opacity: 1; }
+    .resize-handle:hover {
+        opacity: 1;
+    }
 
     .resize-nw {
         top: 0;
         left: 0;
         cursor: nw-resize;
-        background: linear-gradient(135deg, var(--color-accent) 50%, transparent 50%);
+        background: linear-gradient(
+            135deg,
+            var(--color-accent) 50%,
+            transparent 50%
+        );
         border-top-left-radius: 3px;
     }
     .resize-ne {
         top: 0;
         right: 0;
         cursor: ne-resize;
-        background: linear-gradient(-135deg, var(--color-accent) 50%, transparent 50%);
+        background: linear-gradient(
+            -135deg,
+            var(--color-accent) 50%,
+            transparent 50%
+        );
         border-top-right-radius: 3px;
     }
     .resize-sw {
         bottom: 0;
         left: 0;
         cursor: sw-resize;
-        background: linear-gradient(45deg, var(--color-accent) 50%, transparent 50%);
+        background: linear-gradient(
+            45deg,
+            var(--color-accent) 50%,
+            transparent 50%
+        );
         border-bottom-left-radius: 3px;
     }
     .resize-se {
         bottom: 0;
         right: 0;
         cursor: se-resize;
-        background: linear-gradient(-45deg, var(--color-accent) 50%, transparent 50%);
+        background: linear-gradient(
+            -45deg,
+            var(--color-accent) 50%,
+            transparent 50%
+        );
         border-bottom-right-radius: 3px;
     }
 
@@ -791,7 +1014,9 @@
         cursor: pointer;
         transition: opacity var(--transition-fast);
     }
-    .upgrade-btn:hover { opacity: 0.85; }
+    .upgrade-btn:hover {
+        opacity: 0.85;
+    }
 
     .no-space-msg {
         font-size: 12px;
@@ -800,7 +1025,13 @@
     }
 
     @keyframes fade-in {
-        from { opacity: 0; transform: translateX(4px); }
-        to   { opacity: 1; transform: translateX(0); }
+        from {
+            opacity: 0;
+            transform: translateX(4px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
     }
 </style>

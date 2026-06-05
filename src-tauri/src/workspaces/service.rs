@@ -57,6 +57,11 @@ impl WorkspaceService {
             }
 
             let launch_target = app.exe_path.as_deref().unwrap_or(&app.path);
+            println!("Launching:");
+            println!("  name={}", app.name);
+            println!("  path={}", app.path);
+            println!("  exe_path={:?}", app.exe_path);
+            println!("  launch_target={}", launch_target);
             let _ = launch_app(launch_target);
             any_launched = true;
         }

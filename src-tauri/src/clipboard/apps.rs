@@ -136,7 +136,6 @@ fn scan_macos_dir(dir: &PathBuf, apps: &mut Vec<InstalledApp>, depth: u32) {
 #[cfg(target_os = "windows")]
 use windows::{
     core::{Interface, PCWSTR, PWSTR},
-    Management::Deployment::PackageManager,
     Win32::{
         Foundation::ERROR_NO_MORE_ITEMS,
         System::{
@@ -251,7 +250,6 @@ fn get_windows_apps() -> Vec<InstalledApp> {
 
     apps.extend(get_app_paths_apps());
     apps.extend(get_start_menu_apps());
-    apps.extend(get_store_apps());
 
     apps
 }
@@ -405,6 +403,7 @@ fn get_app_paths_apps() -> Vec<InstalledApp> {
                         let path_lower = exe_path.to_lowercase();
                         if !path_lower.contains(r"windows\system32")
                             && !path_lower.contains(r"windows\syswow64")
+                            && !path_lower.contains(r"program files\windowsapps\")
                         {
                             let raw_stem = std::path::Path::new(&entry_name)
                                 .file_stem()
@@ -658,42 +657,4 @@ fn resolve_shortcut(path: &std::path::Path) -> Option<String> {
 
         Some(String::from_utf16_lossy(&buffer[..len]))
     }
-}
-
-#[cfg(target_os = "windows")]
-fn get_store_apps() -> Vec<InstalledApp> {
-    let mut apps = Vec::new();
-
-    let Ok(pm) = PackageManager::new() else {
-        return apps;
-    };
-
-    let Ok(packages) = pm.FindPackages() else {
-        return apps;
-    };
-
-    for package in packages {
-        if package.IsFramework().unwrap_or(false) {
-            continue;
-        }
-
-        let name = package
-            .Id()
-            .ok()
-            .and_then(|id| id.Name().ok())
-            .unwrap_or_default();
-
-        if name.is_empty() {
-            continue;
-        }
-
-        apps.push(InstalledApp {
-            name: name.to_string(),
-            exe_path: None,
-            path: String::new(),
-            icon: None,
-        });
-    }
-
-    apps
 }
