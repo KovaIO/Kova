@@ -30,4 +30,11 @@ impl LicenseTier {
             _ => Self::Free,
         }
     }
+
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::Free => "free",
+            _ => "pro",
+        }
+    }
 }

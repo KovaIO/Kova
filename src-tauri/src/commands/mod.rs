@@ -11,7 +11,7 @@ pub use clipboard::{
     get_clipboard_history, open_clipboard_url, paste_clipboard_item, paste_plain_clipboard_item,
     preview_clipboard_item, reveal_clipboard_item,
 };
-pub use license::*;
+pub use license::{activate_license, get_license};
 pub use metrics::{get_current_metrics, get_snapshot};
 pub use preferences::*;
 pub use processes::{force_quit_process_cmd, get_process_history, quit_process_cmd};

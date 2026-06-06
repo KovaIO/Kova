@@ -20,10 +20,10 @@ use tauri::{Manager, WindowEvent};
 use tauri_plugin_positioner::{Position, WindowExt};
 
 use commands::{
-    apply_workspace, clear_clipboard_history, copy_clipboard_item, delete_clipboard_item,
-    delete_workspace_profile, force_quit_process_cmd, get_apps, get_clipboard_history,
-    get_current_metrics, get_license, get_preferences, get_process_history, get_snapshot,
-    get_workspace_profile, get_workspace_profiles, open_clipboard_url, open_monitor,
+    activate_license, apply_workspace, clear_clipboard_history, copy_clipboard_item,
+    delete_clipboard_item, delete_workspace_profile, force_quit_process_cmd, get_apps,
+    get_clipboard_history, get_current_metrics, get_license, get_preferences, get_process_history,
+    get_snapshot, get_workspace_profile, get_workspace_profiles, open_clipboard_url, open_monitor,
     open_preferences, open_process, paste_clipboard_item, paste_plain_clipboard_item,
     preview_clipboard_item, quit_process_cmd, reveal_clipboard_item, save_workspace_profile,
     update_appearance_preferences, update_clipboard_preferences, update_general_preferences,
@@ -69,6 +69,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             get_preferences,
             get_license,
+            activate_license,
             update_general_preferences,
             update_clipboard_preferences,
             update_appearance_preferences,

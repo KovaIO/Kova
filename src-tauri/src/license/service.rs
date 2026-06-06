@@ -31,4 +31,15 @@ impl LicenseService {
         let storage = self.storage.lock().unwrap();
         storage.load_tier()
     }
+
+    pub fn set_tier(&self, tier: LicenseTier) -> Result<LicenseInfo> {
+        {
+            let storage = self.storage.lock().unwrap();
+            storage.save_tier(&tier)?;
+        }
+        Ok(LicenseInfo {
+            limits: limits_for_tier(&tier),
+            tier,
+        })
+    }
 }

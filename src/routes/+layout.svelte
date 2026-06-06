@@ -6,6 +6,25 @@
     import { loadLicense } from "$stores/license";
     import type { Preferences } from "$types/preferences";
 
+    onMount(async () => {
+        await Promise.all([loadPreferences(), loadLicense()]);
+    });
+
+    onMount(() => {
+        let unlisteners: UnlistenFn[] = [];
+
+        (async () => {
+            unlisteners = await Promise.all([
+                listen<Preferences>("preferences-updated", (e) =>
+                    setPreferences(e.payload),
+                ),
+                // listen<LicenseInfo>("license-updated", (e) => license.set(e.payload)),
+            ]);
+        })();
+
+        return () => unlisteners.forEach((fn) => fn());
+    });
+
     onMount(() => {
         let unlisten: UnlistenFn | undefined;
 
@@ -19,10 +38,6 @@
         })();
 
         return () => unlisten?.();
-    });
-
-    onMount(async () => {
-        await Promise.all([loadPreferences(), loadLicense()]);
     });
 
     onMount(() => {
