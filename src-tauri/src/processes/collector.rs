@@ -59,7 +59,5 @@ pub fn collect_processes(
         })
         .collect::<Vec<_>>();
 
-    metadata_cache.retain(|pid, _| alive.contains_key(pid));
-
     processes
 }

@@ -70,8 +70,17 @@ impl MetricsHistory {
         }
 
         self.process_history.push_back(snapshot);
-        self.process_metadata = metadata;
         self.last_ram_total = ram_total;
+
+        self.process_metadata.extend(metadata);
+
+        let referenced: std::collections::HashSet<u32> = self
+            .process_history
+            .iter()
+            .flat_map(|s| s.processes.iter().map(|p| p.pid))
+            .collect();
+        self.process_metadata
+            .retain(|pid, _| referenced.contains(pid));
     }
 }
 
