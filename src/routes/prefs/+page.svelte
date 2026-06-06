@@ -10,7 +10,6 @@
     import KeyboardShortcutsSection from "$components/preferences/sections/KeyboardShortcutsSection.svelte";
     import PowerManagementSection from "$components/preferences/sections/PowerManagementSection.svelte";
     import HelpFeedbackSection from "$components/preferences/sections/HelpFeedbackSection.svelte";
-    import DeveloperViewSection from "$components/preferences/sections/DeveloperViewSection.svelte";
     import WorkspacesSection from "$components/preferences/sections/WorkspacesSection.svelte";
     import AppearanceSection from "$components/preferences/sections/AppearanceSection.svelte";
 
@@ -18,14 +17,13 @@
 
     const sections = [
         { id: "general", label: "General" },
-        { id: "license", label: "License" },
+        { id: "appearance", label: "Appareance" },
         { id: "workspace-profiles", label: "Workspace Profiles" },
         { id: "clipboard-history", label: "Clipboard History" },
         { id: "keyboard-shortcuts", label: "Keyboard Shortcuts" },
-        { id: "appearance", label: "Appareance" },
         { id: "power-management", label: "Power Management" },
         { id: "help-feedback", label: "Help & Feedback" },
-        { id: "developer-view", label: "Developer View" },
+        { id: "license", label: "License" },
     ];
 
     function handleSectionChange(sectionId: string) {
@@ -58,22 +56,20 @@
         {#snippet content()}
             {#if activeSection === "general"}
                 <GeneralSection />
-            {:else if activeSection === "license"}
-                <LicenseSection />
+            {:else if activeSection === "appearance"}
+                <AppearanceSection />
             {:else if activeSection === "workspace-profiles"}
                 <WorkspacesSection />
             {:else if activeSection === "clipboard-history"}
                 <ClipboardHistorySection />
             {:else if activeSection === "keyboard-shortcuts"}
                 <KeyboardShortcutsSection />
-            {:else if activeSection === "appearance"}
-                <AppearanceSection />
             {:else if activeSection === "power-management"}
                 <PowerManagementSection />
             {:else if activeSection === "help-feedback"}
                 <HelpFeedbackSection />
-            {:else if activeSection === "developer-view"}
-                <DeveloperViewSection />
+            {:else if activeSection === "license"}
+                <LicenseSection />
             {/if}
         {/snippet}
         <PreferencesLayout {sidebar} {content} />
