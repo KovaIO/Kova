@@ -25,11 +25,19 @@ impl Default for Preferences {
             shortcuts: vec![
                 Shortcut {
                     action: ShortcutAction::OpenClipboardHistory,
-                    keys: "Ctrl + alt + Space".to_string(),
+                    keys: "Ctrl + Alt + Space".to_string(),
                 },
                 Shortcut {
                     action: ShortcutAction::ApplyWorkspace,
                     keys: "Alt + Shift + W".to_string(),
+                },
+                Shortcut {
+                    action: ShortcutAction::OpenMonitor,
+                    keys: "Alt + Shift + M".to_string(),
+                },
+                Shortcut {
+                    action: ShortcutAction::OpenMenubarPopover,
+                    keys: "Alt + Shift + P".to_string(),
                 },
             ],
         }

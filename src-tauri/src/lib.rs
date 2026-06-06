@@ -15,7 +15,7 @@ use std::sync::{
     Arc,
 };
 
-use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
+use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent};
 use tauri::{Manager, WindowEvent};
 use tauri_plugin_positioner::{Position, WindowExt};
 
@@ -37,6 +37,9 @@ use crate::{
     metrics::{models::new_shared_history, start_metrics_loop},
     shortcuts::{handle_action, load_shortcuts, ShortcutMap},
 };
+
+struct IsOpen(Arc<AtomicBool>);
+struct AppTrayIcon(TrayIcon);
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -117,7 +120,9 @@ pub fn run() {
             let is_open = Arc::new(AtomicBool::new(false));
             let close_pending = Arc::new(AtomicBool::new(false));
 
-            TrayIconBuilder::new()
+            app.manage(IsOpen(is_open.clone()));
+
+            let tray = TrayIconBuilder::new()
                 .icon(app.default_window_icon().unwrap().clone())
                 .on_tray_icon_event({
                     let is_open = is_open.clone();
@@ -149,6 +154,8 @@ pub fn run() {
                     }
                 })
                 .build(app)?;
+
+            app.manage(AppTrayIcon(tray));
 
             let window = app.get_webview_window("home").unwrap();
 

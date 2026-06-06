@@ -59,7 +59,12 @@ export const SHORTCUT_CATALOG: ShortcutCatalogEntry[] = [
 
 export const MODIFIER_KEYS = new Set(["Control", "Shift", "Alt", "Meta"]);
 
-const WINDOWS_BLOCKED = new Set(["alt+tab", "ctrl+tab", "ctrl+space"]);
+const WINDOWS_BLOCKED = new Set([
+  "alt+tab",
+  "ctrl+tab",
+  "ctrl+space",
+  "ctrl+alt+m",
+]);
 
 const KEY_FROM_CODE: Record<string, string> = {
   Backquote: "`",

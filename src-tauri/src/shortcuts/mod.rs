@@ -5,9 +5,17 @@ mod parser;
 #[cfg(target_os = "macos")]
 use std::sync::Arc;
 
-use std::{collections::HashMap, sync::Mutex};
+use std::{
+    collections::HashMap,
+    sync::{atomic::Ordering, Mutex},
+};
 
-use crate::{app_state::AppState, preferences::ShortcutAction, windows::toggle_window};
+use crate::{
+    app_state::AppState,
+    preferences::ShortcutAction,
+    windows::{hide_window, open_window, toggle_window},
+    AppTrayIcon, IsOpen,
+};
 
 use tauri::Manager;
 #[cfg(target_os = "windows")]
@@ -15,6 +23,7 @@ use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut};
 
 #[cfg(target_os = "windows")]
 use parser::parse_shortcut;
+use tauri_plugin_positioner::{Position, WindowExt};
 
 #[cfg(target_os = "windows")]
 pub type ShortcutMap = Mutex<HashMap<Shortcut, ShortcutAction>>;
@@ -81,6 +90,35 @@ pub fn handle_action(app: &tauri::AppHandle, action: &ShortcutAction) {
                     .apply_profile(&profile.id, &app_handle)
                     .await;
             });
+        }
+        ShortcutAction::OpenMonitor => {
+            toggle_window(app, "monitor");
+        }
+        ShortcutAction::OpenMenubarPopover => {
+            let window = app.get_webview_window("home").unwrap();
+            let is_open = app.state::<IsOpen>();
+            if is_open.0.load(Ordering::Relaxed) {
+                hide_window(&window);
+                is_open.0.store(false, Ordering::Relaxed);
+            } else {
+                let tray = app.state::<AppTrayIcon>();
+                if let Ok(Some(rect)) = tray.0.rect() {
+                    let size = window.outer_size().unwrap_or_default();
+                    let tauri::Position::Physical(pos) = rect.position else {
+                        return;
+                    };
+                    let tauri::Size::Physical(s) = rect.size else {
+                        return;
+                    };
+                    let x = pos.x + s.width as i32 / 2 - size.width as i32 / 2;
+                    let y = pos.y - size.height as i32;
+                    window.set_position(tauri::PhysicalPosition { x, y }).ok();
+                } else {
+                    window.move_window(Position::TopRight).ok();
+                }
+                open_window(app, "home");
+                is_open.0.store(true, Ordering::Relaxed);
+            }
         }
         _ => {}
     }
