@@ -38,6 +38,7 @@
             // Convert percentages to grid cells for UI
             profiles = profiles.map((p) => ({
                 ...p,
+                gap: p.gap ?? 0,
                 apps: p.apps.map((app) => ({
                     ...app,
                     x: percentToGrid(app.x, COLS),
@@ -98,7 +99,7 @@
 
     function newProfile() {
         const id = crypto.randomUUID();
-        const profile: WorkspaceProfile = { id, name: "New Profile", apps: [] };
+        const profile: WorkspaceProfile = { id, name: "New Profile", gap: 0, apps: [] };
         profiles = [...profiles, profile];
         selected = profile;
     }
@@ -426,6 +427,18 @@
                             bind:value={selected.name}
                             placeholder="Profile name"
                         />
+                        <div class="gap-control">
+                            <span class="gap-label">Gap</span>
+                            <input
+                                type="range"
+                                class="gap-slider"
+                                min="0"
+                                max="40"
+                                step="4"
+                                bind:value={selected.gap}
+                            />
+                            <span class="gap-value">{selected.gap ?? 0}px</span>
+                        </div>
                         <div class="header-actions">
                             {#if noSpaceError}
                                 <span class="no-space-msg"
@@ -1033,5 +1046,30 @@
             opacity: 1;
             transform: translateX(0);
         }
+    }
+
+    .gap-control {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-shrink: 0;
+    }
+
+    .gap-label {
+        font-size: 11px;
+        color: var(--color-text-dim);
+        white-space: nowrap;
+    }
+
+    .gap-slider {
+        width: 64px;
+        accent-color: var(--color-accent);
+        cursor: pointer;
+    }
+
+    .gap-value {
+        font-size: 11px;
+        color: var(--color-text-dim);
+        min-width: 24px;
     }
 </style>

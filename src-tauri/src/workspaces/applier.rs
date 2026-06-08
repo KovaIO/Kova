@@ -4,13 +4,14 @@ use crate::{
 };
 use tauri::AppHandle;
 
-pub fn apply_window(app_handle: &AppHandle, workspace_app: &WorkspaceApp, matched: &MatchedWindow) {
+pub fn apply_window(app_handle: &AppHandle, workspace_app: &WorkspaceApp, matched: &MatchedWindow, gap: u32) {
     let Some(rect) = resolve_rect(
         app_handle,
         workspace_app.x,
         workspace_app.y,
         workspace_app.width,
         workspace_app.height,
+        gap,
     ) else {
         return;
     };
@@ -81,6 +82,7 @@ pub fn move_window(hwnd: usize, rect: &WindowRect) {
         UI::WindowsAndMessaging::{
             BringWindowToTop, GetForegroundWindow, GetWindowThreadProcessId, SetForegroundWindow,
             SetWindowPos, ShowWindow, SWP_FRAMECHANGED, SWP_NOZORDER, SWP_SHOWWINDOW, SW_RESTORE,
+            GetWindowInfo, WINDOWINFO,
         },
     };
 
@@ -88,15 +90,30 @@ pub fn move_window(hwnd: usize, rect: &WindowRect) {
         let hwnd = HWND(hwnd as *mut core::ffi::c_void);
         let _ = ShowWindow(hwnd, SW_RESTORE);
 
-        let x = rect.x as i32;
-        let y = rect.y as i32;
-        let w = rect.width as i32;
-        let h = rect.height as i32;
+        // Get the invisible border size for this window
+        let mut wi = WINDOWINFO {
+            cbSize: std::mem::size_of::<WINDOWINFO>() as u32,
+            ..Default::default()
+        };
+        let border = if GetWindowInfo(hwnd, &mut wi).is_ok() {
+            wi.cxWindowBorders as i32
+        } else {
+            0
+        };
+
+        // Expand rect to compensate for invisible border
+        let x = rect.x as i32 - border;
+        let y = rect.y as i32;  // top border is usually 0 on modern Windows
+        let w = rect.width as i32 + border * 2;
+        let h = rect.height as i32 + border;
+
         let flags = SWP_NOZORDER | SWP_FRAMECHANGED | SWP_SHOWWINDOW;
 
         SetWindowPos(hwnd, None, x, y, w, h, flags).ok();
         std::thread::sleep(std::time::Duration::from_millis(150));
         SetWindowPos(hwnd, None, x, y, w, h, flags).ok();
+
+        // ... rest of focus code unchanged
 
         let foreground = GetForegroundWindow();
         let mut fg_pid = 0u32;

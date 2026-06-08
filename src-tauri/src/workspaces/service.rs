@@ -71,6 +71,7 @@ impl WorkspaceService {
 
         for app in profile.apps.clone() {
             let app_handle = app_handle.clone();
+            let profile_gap = profile.gap;
             let handle = tauri::async_runtime::spawn(async move {
                 let mut matched = None;
                 for _attempt in 0..20 {
@@ -83,7 +84,7 @@ impl WorkspaceService {
 
                 match matched {
                     Some(window) => {
-                        apply_window(&app_handle, &app, &window);
+                        apply_window(&app_handle, &app, &window, profile_gap);
                     }
                     None => {}
                 }

@@ -62,5 +62,6 @@ export interface WorkspaceApp {
 export interface WorkspaceProfile {
   id: string;
   name: string;
+  gap: number;
   apps: WorkspaceApp[];
 }
