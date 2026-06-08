@@ -27,9 +27,26 @@
     import { metricLabel } from "$utils/format";
     import WindowAnimation from "$components/WindowAnimation.svelte";
     import DiskPanel from "$components/disk/DiskPanel.svelte";
+    import DiskSummary from "$components/disk/DiskSummary.svelte";
+    import { fetchDiskVolumeInfo } from "$services/disk";
+    import type { DiskVolumeInfo } from "$types/disk";
     import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 
     let activeTab: Tab = "cpu";
+    let previousTab: Tab = "cpu";
+
+    let diskVolume: DiskVolumeInfo | null = null;
+    let diskKey = 0;
+
+    onMount(async () => {
+        diskVolume = await fetchDiskVolumeInfo();
+    });
+
+    $: if (previousTab === "disk" && activeTab !== "disk") {
+        // clear disk scan result
+        diskKey = (diskKey + 1) % 1000;
+    }
+    $: previousTab = activeTab;
 
     const unlistenTab = getCurrentWebviewWindow().listen<string>(
         "set-tab",
@@ -167,10 +184,15 @@
                 selectedIndex={selectedHistoryIndex}
                 onBackgroundClick={exitHistoryMode}
             />
+            {#if activeTab === "disk"}
+                <DiskSummary volume={diskVolume} />
+            {/if}
         </div>
 
         {#if activeTab === "disk"}
-            <DiskPanel />
+            {#key diskKey}
+                <DiskPanel bind:volume={diskVolume} />
+            {/key}
         {:else if showProcessList}
             <div class="card search-card">
                 <Search class="search-icon" size={14} />
@@ -261,6 +283,14 @@
     .graph-compact {
         padding-top: 8px;
         padding-bottom: 0;
+        height: 232px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .graph-compact :global(.disk-summary) {
+        flex: 1;
+        min-height: 0;
     }
 
     .graph {

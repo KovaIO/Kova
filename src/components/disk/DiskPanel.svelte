@@ -43,7 +43,11 @@
     type View = "ready" | "scanning" | "results" | "detail";
 
     let view: View = $state("ready");
-    let volume: DiskVolumeInfo | null = $state(null);
+    let {
+        volume = $bindable(null),
+    }: {
+        volume?: DiskVolumeInfo | null;
+    } = $props();
     let preview: ScanPreview | null = $state(null);
     let result: DiskScanResult | null = $state(null);
     let detail: DiskItemDetail | null = $state(null);
@@ -52,34 +56,17 @@
     let expandedCategories = $state(new Set<DiskCategory>());
     let confirmDeleteAll = $state(false);
     let confirmDeleteId: string | null = $state(null);
-    let loading = $state(true);
     let unlisten: UnlistenFn | undefined;
 
     let reclaimable = $derived((result as DiskScanResult | null)?.total_reclaimable ?? 0);
 
-    function diskColor(percent: number) {
-        if (percent < 70) return "#4ade80";
-        if (percent < 90) return "#facc15";
-        return "#f87171";
-    }
-
-    function diskColorHover(percent: number) {
-        if (percent < 70) return "#22c55e";
-        if (percent < 90) return "#eab308";
-        return "#ef4444";
-    }
-
     async function loadInitial() {
-        loading = true;
         try {
-            [volume, preview, result] = await Promise.all([
-                fetchDiskVolumeInfo(),
-                fetchDiskScanPreview(),
-                fetchDiskScanResult(),
-            ]);
-            view = result ? "results" : "ready";
-        } finally {
-            loading = false;
+            preview = await fetchDiskScanPreview();
+            // Don't load scan results - start in ready state
+            view = "ready";
+        } catch {
+            /* empty */
         }
     }
 
@@ -176,9 +163,7 @@
 </script>
 
 <div class="disk-panel">
-    {#if loading}
-        <p class="empty">Loading disk info…</p>
-    {:else if view === "detail" && detail}
+    {#if view === "detail" && detail}
         <div class="detail-view">
             <button
                 type="button"
@@ -285,39 +270,6 @@
             </div>
         </div>
     {:else}
-        <div class="card summary-card">
-            <div class="summary-top">
-                <div class="disk-square">
-                    <div
-                        class="disk-square-fill"
-                        style="height: {volume?.used_percent ?? 0}%; background: linear-gradient(to top, {diskColor(volume?.used_percent ?? 0)}, {diskColorHover(volume?.used_percent ?? 0)});"
-                    ></div>
-                    <div class="disk-square-content">
-                        <HardDrive size={16} />
-                        <span>{volume?.used_percent ?? 0}%</span>
-                    </div>
-                </div>
-                <div class="summary-stats">
-                    <div class="stat-row">
-                        <span>Total</span>
-                        <span>{formatBytes(volume?.total_bytes ?? 0)}</span>
-                    </div>
-                    <div class="stat-row">
-                        <span>Used</span>
-                        <span>{formatBytes(volume?.used_bytes ?? 0)}</span>
-                    </div>
-                    <div class="stat-row">
-                        <span>Free</span>
-                        <span>{formatBytes(volume?.available_bytes ?? 0)}</span>
-                    </div>
-                    <div class="stat-row muted">
-                        <span>{volume?.label ?? "Disk"}</span>
-                        <span>Last scan: {formatLastScan(volume?.last_scan_at)}</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         {#if view === "scanning"}
             <div class="card scan-card">
                 <div class="scan-animation">
@@ -505,7 +457,7 @@
     .disk-panel {
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 6px;
         flex: 1;
         min-height: 0;
         overflow: hidden;
@@ -519,82 +471,11 @@
         color: var(--color-text-primary);
     }
 
-    .summary-card {
-        padding: 14px;
-        flex-shrink: 0;
-    }
-
-    .summary-top {
-        display: flex;
-        gap: 14px;
-        align-items: center;
-    }
-
-    .disk-square {
-        position: relative;
-        width: 64px;
-        height: 64px;
-        border-radius: var(--radius-sm);
-        background: var(--color-track-fill);
-        display: grid;
-        place-items: center;
-        flex-shrink: 0;
-        overflow: hidden;
-    }
-
-    .disk-square-fill {
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        transition: height 600ms cubic-bezier(0.4, 0, 0.2, 1);
-        border-radius: 0 0 var(--radius-sm) var(--radius-sm);
-        opacity: 0.9;
-    }
-
-    .disk-square-content {
-        position: relative;
-        z-index: 1;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 2px;
-        color: var(--color-text-secondary);
-        font-size: 13px;
-        font-weight: 600;
-    }
-
-    .summary-stats {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-    }
-
-    .stat-row {
-        display: flex;
-        justify-content: space-between;
-        font-size: 12px;
-        color: var(--color-text-secondary);
-    }
-
-    .stat-row span:last-child {
-        font-variant-numeric: tabular-nums;
-        color: var(--color-text-primary);
-    }
-
-    .stat-row.muted {
-        margin-top: 4px;
-        font-size: 11px;
-        color: var(--color-text-dim);
-    }
-
     .ready-card,
     .scan-card,
     .results-card,
     .detail-card {
-        padding: 14px;
+        padding: 10px 12px;
         flex: 1;
         min-height: 0;
         display: flex;
@@ -604,38 +485,38 @@
 
     .ready-head {
         display: flex;
-        gap: 10px;
-        margin-bottom: 12px;
+        gap: 8px;
+        margin-bottom: 8px;
         color: var(--color-text-secondary);
     }
 
     .ready-head h3 {
-        font-size: 14px;
+        font-size: 13px;
         font-weight: 600;
         color: var(--color-text-primary);
-        margin-bottom: 4px;
+        margin-bottom: 2px;
     }
 
     .ready-head p {
-        font-size: 12px;
-        line-height: 1.45;
+        font-size: 11px;
+        line-height: 1.4;
         color: var(--color-text-muted);
     }
 
     .section-label {
         display: block;
-        font-size: 11px;
+        font-size: 10px;
         font-weight: 500;
         color: var(--color-text-dim);
         text-transform: uppercase;
         letter-spacing: 0.04em;
-        margin-bottom: 8px;
+        margin-bottom: 6px;
     }
 
     .preview-list {
         flex: 1;
         overflow-y: auto;
-        margin-bottom: 12px;
+        margin-bottom: 8px;
         scrollbar-width: none;
     }
 
@@ -646,10 +527,10 @@
     .preview-row {
         display: flex;
         align-items: center;
-        gap: 8px;
-        padding: 7px 0;
+        gap: 6px;
+        padding: 5px 0;
         border-bottom: 1px solid var(--color-border-subtle);
-        font-size: 12.5px;
+        font-size: 11.5px;
         color: var(--color-text-secondary);
     }
 
@@ -658,20 +539,20 @@
     }
 
     .preview-count {
-        font-size: 11px;
+        font-size: 10px;
         color: var(--color-text-dim);
     }
 
     .scan-card {
         align-items: center;
         justify-content: center;
-        gap: 12px;
+        gap: 10px;
     }
 
     .scan-animation {
         position: relative;
-        width: 48px;
-        height: 48px;
+        width: 40px;
+        height: 40px;
         display: grid;
         place-items: center;
         color: var(--color-accent);
@@ -693,14 +574,14 @@
     }
 
     .scan-message {
-        font-size: 12.5px;
+        font-size: 11.5px;
         color: var(--color-text-secondary);
     }
 
     .progress-track {
         width: 100%;
-        max-width: 220px;
-        height: 4px;
+        max-width: 200px;
+        height: 3px;
         background: var(--color-track-fill);
         border-radius: 999px;
         overflow: hidden;
@@ -715,13 +596,13 @@
     .results-banner {
         display: flex;
         align-items: center;
-        gap: 8px;
-        padding: 8px 10px;
-        margin-bottom: 10px;
+        gap: 6px;
+        padding: 6px 8px;
+        margin-bottom: 8px;
         border-radius: var(--radius-sm);
         background: var(--color-success-soft);
         color: var(--color-success);
-        font-size: 12px;
+        font-size: 11px;
         flex-shrink: 0;
     }
 
@@ -743,13 +624,13 @@
         width: 100%;
         display: flex;
         align-items: center;
-        gap: 8px;
-        padding: 10px 4px;
+        gap: 6px;
+        padding: 7px 4px;
         border: none;
         background: transparent;
         color: var(--color-text-secondary);
         font: inherit;
-        font-size: 13px;
+        font-size: 12px;
         cursor: pointer;
         text-align: left;
     }
@@ -765,11 +646,11 @@
 
     .category-size {
         font-variant-numeric: tabular-nums;
-        font-size: 12px;
+        font-size: 11px;
     }
 
     .items-list {
-        padding: 0 4px 8px 22px;
+        padding: 0 4px 6px 18px;
     }
 
     .item-row {
@@ -782,13 +663,13 @@
         flex: 1;
         display: flex;
         align-items: center;
-        gap: 8px;
-        padding: 7px 4px;
+        gap: 6px;
+        padding: 5px 4px;
         border: none;
         background: transparent;
         color: inherit;
         font: inherit;
-        font-size: 12.5px;
+        font-size: 11.5px;
         text-align: left;
         cursor: pointer;
         border-radius: var(--radius-sm);
@@ -807,16 +688,16 @@
     }
 
     .item-size {
-        font-size: 12px;
+        font-size: 11px;
         color: var(--color-text-muted);
         font-variant-numeric: tabular-nums;
     }
 
     .icon-btn {
-        width: 28px;
-        height: 28px;
+        width: 24px;
+        height: 24px;
         border: none;
-        border-radius: 6px;
+        border-radius: 5px;
         background: transparent;
         color: var(--color-text-dim);
         display: grid;
@@ -837,7 +718,7 @@
 
     .icon-btn.confirm {
         opacity: 1;
-        font-size: 11px;
+        font-size: 10px;
         font-weight: 600;
         color: var(--color-danger);
     }
@@ -845,19 +726,19 @@
     .results-footer {
         display: flex;
         flex-direction: column;
-        gap: 8px;
-        padding-top: 10px;
+        gap: 6px;
+        padding-top: 8px;
         border-top: 1px solid var(--color-border-subtle);
         flex-shrink: 0;
     }
 
     .footer-actions {
         display: flex;
-        gap: 8px;
+        gap: 6px;
     }
 
     .warning-text {
-        font-size: 12px;
+        font-size: 11px;
         color: var(--color-warning);
         line-height: 1.4;
     }
@@ -866,13 +747,13 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 7px;
-        padding: 9px 14px;
+        gap: 6px;
+        padding: 7px 12px;
         border-radius: var(--radius-sm);
         border: 1px solid var(--color-border-medium);
         background: var(--color-button-bg);
         color: var(--color-text-secondary);
-        font-size: 13px;
+        font-size: 12px;
         font-weight: 500;
         font-family: inherit;
         cursor: pointer;
@@ -915,7 +796,7 @@
     .detail-view {
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 6px;
         flex: 1;
         min-height: 0;
     }
@@ -923,13 +804,13 @@
     .back-btn {
         display: inline-flex;
         align-items: center;
-        gap: 6px;
+        gap: 5px;
         align-self: flex-start;
-        padding: 6px 10px;
+        padding: 4px 8px;
         border: none;
         background: transparent;
         color: var(--color-text-muted);
-        font-size: 12px;
+        font-size: 11px;
         font-family: inherit;
         cursor: pointer;
         border-radius: var(--radius-sm);
@@ -942,14 +823,14 @@
 
     .detail-head {
         display: flex;
-        gap: 10px;
-        margin-bottom: 12px;
+        gap: 8px;
+        margin-bottom: 8px;
     }
 
     .detail-icon {
-        width: 36px;
-        height: 36px;
-        border-radius: 8px;
+        width: 32px;
+        height: 32px;
+        border-radius: 7px;
         background: var(--color-track-fill);
         display: grid;
         place-items: center;
@@ -957,13 +838,13 @@
     }
 
     .detail-titles h2 {
-        font-size: 14px;
+        font-size: 13px;
         font-weight: 600;
-        margin-bottom: 4px;
+        margin-bottom: 2px;
     }
 
     .detail-path {
-        font-size: 11px;
+        font-size: 10px;
         color: var(--color-text-dim);
         word-break: break-all;
     }
@@ -971,14 +852,14 @@
     .meta-grid {
         display: flex;
         flex-direction: column;
-        gap: 6px;
-        margin-bottom: 12px;
+        gap: 4px;
+        margin-bottom: 8px;
     }
 
     .meta-row {
         display: flex;
         justify-content: space-between;
-        font-size: 12px;
+        font-size: 11px;
         color: var(--color-text-muted);
     }
 
@@ -992,12 +873,12 @@
 
     .safety-banner {
         display: flex;
-        gap: 10px;
-        padding: 10px 12px;
+        gap: 8px;
+        padding: 8px 10px;
         border-radius: var(--radius-sm);
-        margin-bottom: 12px;
-        font-size: 12px;
-        line-height: 1.45;
+        margin-bottom: 8px;
+        font-size: 11px;
+        line-height: 1.4;
     }
 
     .safety-banner.safe {
@@ -1040,9 +921,9 @@
     .child-row {
         display: flex;
         align-items: center;
-        gap: 8px;
-        padding: 6px 0;
-        font-size: 12px;
+        gap: 6px;
+        padding: 4px 0;
+        font-size: 11px;
         color: var(--color-text-secondary);
         border-bottom: 1px solid var(--color-border-subtle);
     }
@@ -1061,15 +942,8 @@
 
     .detail-actions {
         display: flex;
-        gap: 8px;
-        padding-top: 10px;
+        gap: 6px;
+        padding-top: 8px;
         border-top: 1px solid var(--color-border-subtle);
-    }
-
-    .empty {
-        text-align: center;
-        color: var(--color-text-dim);
-        font-size: 12px;
-        padding: 24px;
     }
 </style>
