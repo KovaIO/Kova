@@ -26,6 +26,7 @@
     } from "$utils/process-tree";
     import { metricLabel } from "$utils/format";
     import WindowAnimation from "$components/WindowAnimation.svelte";
+    import DiskPanel from "$components/disk/DiskPanel.svelte";
     import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 
     let activeTab: Tab = "cpu";
@@ -151,11 +152,12 @@
 
 <WindowAnimation>
     <div class="page">
-        <div class="graph">
+        <div class="graph" class:graph-compact={activeTab === "disk"}>
             <MetricGraph
                 bind:activeTab
                 {diskCleanEnabled}
                 showDiskTab={true}
+                hideChart={activeTab === "disk"}
                 {cpuHistory}
                 {ramHistory}
                 {networkHistory}
@@ -167,7 +169,9 @@
             />
         </div>
 
-        {#if showProcessList}
+        {#if activeTab === "disk"}
+            <DiskPanel />
+        {:else if showProcessList}
             <div class="card search-card">
                 <Search class="search-icon" size={14} />
                 <input
@@ -254,6 +258,11 @@
 {/snippet}
 
 <style>
+    .graph-compact {
+        padding-top: 8px;
+        padding-bottom: 0;
+    }
+
     .graph {
         padding-top: 16px;
         background: var(--color-main-bg);

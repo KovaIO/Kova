@@ -4,6 +4,7 @@ use tauri::{AppHandle, Emitter, Manager};
 
 use crate::{
     clipboard::{ClipboardService, ClipboardStorage},
+    disk::{DiskService, DiskStorage},
     license::{LicenseService, LicenseStorage},
     migration::run_migrations,
     preferences::{service::PreferencesService, PreferencesStorage},
@@ -15,6 +16,7 @@ pub struct AppState {
     pub preferences: Arc<PreferencesService>,
     pub clipboard: Arc<ClipboardService>,
     pub workspaces: Arc<WorkspaceService>,
+    pub disk: Arc<DiskService>,
     pub license: Arc<LicenseService>,
     pub app_handle: AppHandle,
 
@@ -26,6 +28,7 @@ impl AppState {
         preferences: PreferencesService,
         clipboard: Arc<ClipboardService>,
         workspaces: Arc<WorkspaceService>,
+        disk: Arc<DiskService>,
         license: Arc<LicenseService>,
         app_handle: AppHandle,
         clipboard_images_dir: PathBuf,
@@ -34,6 +37,7 @@ impl AppState {
             preferences: Arc::new(preferences),
             clipboard,
             workspaces,
+            disk,
             license,
             app_handle,
             clipboard_images_dir,
@@ -69,12 +73,14 @@ pub fn initialize_app_state(app: &tauri::App) -> Result<AppState, Box<dyn std::e
     let workspaces = Arc::new(WorkspaceService::new(WorkspaceStorage::new(
         db_path.clone(),
     )?));
+    let disk = Arc::new(DiskService::new(DiskStorage::new(app_dir.clone())));
     let preferences_service = PreferencesService::new(storage, license.clone(), clipboard.clone());
 
     Ok(AppState::new(
         preferences_service,
         clipboard,
         workspaces,
+        disk,
         license,
         app.handle().clone(),
         images_dir,

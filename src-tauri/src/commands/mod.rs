@@ -1,5 +1,6 @@
 pub mod apps;
 pub mod clipboard;
+pub mod disk;
 pub mod license;
 pub mod metrics;
 pub mod preferences;
@@ -12,6 +13,10 @@ pub use clipboard::{
     clear_clipboard_history, copy_clipboard_item, delete_clipboard_item, get_clipboard_history,
     open_clipboard_url, paste_clipboard_item, paste_plain_clipboard_item, preview_clipboard_item,
     reveal_clipboard_item,
+};
+pub use disk::{
+    delete_all_disk_items, delete_disk_items, get_disk_item_detail, get_disk_scan_preview,
+    get_disk_scan_result, get_disk_volume_info, start_disk_scan,
 };
 pub use license::{activate_license, get_license};
 pub use metrics::{get_current_metrics, get_snapshot};

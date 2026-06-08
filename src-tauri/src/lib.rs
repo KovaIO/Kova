@@ -2,6 +2,7 @@ mod app_state;
 mod apps;
 mod clipboard;
 mod commands;
+mod disk;
 mod license;
 mod metrics;
 mod migration;
@@ -22,11 +23,13 @@ use tauri_plugin_positioner::{Position, WindowExt};
 
 use commands::{
     activate_license, apply_workspace, clear_clipboard_history, copy_clipboard_item,
-    delete_clipboard_item, delete_workspace_profile, force_quit_process_cmd, get_apps,
-    get_clipboard_history, get_current_metrics, get_license, get_preferences, get_process_history,
-    get_snapshot, get_workspace_profile, get_workspace_profiles, open_clipboard_url, open_monitor,
-    open_preferences, open_process, paste_clipboard_item, paste_plain_clipboard_item,
-    preview_clipboard_item, quit_process_cmd, reveal_clipboard_item, save_workspace_profile,
+    delete_all_disk_items, delete_clipboard_item, delete_disk_items, delete_workspace_profile,
+    force_quit_process_cmd, get_apps, get_clipboard_history, get_current_metrics,
+    get_disk_item_detail, get_disk_scan_preview, get_disk_scan_result, get_disk_volume_info,
+    get_license, get_preferences, get_process_history, get_snapshot, get_workspace_profile,
+    get_workspace_profiles, open_clipboard_url, open_monitor, open_preferences, open_process,
+    paste_clipboard_item, paste_plain_clipboard_item, preview_clipboard_item, quit_process_cmd,
+    reveal_clipboard_item, save_workspace_profile, start_disk_scan,
     update_appearance_preferences, update_clipboard_preferences, update_general_preferences,
     update_shortcuts,
 };
@@ -98,6 +101,13 @@ pub fn run() {
             get_workspace_profiles,
             save_workspace_profile,
             delete_workspace_profile,
+            get_disk_volume_info,
+            get_disk_scan_preview,
+            start_disk_scan,
+            get_disk_scan_result,
+            get_disk_item_detail,
+            delete_disk_items,
+            delete_all_disk_items,
             open_preferences,
             open_monitor,
             open_process

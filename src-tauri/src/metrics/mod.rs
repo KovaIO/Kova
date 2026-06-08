@@ -1,5 +1,5 @@
 pub mod collector;
-mod disk;
+pub mod disk;
 mod enrich;
 pub mod models;
 mod network;

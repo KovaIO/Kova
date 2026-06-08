@@ -6,6 +6,7 @@
     export let activeTab: Tab;
     export let diskCleanEnabled = true;
     export let showDiskTab = false;
+    export let hideChart = false;
 
     export let cpuHistory: number[];
     export let ramHistory: number[];
@@ -55,7 +56,7 @@
 </script>
 
 <div class="card">
-    <div class="tabs">
+    <div class="tabs" class:compact={hideChart}>
         <button
             class="tab"
             class:active={activeTab === "cpu"}
@@ -84,6 +85,7 @@
         {/if}
     </div>
 
+    {#if !hideChart}
     <div class="graph-area">
         <div class="chart-wrap">
             <div class="grid-lines">
@@ -138,6 +140,7 @@
             </div>
         </div>
     </div>
+    {/if}
 </div>
 
 <style>
@@ -149,6 +152,10 @@
         overflow: hidden;
         flex-shrink: 0;
         padding: 0px;
+    }
+
+    .tabs.compact {
+        margin-bottom: 12px;
     }
 
     .tabs {
