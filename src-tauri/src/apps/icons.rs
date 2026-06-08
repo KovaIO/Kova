@@ -40,6 +40,43 @@ pub fn get_process_icon(name: &str, exe_path: Option<&str>) -> Option<String> {
     icon
 }
 
+pub fn get_app_icon(
+    name: &str,
+    exe_path: Option<&str>,
+    install_path: Option<&str>,
+) -> Option<String> {
+    let cache_key = exe_path.or(install_path)?;
+
+    {
+        let cache = ICON_CACHE.lock().unwrap();
+        if let Some(icon) = cache.get(cache_key) {
+            return icon.clone();
+        }
+    }
+
+    let derived_dir;
+    let effective_install = if install_path.is_some() {
+        install_path
+    } else {
+        derived_dir = exe_path
+            .and_then(|p| std::path::Path::new(p).parent())
+            .map(|p| p.to_string_lossy().into_owned());
+        derived_dir.as_deref()
+    };
+
+    let icon = platform::get_app_icon_base64(name, exe_path, effective_install)
+        .or_else(|| fallback_icon(name, exe_path));
+
+    let mut cache = ICON_CACHE.lock().unwrap();
+    if cache.len() >= MAX_ICON_CACHE {
+        if let Some(key) = cache.keys().next().cloned() {
+            cache.remove(&key);
+        }
+    }
+    cache.insert(cache_key.to_string(), icon.clone());
+
+    icon
+}
 fn fallback_icon(name: &str, exe_path: Option<&str>) -> Option<String> {
     let lower = name.to_lowercase();
 
@@ -103,6 +140,45 @@ mod platform {
 
             Some(general_purpose::STANDARD.encode(png))
         }
+    }
+
+    pub fn get_app_icon_base64(
+        name: &str,
+        exe_path: Option<&str>,
+        install_path: Option<&str>,
+    ) -> Option<String> {
+        if let Some(path) = exe_path {
+            let stem = std::path::Path::new(path)
+                .file_stem()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_lowercase();
+
+            let is_launcher = [
+                "update",
+                "uninstall",
+                "setup",
+                "installer",
+                "helper",
+                "crashpad",
+            ]
+            .iter()
+            .any(|n| stem.contains(n));
+
+            if !is_launcher {
+                if let Some(icon) = get_process_icon_base64(path) {
+                    return Some(icon);
+                }
+            }
+        }
+
+        if let Some(dir) = install_path {
+            if let Some(icon) = find_best_exe_icon(name, dir) {
+                return Some(icon);
+            }
+        }
+
+        None
     }
 
     unsafe fn icon_to_png(icon: HICON) -> Option<Vec<u8>> {
@@ -176,6 +252,117 @@ mod platform {
 
         Some(png)
     }
+
+    fn find_best_exe_icon(app_name: &str, install_dir: &str) -> Option<String> {
+        find_best_exe_icon_depth(app_name, install_dir, 0)
+    }
+
+    fn find_best_exe_icon_depth(app_name: &str, install_dir: &str, depth: u32) -> Option<String> {
+        use std::path::Path;
+
+        let dir = Path::new(install_dir);
+        if !dir.is_dir() {
+            return None;
+        }
+
+        let name_lower = app_name.to_lowercase();
+
+        let Ok(entries) = std::fs::read_dir(dir) else {
+            return None;
+        };
+
+        let entries: Vec<_> = entries.flatten().collect();
+
+        let mut candidates: Vec<(u32, std::path::PathBuf)> = entries
+            .iter()
+            .filter_map(|e| {
+                let p = e.path();
+                if p.extension()?.to_string_lossy().to_lowercase() == "exe" {
+                    let stem = p.file_stem()?.to_string_lossy().to_lowercase();
+                    let score = score_exe_candidate(&stem, &name_lower);
+                    Some((score, p))
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        candidates.sort_by(|a, b| b.0.cmp(&a.0));
+
+        for (score, path) in &candidates {
+            if *score == 0 {
+                break;
+            }
+            let path_str = path.to_string_lossy();
+            if let Some(icon) = get_process_icon_base64(&path_str) {
+                return Some(icon);
+            }
+        }
+
+        if depth < 1 {
+            let mut subdirs: Vec<_> = entries
+                .iter()
+                .filter(|e| e.path().is_dir())
+                .map(|e| e.path())
+                .collect();
+
+            subdirs.sort_by_key(|p| {
+                let n = p
+                    .file_name()
+                    .unwrap_or_default()
+                    .to_string_lossy()
+                    .to_lowercase();
+                if n.contains(&name_lower) {
+                    0u8
+                } else {
+                    1u8
+                }
+            });
+
+            for subdir in subdirs {
+                let subdir_str = subdir.to_string_lossy();
+                if let Some(icon) = find_best_exe_icon_depth(app_name, &subdir_str, depth + 1) {
+                    return Some(icon);
+                }
+            }
+        }
+
+        None
+    }
+
+    fn score_exe_candidate(stem: &str, app_name: &str) -> u32 {
+        if stem == app_name {
+            return 100;
+        }
+        if stem.contains(app_name) || app_name.contains(stem) {
+            return 80;
+        }
+        let words: Vec<&str> = app_name.split_whitespace().collect();
+        let matching_words = words
+            .iter()
+            .filter(|w| w.len() > 3 && stem.contains(**w))
+            .count();
+        if matching_words > 0 {
+            return 60 + (matching_words as u32 * 10);
+        }
+        let first_word = words.first().copied().unwrap_or("");
+        if first_word.len() > 3 && stem.contains(first_word) {
+            return 60;
+        }
+        let noise = [
+            "uninstall",
+            "update",
+            "helper",
+            "crash",
+            "setup",
+            "installer",
+            "crashpad",
+        ];
+        if noise.iter().any(|n| stem.contains(n)) {
+            return 0;
+        }
+        10
+    }
 }
 
 #[cfg(target_os = "macos")]
@@ -215,11 +402,12 @@ mod platform {
             Some(general_purpose::STANDARD.encode(slice))
         }
     }
-}
 
-#[cfg(not(any(target_os = "windows", target_os = "macos")))]
-mod platform {
-    pub fn get_process_icon_base64(_path: &str) -> Option<String> {
-        None
+    pub fn get_app_icon_base64(
+        _name: &str,
+        exe_path: Option<&str>,
+        _install_path: Option<&str>,
+    ) -> Option<String> {
+        exe_path.and_then(|p| get_process_icon_base64(p))
     }
 }

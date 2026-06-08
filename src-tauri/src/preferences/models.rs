@@ -4,7 +4,7 @@ use rusqlite::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::clipboard::models::InstalledApp;
+use crate::apps::InstalledApp;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Preferences {

@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 
-use crate::clipboard::models::InstalledApp;
-use crate::processes::get_process_icon;
+#[cfg(target_os = "windows")]
+use crate::apps::get_app_icon;
+use crate::apps::InstalledApp;
 
 pub fn get_installed_apps() -> Vec<InstalledApp> {
     let mut apps = Vec::new();
@@ -35,30 +36,28 @@ pub fn get_installed_apps() -> Vec<InstalledApp> {
 }
 
 fn app_key(app: &InstalledApp) -> String {
-    if !app.path.is_empty() {
-        let path = std::path::Path::new(&app.path);
-
-        let dir = if path.extension().is_some() {
-            path.parent().unwrap_or(path)
-        } else {
-            path
-        };
-
-        return dir
-            .components()
-            .map(|c| c.as_os_str().to_string_lossy())
-            .collect::<Vec<_>>()
-            .join("\\")
-            .to_lowercase();
-    }
-
-    app.name.to_lowercase()
+    let name = app.name.to_lowercase();
+    let name = name
+        .replace(" launcher", "")
+        .replace(" (64-bit)", "")
+        .replace(" (32-bit)", "")
+        .replace(" (x86)", "");
+    name.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
 fn app_score(app: &InstalledApp) -> u32 {
     let mut score = 0;
 
-    if app.icon.is_some() {
+    if app.icon.is_some()
+        && app.icon.as_deref() != Some("system")
+        && app.icon.as_deref() != Some("terminal")
+    {
+        score += 200;
+    } else if app.icon.is_some() {
+        score += 10;
+    }
+
+    if app.exe_path.is_some() {
         score += 100;
     }
 
@@ -119,7 +118,7 @@ fn scan_macos_dir(dir: &PathBuf, apps: &mut Vec<InstalledApp>, depth: u32) {
             let macos_dir = path.join("Contents/MacOS");
             if macos_dir.is_dir() {
                 let path_str = path.to_string_lossy().to_string();
-                let icon = get_process_icon(&name, Some(&path_str));
+                let icon = get_app_icon(&name, Some(&path_str), None);
                 apps.push(InstalledApp {
                     name,
                     path: path_str,
@@ -302,12 +301,31 @@ fn parse_uninstall_entry(subkey: HKEY) -> Option<InstalledApp> {
             .unwrap_or_default()
     });
 
-    let icon = get_process_icon(&name, icon_source.as_deref());
+    let icon = get_app_icon(&name, icon_source.as_deref(), install_location.as_deref());
+
+    let noise_stems = ["update", "uninstall", "setup", "installer"];
 
     let exe_path = icon_source
         .as_ref()
         .filter(|p| p.to_lowercase().ends_with(".exe"))
-        .cloned();
+        .filter(|p| {
+            let stem = std::path::Path::new(p)
+                .file_stem()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_lowercase();
+            !noise_stems.iter().any(|n| stem.contains(n))
+        })
+        .cloned()
+        .or_else(|| {
+            let search_dir = install_location.as_deref().or_else(|| {
+                icon_source
+                    .as_deref()
+                    .and_then(|p| std::path::Path::new(p).parent())
+                    .and_then(|p| p.to_str())
+            })?;
+            find_real_exe(&name, search_dir)
+        });
 
     Some(InstalledApp {
         name,
@@ -315,6 +333,111 @@ fn parse_uninstall_entry(subkey: HKEY) -> Option<InstalledApp> {
         path: stored_path,
         icon,
     })
+}
+
+#[cfg(target_os = "windows")]
+fn find_real_exe(app_name: &str, install_dir: &str) -> Option<String> {
+    find_real_exe_depth(app_name, install_dir, 0)
+}
+
+#[cfg(target_os = "windows")]
+fn find_real_exe_depth(app_name: &str, dir: &str, depth: u32) -> Option<String> {
+    let dir_path = std::path::Path::new(dir);
+    if !dir_path.is_dir() {
+        return None;
+    }
+
+    let name_lower = app_name.to_lowercase();
+    let noise_stems = [
+        "update",
+        "uninstall",
+        "setup",
+        "installer",
+        "helper",
+        "crashpad",
+    ];
+
+    let Ok(entries) = std::fs::read_dir(dir_path) else {
+        return None;
+    };
+
+    let entries: Vec<_> = entries.flatten().collect();
+
+    let mut candidates: Vec<(u32, std::path::PathBuf)> = entries
+        .iter()
+        .filter_map(|e| {
+            let p = e.path();
+            if p.extension()?.to_string_lossy().to_lowercase() != "exe" {
+                return None;
+            }
+            let stem = p.file_stem()?.to_string_lossy().to_lowercase();
+            if noise_stems.iter().any(|n| stem.contains(n)) {
+                return None;
+            }
+            let score = score_exe_name(&stem, &name_lower);
+            Some((score, p))
+        })
+        .collect();
+
+    candidates.sort_by(|a, b| b.0.cmp(&a.0));
+
+    if let Some((score, path)) = candidates.first() {
+        if *score > 0 {
+            return Some(path.to_string_lossy().to_string());
+        }
+    }
+
+    if depth < 1 {
+        let mut subdirs: Vec<_> = entries
+            .iter()
+            .filter(|e| e.path().is_dir())
+            .map(|e| e.path())
+            .collect();
+
+        subdirs.sort_by_key(|p| {
+            let n = p
+                .file_name()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_lowercase();
+            if n.contains(&name_lower) {
+                0u8
+            } else {
+                1u8
+            }
+        });
+
+        for subdir in subdirs {
+            if let Some(exe) = find_real_exe_depth(app_name, &subdir.to_string_lossy(), depth + 1) {
+                return Some(exe);
+            }
+        }
+    }
+
+    None
+}
+
+#[cfg(target_os = "windows")]
+fn score_exe_name(stem: &str, app_name: &str) -> u32 {
+    if stem == app_name {
+        return 100;
+    }
+    if stem.contains(app_name) || app_name.contains(stem) {
+        return 80;
+    }
+    let words: Vec<&str> = app_name.split_whitespace().collect();
+    let matching = words
+        .iter()
+        .filter(|w| w.len() > 3 && stem.contains(**w))
+        .count();
+    if matching > 0 {
+        return 60 + (matching as u32 * 10);
+    }
+    let first = words.first().copied().unwrap_or("");
+    if first.len() > 3 && stem.contains(first) {
+        return 60;
+    }
+    10
 }
 
 #[cfg(target_os = "windows")]
@@ -432,7 +555,7 @@ fn get_app_paths_apps() -> Vec<InstalledApp> {
                                 .map(|d| d.to_string_lossy().to_string())
                                 .unwrap_or_else(|| exe_path.clone());
 
-                            let icon = get_process_icon(&name, Some(&exe_path));
+                            let icon = get_app_icon(&name, Some(&exe_path), Some(&stored_path));
 
                             apps.push(InstalledApp {
                                 name,
@@ -616,12 +739,33 @@ fn scan_start_menu_dir(dir: &std::path::Path, apps: &mut Vec<InstalledApp>) {
                     .to_string_lossy()
                     .to_string();
 
-                let icon = get_process_icon(&name, Some(&target));
+                let noise_stems = ["update", "uninstall", "setup", "installer"];
+                let target_stem = std::path::Path::new(&target)
+                    .file_stem()
+                    .unwrap_or_default()
+                    .to_string_lossy()
+                    .to_lowercase();
+                let is_noise = noise_stems.iter().any(|n| target_stem.contains(n));
+
+                let install_dir = std::path::Path::new(&target)
+                    .parent()
+                    .map(|p| p.to_string_lossy().to_string());
+
+                let real_exe = if is_noise {
+                    install_dir
+                        .as_deref()
+                        .and_then(|dir| find_real_exe(&name, dir))
+                        .unwrap_or(target.clone())
+                } else {
+                    target.clone()
+                };
+
+                let icon = get_app_icon(&name, Some(&real_exe), install_dir.as_deref());
 
                 apps.push(InstalledApp {
                     name,
-                    exe_path: Some(target.clone()),
-                    path: target.to_string(),
+                    exe_path: Some(real_exe.clone()),
+                    path: real_exe,
                     icon,
                 });
             }

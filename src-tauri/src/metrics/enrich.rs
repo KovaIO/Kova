@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
-use crate::processes::{get_process_icon, FlatProcess, ProcessMeta, ProcessSnapshot};
+use crate::apps::get_process_icon;
+use crate::processes::{FlatProcess, ProcessMeta, ProcessSnapshot};
 
 pub fn enrich_process_snapshots(
     snapshots: &[ProcessSnapshot],

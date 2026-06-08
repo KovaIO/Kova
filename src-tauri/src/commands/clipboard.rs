@@ -5,8 +5,7 @@ use tauri_plugin_opener::OpenerExt;
 use crate::{
     app_state::AppState,
     clipboard::{
-        get_installed_apps,
-        models::{ClipboardContentType, ClipboardItem, InstalledApp},
+        models::{ClipboardContentType, ClipboardItem},
         paste::simulate_paste,
         watcher::{
             clear_history_files, delete_item_files, remember_image_signature, remember_text,
@@ -16,11 +15,6 @@ use crate::{
 
 #[cfg(target_os = "windows")]
 use crate::clipboard::paste::set_image_to_clipboard_delayed;
-
-#[tauri::command]
-pub fn get_apps() -> Vec<InstalledApp> {
-    get_installed_apps()
-}
 
 #[tauri::command]
 pub fn get_clipboard_history(

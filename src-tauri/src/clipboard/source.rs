@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use crate::clipboard::models::{InstalledApp, SourceApp};
+use crate::{apps::InstalledApp, clipboard::models::SourceApp};
 
 pub fn get_foreground_app() -> Option<SourceApp> {
     #[cfg(target_os = "windows")]

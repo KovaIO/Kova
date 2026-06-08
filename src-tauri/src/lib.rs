@@ -1,4 +1,5 @@
 mod app_state;
+mod apps;
 mod clipboard;
 mod commands;
 mod license;

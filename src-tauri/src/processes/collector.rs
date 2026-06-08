@@ -2,7 +2,10 @@ use std::collections::HashMap;
 
 use sysinfo::System;
 
-use crate::processes::{get_process_icon, FlatProcess, ProcessMeta};
+use crate::{
+    apps::get_process_icon,
+    processes::{FlatProcess, ProcessMeta},
+};
 
 pub fn collect_processes(
     sys: &System,

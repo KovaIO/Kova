@@ -2,12 +2,12 @@ use rusqlite::{params, Connection, Result};
 use std::path::PathBuf;
 
 use crate::{
-    clipboard::models::InstalledApp,
+    apps::get_process_icon,
+    apps::InstalledApp,
     preferences::{
         AppearancePreferences, ClipboardPreferences, GeneralPreferences, PowerPreferences,
         Preferences, Shortcut,
     },
-    processes::get_process_icon,
 };
 
 pub struct PreferencesStorage {

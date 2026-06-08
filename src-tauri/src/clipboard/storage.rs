@@ -3,8 +3,8 @@ use std::path::{Path, PathBuf};
 use rusqlite::{params, Connection, Result};
 
 use crate::{
+    apps::get_process_icon,
     clipboard::models::{ClipboardContentType, ClipboardItem},
-    processes::get_process_icon,
 };
 
 pub struct ClipboardStorage {
