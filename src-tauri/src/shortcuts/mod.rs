@@ -12,6 +12,7 @@ use std::{
 
 use crate::{
     app_state::AppState,
+    license::LicenseTier,
     preferences::ShortcutAction,
     windows::{hide_window, open_window, toggle_window},
     AppTrayIcon, IsOpen,
@@ -66,11 +67,20 @@ pub fn load_shortcuts(
 }
 
 pub fn handle_action(app: &tauri::AppHandle, action: &ShortcutAction) {
+    let state = app.state::<AppState>();
     match action {
         ShortcutAction::OpenClipboardHistory => {
             toggle_window(app, "clipboard");
         }
         ShortcutAction::ApplyWorkspace => {
+            let tier = match state.license.tier() {
+                Ok(t) => t,
+                Err(_) => return,
+            };
+            if tier != LicenseTier::Pro {
+                return;
+            }
+
             let app_handle = app.clone();
 
             tauri::async_runtime::spawn(async move {
@@ -81,14 +91,18 @@ pub fn handle_action(app: &tauri::AppHandle, action: &ShortcutAction) {
                     Err(_) => return,
                 };
 
-                let Some(profile) = profiles.first() else {
+                if profiles.is_empty() {
                     return;
-                };
+                }
 
-                let _ = state
-                    .workspaces
-                    .apply_profile(&profile.id, &app_handle)
-                    .await;
+                if profiles.len() == 1 {
+                    let _ = state
+                        .workspaces
+                        .apply_profile(&profiles[0].id, &app_handle)
+                        .await;
+                } else {
+                    toggle_window(&app_handle, "profiles");
+                }
             });
         }
         ShortcutAction::OpenMonitor => {

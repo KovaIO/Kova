@@ -214,8 +214,10 @@ pub fn run() {
             if let Some(process) = app.get_webview_window("process") {
                 windows::attach_focus_hide(process);
             }
-
             if let Some(clippy) = app.get_webview_window("clipboard") {
+                windows::attach_focus_hide(clippy);
+            }
+            if let Some(clippy) = app.get_webview_window("profiles") {
                 windows::attach_focus_hide(clippy);
             }
 

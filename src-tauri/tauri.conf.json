@@ -37,7 +37,8 @@
         "resizable": false,
         "shadow": false,
         "transparent": true,
-        "devtools": false
+        "devtools": false,
+        "center": true
       },
       {
         "url": "/monitor",
@@ -74,6 +75,21 @@
         "label": "clipboard",
         "width": 380,
         "height": 720,
+        "decorations": false,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "visible": false,
+        "resizable": false,
+        "shadow": false,
+        "transparent": true,
+        "devtools": false,
+        "center": true
+      },
+      {
+        "url": "/profiles",
+        "label": "profiles",
+        "width": 380,
+        "height": 380,
         "decorations": false,
         "alwaysOnTop": true,
         "skipTaskbar": true,
