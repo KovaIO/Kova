@@ -16,5 +16,7 @@ pub struct WorkspaceApp {
 pub struct WorkspaceProfile {
     pub id: String,
     pub name: String,
+    #[serde(default)]
+    pub gap: u32,
     pub apps: Vec<WorkspaceApp>,
 }

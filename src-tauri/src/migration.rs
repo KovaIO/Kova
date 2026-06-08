@@ -53,7 +53,8 @@ pub fn run_migrations(conn: &Connection) -> Result<()> {
 
         CREATE TABLE IF NOT EXISTS workspace_profiles (
             id TEXT PRIMARY KEY,
-            name TEXT NOT NULL
+            name TEXT NOT NULL,
+            gap INTEGER NOT NULL DEFAULT 0
         );
 
         CREATE TABLE IF NOT EXISTS workspace_apps (

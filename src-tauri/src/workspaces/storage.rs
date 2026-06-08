@@ -15,18 +15,23 @@ impl WorkspaceStorage {
     pub fn load_profiles(&self) -> Result<Vec<WorkspaceProfile>> {
         let mut stmt = self
             .conn
-            .prepare("SELECT id, name FROM workspace_profiles ORDER BY name")?;
+            .prepare("SELECT id, name, gap FROM workspace_profiles ORDER BY name")?;
         let rows = stmt.query_map([], |row| {
-            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, u32>(2)?,
+            ))
         })?;
 
         let mut profiles = Vec::new();
         for row in rows {
-            let (id, name) = row?;
+            let (id, name, gap) = row?;
             profiles.push(WorkspaceProfile {
                 apps: self.load_apps(&id)?,
                 id,
                 name,
+                gap,
             });
         }
         Ok(profiles)
@@ -34,16 +39,17 @@ impl WorkspaceStorage {
 
     pub fn load_profile(&self, profile_id: &str) -> Result<Option<WorkspaceProfile>> {
         let result = self.conn.query_row(
-            "SELECT id, name FROM workspace_profiles WHERE id = ?1",
+            "SELECT id, name, gap FROM workspace_profiles WHERE id = ?1",
             [profile_id],
-            |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
+            |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?, row.get::<_, u32>(2)?)),
         );
 
         match result {
-            Ok((id, name)) => Ok(Some(WorkspaceProfile {
+            Ok((id, name, gap)) => Ok(Some(WorkspaceProfile {
                 apps: self.load_apps(&id)?,
                 id,
                 name,
+                gap,
             })),
             Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
             Err(e) => Err(e),
@@ -77,9 +83,9 @@ impl WorkspaceStorage {
         let tx = self.conn.unchecked_transaction()?;
 
         tx.execute(
-            "INSERT OR REPLACE INTO workspace_profiles (id, name)
-             VALUES (?1, ?2)",
-            params![profile.id, profile.name],
+            "INSERT OR REPLACE INTO workspace_profiles (id, name, gap)
+             VALUES (?1, ?2, ?3)",
+            params![profile.id, profile.name, profile.gap],
         )?;
 
         tx.execute(

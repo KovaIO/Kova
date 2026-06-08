@@ -79,18 +79,19 @@ pub struct WindowRect {
     pub height: f64,
 }
 
-pub fn resolve_rect(app: &AppHandle, fx: f32, fy: f32, fw: f32, fh: f32) -> Option<WindowRect> {
+pub fn resolve_rect(app: &AppHandle, fx: f32, fy: f32, fw: f32, fh: f32, gap: u32) -> Option<WindowRect> {
     let window = app.get_webview_window("home")?;
     let monitor = window.primary_monitor().ok()??;
 
     let area = monitor.work_area();
     let sw = area.size.width as f64;
     let sh = area.size.height as f64;
+    let g = gap as f64;
 
     Some(WindowRect {
-        x: area.position.x as f64 + fx as f64 * sw,
-        y: area.position.y as f64 + fy as f64 * sh,
-        width: fw as f64 * sw,
-        height: fh as f64 * sh,
+        x: area.position.x as f64 + fx as f64 * sw + g,
+        y: area.position.y as f64 + fy as f64 * sh + g,
+        width: fw as f64 * sw - g * 2.0,
+        height: fh as f64 * sh - g * 2.0,
     })
 }
