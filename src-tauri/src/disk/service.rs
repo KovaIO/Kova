@@ -85,7 +85,6 @@ impl DiskService {
         .map(|category| ScanPreviewCategory {
             label: category.label().to_string(),
             description: category_description(category),
-            target_count: counts.get(&category).copied().unwrap_or(0),
             category,
         })
         .collect();

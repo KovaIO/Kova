@@ -22,7 +22,6 @@ export interface ScanPreviewCategory {
   category: DiskCategory;
   label: string;
   description: string;
-  target_count: number;
 }
 
 export interface ScanPreview {
