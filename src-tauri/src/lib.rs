@@ -17,7 +17,10 @@ use std::sync::{
     Arc,
 };
 
-use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent};
+use tauri::{
+    tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent},
+    Emitter,
+};
 use tauri::{Manager, WindowEvent};
 use tauri_plugin_positioner::{Position, WindowExt};
 
@@ -29,9 +32,8 @@ use commands::{
     get_license, get_preferences, get_process_history, get_snapshot, get_workspace_profile,
     get_workspace_profiles, open_clipboard_url, open_monitor, open_preferences, open_process,
     paste_clipboard_item, paste_plain_clipboard_item, preview_clipboard_item, quit_process_cmd,
-    reveal_clipboard_item, save_workspace_profile, start_disk_scan,
-    update_appearance_preferences, update_clipboard_preferences, update_general_preferences,
-    update_shortcuts,
+    reveal_clipboard_item, save_workspace_profile, start_disk_scan, update_appearance_preferences,
+    update_clipboard_preferences, update_general_preferences, update_shortcuts,
 };
 
 use clipboard::start_clipboard_watcher;
@@ -116,6 +118,21 @@ pub fn run() {
             let app_state = initialize_app_state(app)?;
 
             app.manage(app_state.clone());
+
+            let app_handle = app.handle().clone();
+            let license_service = app_state.license.clone();
+
+            tauri::async_runtime::spawn(async move {
+                match license_service.verify_if_needed().await {
+                    Ok(Some(info)) => {
+                        app_handle.emit("license-updated", &info).ok();
+                    }
+                    Ok(None) => {}
+                    Err(err) => {
+                        eprintln!("license verification failed: {}", err);
+                    }
+                }
+            });
 
             let shortcut_map = load_shortcuts(app, app_state.clone())?;
 

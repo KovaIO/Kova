@@ -1,9 +1,6 @@
 use tauri::{AppHandle, Emitter, State};
 
-use crate::{
-    app_state::AppState,
-    license::{LicenseInfo, LicenseTier},
-};
+use crate::{app_state::AppState, license::LicenseInfo};
 
 #[tauri::command]
 pub fn get_license(state: State<AppState>) -> Result<LicenseInfo, String> {
@@ -11,11 +8,21 @@ pub fn get_license(state: State<AppState>) -> Result<LicenseInfo, String> {
 }
 
 #[tauri::command]
-pub fn activate_license(app: AppHandle, state: State<AppState>) -> Result<LicenseInfo, String> {
+pub async fn activate_license(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    email: String,
+) -> Result<LicenseInfo, String> {
+    let device_name = whoami::devicename().map_err(|e| e.to_string())?;
+
+    let platform = std::env::consts::OS.to_string();
+
     let info = state
         .license
-        .set_tier(LicenseTier::Pro)
-        .map_err(|e| e.to_string())?;
+        .activate_license(email, device_name, platform)
+        .await?;
+
     app.emit("license-updated", &info).ok();
+
     Ok(info)
 }

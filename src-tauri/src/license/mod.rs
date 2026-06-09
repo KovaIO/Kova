@@ -1,3 +1,4 @@
+pub mod client;
 pub mod limits;
 pub mod models;
 pub mod service;

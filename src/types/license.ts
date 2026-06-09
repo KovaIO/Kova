@@ -10,7 +10,11 @@ export interface LicenseLimits {
 }
 
 export interface LicenseInfo {
+  device_id: string;
+  email: string | null;
   tier: LicenseTier;
+  activated_at: number | null;
+  last_verified_at: number | null;
   limits: LicenseLimits;
 }
 

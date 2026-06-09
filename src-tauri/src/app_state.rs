@@ -5,7 +5,7 @@ use tauri::{AppHandle, Emitter, Manager};
 use crate::{
     clipboard::{ClipboardService, ClipboardStorage},
     disk::{DiskService, DiskStorage},
-    license::{LicenseService, LicenseStorage},
+    license::{client::LicenseClient, LicenseService, LicenseStorage},
     migration::run_migrations,
     preferences::{service::PreferencesService, PreferencesStorage},
     workspaces::{WorkspaceService, WorkspaceStorage},
@@ -66,7 +66,12 @@ pub fn initialize_app_state(app: &tauri::App) -> Result<AppState, Box<dyn std::e
     let storage = PreferencesStorage::new(db_path.clone())?;
     run_migrations(storage.connection())?;
 
-    let license = Arc::new(LicenseService::new(LicenseStorage::new(db_path.clone())?));
+    let license_client = LicenseClient::new("http://localhost:8000/");
+
+    let license = Arc::new(LicenseService::new(
+        LicenseStorage::new(db_path.clone())?,
+        license_client,
+    ));
     let clipboard = Arc::new(ClipboardService::new(ClipboardStorage::new(
         db_path.clone(),
     )?));

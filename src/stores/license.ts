@@ -10,6 +10,11 @@ export async function loadLicense() {
   license.set(info);
 }
 
+export async function activateLicense(email: string) {
+  const info = await invoke<LicenseInfo>("activate_license", { email });
+  license.set(info);
+}
+
 export function isPro(info: LicenseInfo | null): boolean {
   return info?.tier === "pro";
 }

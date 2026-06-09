@@ -1,8 +1,28 @@
 <script lang="ts">
     import PreferencesSection from "../PreferencesSection.svelte";
-    import { license } from "$stores/license";
+    import { activateLicense, license } from "$stores/license";
+    import { openUrl } from "@tauri-apps/plugin-opener";
 
-    $: tierLabel = $license?.tier === "pro" ? "Pro" : "Free";
+    let email = "";
+
+    $: isPro = $license?.tier === "pro";
+
+    async function upgrade() {
+        openUrl("http://localhost:3000/#pricing");
+    }
+
+    async function activate() {
+        if (!email.trim()) return;
+
+        await activateLicense(email);
+        email = "";
+    }
+
+    function formatTimestamp(ts?: number | null) {
+        if (!ts) return "-";
+
+        return new Date(ts * 1000).toLocaleString();
+    }
 </script>
 
 <PreferencesSection
@@ -12,10 +32,50 @@
     <div class="license-info">
         <div class="license-item">
             <span class="license-label">Plan</span>
-            <span class="license-value" class:pro={$license?.tier === "pro"}>
-                {tierLabel}
-            </span>
+            {#if isPro}
+                <span class="license-value pro">Pro</span>
+            {:else}
+                <button class="link-button" on:click={upgrade}>
+                    Upgrade to Pro
+                </button>
+            {/if}
         </div>
+        {#if isPro}
+            <div class="license-item">
+                <span class="license-label">Email</span>
+                <span class="license-value">
+                    {$license?.email}
+                </span>
+            </div>
+
+            <div class="license-item">
+                <span class="license-label">Device ID</span>
+                <span class="license-value">
+                    {$license?.device_id}
+                </span>
+            </div>
+
+            <div class="license-item">
+                <span class="license-label">Activated</span>
+                <span class="license-value">
+                    {formatTimestamp($license?.activated_at)}
+                </span>
+            </div>
+        {:else}
+            <div class="license-item">
+                <div class="license-label">Already purchased?</div>
+                <div class="activation">
+                    <input
+                        bind:value={email}
+                        type="email"
+                        placeholder="Enter purchase email"
+                    />
+                    <button class="activate-button" on:click={activate}>
+                        Activate License
+                    </button>
+                </div>
+            </div>
+        {/if}
         <div class="license-item">
             <span class="license-label">Version</span>
             <span class="license-value">0.1.0</span>
@@ -54,5 +114,39 @@
 
     .license-value.pro {
         color: var(--color-accent);
+    }
+
+    .activation {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .activation input {
+        width: 220px;
+        padding: 6px 10px;
+        background: transparent;
+        border: 1px solid var(--color-border-subtle);
+        border-radius: var(--radius-sm);
+        color: var(--color-text-primary);
+    }
+
+    .link-button {
+        border: none;
+        background: none;
+        color: var(--color-accent);
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .activate-button {
+        padding: 6px 12px;
+
+        border: 1px solid var(--color-border-subtle);
+        border-radius: var(--radius-sm);
+
+        background: var(--color-accent);
+        color: var(--color-accent-text);
     }
 </style>

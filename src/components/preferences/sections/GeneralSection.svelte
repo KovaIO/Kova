@@ -15,27 +15,14 @@
         { value: "de", label: "German" },
     ] as const;
 
-    const THEMES: { value: GeneralPreferences["theme"]; label: string }[] = [
-        { value: "dark", label: "Dark" },
-        { value: "light", label: "Light" },
-        { value: "system", label: "System" },
-    ];
-
     $: general = $preferences?.general;
     $: monitorDim = general?.monitor_dim ?? 90;
     $: language = general?.language ?? "en";
-    $: theme = general?.theme ?? "system";
     $: monitorDimmingEnabled = canUse("monitor_dimming", $license);
 
     function onLanguageChange(event: Event) {
         const value = (event.target as HTMLSelectElement).value;
         updateGeneral({ language: value });
-    }
-
-    function onThemeChange(event: Event) {
-        const value = (event.target as HTMLSelectElement)
-            .value as GeneralPreferences["theme"];
-        updateGeneral({ theme: value });
     }
 </script>
 
@@ -93,17 +80,6 @@
     >
         <select class="select" value={language} on:change={onLanguageChange}>
             {#each LANGUAGES as option}
-                <option value={option.value}>{option.label}</option>
-            {/each}
-        </select>
-    </PreferenceItem>
-
-    <PreferenceItem
-        label="Theme"
-        description="Choose between light and dark mode"
-    >
-        <select class="select" value={theme} on:change={onThemeChange}>
-            {#each THEMES as option}
                 <option value={option.value}>{option.label}</option>
             {/each}
         </select>

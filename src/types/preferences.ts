@@ -10,7 +10,6 @@ export interface GeneralPreferences {
   launch_at_startup: boolean;
   show_menu_bar: boolean;
   language: string;
-  theme: "dark" | "light" | "system";
   monitor_dim: number;
 }
 

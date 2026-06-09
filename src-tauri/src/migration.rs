@@ -1,6 +1,6 @@
-use rusqlite::{params, Connection, Result};
-
 use crate::preferences::Preferences;
+use rusqlite::{params, Connection, Result};
+use uuid::Uuid;
 
 pub fn run_migrations(conn: &Connection) -> Result<()> {
     conn.execute_batch(
@@ -73,7 +73,11 @@ pub fn run_migrations(conn: &Connection) -> Result<()> {
         );
 
         CREATE TABLE IF NOT EXISTS license (
-            tier TEXT NOT NULL DEFAULT 'free'
+            device_id TEXT NOT NULL,
+            email TEXT,
+            tier TEXT NOT NULL DEFAULT 'free',
+            activated_at INTEGER,
+            last_verified_at INTEGER
         );
         ",
     )?;
@@ -138,15 +142,17 @@ fn seed_defaults(conn: &Connection) -> Result<()> {
         )?;
     }
 
+    let device_id = Uuid::new_v4().to_string();
+
     conn.execute(
         "
-        INSERT INTO license (tier)
-        SELECT 'free'
+        INSERT INTO license (device_id, tier)
+        SELECT ?1, 'free'
         WHERE NOT EXISTS (
             SELECT 1 FROM license
         )
         ",
-        [],
+        params![device_id],
     )?;
 
     Ok(())

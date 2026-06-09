@@ -21,6 +21,19 @@ pub struct LicenseLimits {
 pub struct LicenseInfo {
     pub tier: LicenseTier,
     pub limits: LicenseLimits,
+    pub device_id: String,
+    pub email: Option<String>,
+    pub activated_at: Option<i64>,
+    pub last_verified_at: Option<i64>,
+}
+
+#[derive(Debug, Clone)]
+pub struct StoredLicense {
+    pub device_id: String,
+    pub email: Option<String>,
+    pub tier: LicenseTier,
+    pub activated_at: Option<i64>,
+    pub last_verified_at: Option<i64>,
 }
 
 impl LicenseTier {
@@ -37,4 +50,27 @@ impl LicenseTier {
             _ => "pro",
         }
     }
+}
+
+#[derive(Debug, Serialize)]
+pub struct ActivateLicenseRequest {
+    pub email: String,
+    pub device_id: String,
+    pub device_name: String,
+    pub platform: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct VerifyLicenseRequest {
+    pub email: String,
+    pub device_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct LicenseResponse {
+    pub plan: String,
+    pub status: String,
+    pub device_limit: i32,
+    pub active_devices: i32,
+    pub valid: bool,
 }
