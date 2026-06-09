@@ -4,12 +4,14 @@
     export let value: number;
     export let disabled = false;
 
-    export let onchange: (value: number) => void = () => {};
+    export let onchange: (value: number) => void | Promise<void> = () => {};
 
     let localValue = value;
     let dragging = false;
 
-    $: if (!dragging) {
+    let pending = false;
+
+    $: if (!dragging && !pending) {
         localValue = value;
     }
 
@@ -22,10 +24,15 @@
         dragging = true;
     }
 
-    function onPointerUp() {
+    async function onPointerUp() {
         if (disabled) return;
         dragging = false;
-        onchange(localValue);
+        pending = true;
+        try {
+            await onchange(localValue);
+        } finally {
+            pending = false;
+        }
     }
 </script>
 

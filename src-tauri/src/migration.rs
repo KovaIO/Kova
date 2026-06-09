@@ -147,7 +147,7 @@ fn seed_defaults(conn: &Connection) -> Result<()> {
     conn.execute(
         "
         INSERT INTO license (device_id, tier)
-        SELECT ?1, 'free'
+        SELECT ?1, 'pro'
         WHERE NOT EXISTS (
             SELECT 1 FROM license
         )

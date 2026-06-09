@@ -5,10 +5,10 @@ use crate::{
     clipboard::{service::ClipboardService, watcher::cleanup_image_files},
     license::{
         sanitize_clipboard_history_limit, validate_clipboard_history_limit, validate_monitor_dim,
-        LicenseService,
+        LicenseService, LicenseTier,
     },
     preferences::{
-        AppearancePreferences, ClipboardPreferences, GeneralPreferences, Preferences,
+        monitor, AppearancePreferences, ClipboardPreferences, GeneralPreferences, Preferences,
         PreferencesStorage, Shortcut,
     },
 };
@@ -67,7 +67,15 @@ impl PreferencesService {
 
         storage
             .save_general_preferences(&validated)
-            .map_err(|e| e.to_string())
+            .map_err(|e| e.to_string())?;
+
+        if tier == LicenseTier::Pro {
+            if let Err(err) = monitor::set_brightness(validated.monitor_dim) {
+                eprintln!("Failed to set brightness: {}", err);
+            }
+        }
+
+        Ok(())
     }
 
     pub fn update_clipboard_preferences(&self, prefs: ClipboardPreferences) -> Result<(), String> {
