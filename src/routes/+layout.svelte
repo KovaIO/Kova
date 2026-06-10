@@ -26,21 +26,6 @@
     });
 
     onMount(() => {
-        let unlisten: UnlistenFn | undefined;
-
-        (async () => {
-            unlisten = await listen<Preferences>(
-                "preferences-updated",
-                (event) => {
-                    setPreferences(event.payload);
-                },
-            );
-        })();
-
-        return () => unlisten?.();
-    });
-
-    onMount(() => {
         const disableContextMenu = (e: MouseEvent) => {
             e.preventDefault();
         };
