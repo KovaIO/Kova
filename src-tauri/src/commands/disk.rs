@@ -72,7 +72,10 @@ pub async fn delete_all_disk_items(state: State<'_, AppState>) -> Result<u64, St
         .categories
         .iter()
         .flat_map(|group| group.items.iter())
-        .filter(|item| item.safety != crate::disk::models::DiskSafety::Unsafe)
+        .filter(|item| {
+            item.safety != crate::disk::models::DiskSafety::Unsafe
+                && item.action == crate::disk::models::CleanupAction::Delete
+        })
         .map(|item| item.id.clone())
         .collect();
 

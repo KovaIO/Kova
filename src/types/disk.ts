@@ -8,6 +8,8 @@ export type DiskCategory =
 
 export type DiskSafety = "safe" | "caution" | "unsafe";
 
+export type CleanupAction = "delete" | "analyze_only";
+
 export interface DiskVolumeInfo {
   mount_path: string;
   label: string;
@@ -45,6 +47,12 @@ export interface DiskScanItem {
   item_count: number;
   safety: DiskSafety;
   safety_reason: string;
+  requires_virtual_delete: boolean;
+  locks_process: string[];
+  pattern_parent: string | null;
+  pattern_glob: string | null;
+  virtual_type_str: string | null;
+  action: CleanupAction;
 }
 
 export interface DiskCategoryGroup {

@@ -28,6 +28,7 @@
         startDiskScan,
     } from "$services/disk";
     import type {
+        CleanupAction,
         DiskCategory,
         DiskItemDetail,
         DiskScanItem,
@@ -56,9 +57,19 @@
     let expandedCategories = $state(new Set<DiskCategory>());
     let confirmDeleteAll = $state(false);
     let confirmDeleteId: string | null = $state(null);
+    let deleting = $state(false);
     let unlisten: UnlistenFn | undefined;
 
-    let reclaimable = $derived((result as DiskScanResult | null)?.total_reclaimable ?? 0);
+    let reclaimable = $derived(
+        (result as DiskScanResult | null)?.categories
+            .flatMap((g) => g.items)
+            .filter((i) => i.action === "delete" && i.safety !== "unsafe")
+            .reduce((sum, i) => sum + i.size_bytes, 0) ?? 0,
+    );
+
+    function isDeletable(item: DiskScanItem): boolean {
+        return item.action === "delete" && item.safety !== "unsafe";
+    }
 
     async function loadInitial() {
         try {
@@ -99,6 +110,7 @@
     }
 
     async function deleteOne(id: string) {
+        deleting = true;
         try {
             await deleteDiskItems([id]);
         } catch {
@@ -107,6 +119,7 @@
         confirmDeleteId = null;
         result = await fetchDiskScanResult();
         volume = await fetchDiskVolumeInfo();
+        deleting = false;
         if (detail?.item.id === id) {
             detail = null;
             view = result?.categories.length ? "results" : "ready";
@@ -115,6 +128,7 @@
     }
 
     async function deleteAll() {
+        deleting = true;
         try {
             await deleteAllDiskItems();
         } catch {
@@ -123,6 +137,7 @@
         confirmDeleteAll = false;
         result = await fetchDiskScanResult();
         volume = await fetchDiskVolumeInfo();
+        deleting = false;
         view = result?.categories.length ? "results" : "ready";
     }
 
@@ -239,19 +254,21 @@
                     </div>
                 {/if}
 
-                {#if detail.item.safety !== "unsafe"}
+                {#if isDeletable(detail.item)}
                     <div class="detail-actions">
                         {#if confirmDeleteId === detail.item.id}
                             <button
                                 type="button"
                                 class="btn danger"
+                                disabled={deleting}
                                 onclick={() => void deleteOne(detail!.item.id)}
                             >
-                                Confirm delete
+                                {deleting ? "Deleting…" : "Confirm delete"}
                             </button>
                             <button
                                 type="button"
                                 class="btn ghost"
+                                disabled={deleting}
                                 onclick={() => (confirmDeleteId = null)}
                             >
                                 Cancel
@@ -371,23 +388,25 @@
                                                     )}</span
                                                 >
                                             </button>
-                                            {#if item.safety !== "unsafe"}
+                                            {#if isDeletable(item)}
                                                 {#if confirmDeleteId === item.id}
                                                     <button
                                                         type="button"
                                                         class="icon-btn confirm"
+                                                        disabled={deleting}
                                                         onclick={() =>
                                                             void deleteOne(
                                                                 item.id,
                                                             )}
                                                     >
-                                                        OK
+                                                        {deleting ? "…" : "OK"}
                                                     </button>
                                                 {:else}
                                                     <button
                                                         type="button"
                                                         class="icon-btn"
                                                         title="Delete"
+                                                        disabled={deleting}
                                                         onclick={() =>
                                                             (confirmDeleteId =
                                                                 item.id)}
@@ -414,13 +433,15 @@
                             <button
                                 type="button"
                                 class="btn danger"
+                                disabled={deleting}
                                 onclick={() => void deleteAll()}
                             >
-                                Confirm delete all
+                                {deleting ? "Deleting…" : "Confirm delete all"}
                             </button>
                             <button
                                 type="button"
                                 class="btn ghost"
+                                disabled={deleting}
                                 onclick={() => (confirmDeleteAll = false)}
                             >
                                 Cancel
@@ -430,6 +451,7 @@
                         <button
                             type="button"
                             class="btn ghost"
+                            disabled={deleting}
                             onclick={() => void handleScan()}
                         >
                             Scan again
@@ -437,6 +459,7 @@
                         <button
                             type="button"
                             class="btn danger"
+                            disabled={deleting}
                             onclick={() => (confirmDeleteAll = true)}
                         >
                             <Trash2 size={14} />

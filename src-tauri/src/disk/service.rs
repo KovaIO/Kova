@@ -9,12 +9,13 @@ use tauri::{AppHandle, Emitter};
 
 use crate::disk::{
     models::{
-        DiskCategory, DiskCategoryGroup, DiskItemChild, DiskItemDetail, DiskScanItem,
-        DiskScanProgress, DiskScanResult, DiskVolumeInfo, ScanPreview, ScanPreviewCategory,
-        DiskSafety,
+        CleanupAction, DiskCategory, DiskCategoryGroup, DiskItemChild, DiskItemDetail,
+        DiskScanItem, DiskScanProgress, DiskScanResult, DiskSafety, DiskVolumeInfo, ScanPreview,
+        ScanPreviewCategory, ScanTargetKind, VirtualTarget,
     },
     scanner::{
-        dir_size, file_size, is_path_deletable, item_id, list_children, primary_mount_path,
+        dir_size, empty_recycle_bin, file_size, is_any_process_running, is_path_deletable,
+        item_id, list_children, pattern_files, primary_mount_path, recycle_bin_size,
         scan_targets,
     },
     storage::DiskStorage,
@@ -103,15 +104,20 @@ impl DiskService {
             .cloned()
             .ok_or_else(|| "Item not found".to_string())?;
 
-        let children = list_children(Path::new(&item.path), 40)
-            .into_iter()
-            .map(|(name, path, size_bytes, is_dir)| DiskItemChild {
-                name,
-                path: path.to_string_lossy().to_string(),
-                size_bytes,
-                is_dir,
-            })
-            .collect();
+        let children = if item.requires_virtual_delete {
+            // Virtual items don't have browsable children
+            vec![]
+        } else {
+            list_children(Path::new(&item.path), 40)
+                .into_iter()
+                .map(|(name, path, size_bytes, is_dir)| DiskItemChild {
+                    name,
+                    path: path.to_string_lossy().to_string(),
+                    size_bytes,
+                    is_dir,
+                })
+                .collect()
+        };
 
         Ok(DiskItemDetail { item, children })
     }
@@ -146,11 +152,39 @@ impl DiskService {
                 continue;
             }
 
+            // Analyze-only items (Docker, WSL) cannot be deleted
+            if item.action == CleanupAction::AnalyzeOnly {
+                continue;
+            }
+
+            // Check if a blocking process is running
+            if is_any_process_running(&item.locks_process) {
+                continue;
+            }
+
+            // Handle virtual targets (Recycle Bin)
+            if item.requires_virtual_delete {
+                match item.virtual_type() {
+                    Some(VirtualTarget::RecycleBin) => {
+                        match empty_recycle_bin() {
+                            Ok(freed_bytes) => {
+                                freed += freed_bytes;
+                                deleted_ids.push(id.clone());
+                            }
+                            Err(_) => continue,
+                        }
+                    }
+                    _ => continue,
+                }
+                continue;
+            }
+
+            // Check path is within allowed roots
             if !is_path_deletable(Path::new(&item.path), &allowed) {
                 continue;
             }
 
-            match delete_path(Path::new(&item.path)) {
+            match delete_path_by_kind(&item.path, &item.scan_target_kind()) {
                 Ok(()) => {
                     freed += item.size_bytes;
                     deleted_ids.push(id.clone());
@@ -223,16 +257,39 @@ impl DiskService {
                 },
             );
 
-            let path = Path::new(&target.path);
-            if !path.exists() {
-                continue;
-            }
-
-            let (size_bytes, item_count, is_dir) = if path.is_dir() {
-                let (size, count) = dir_size(path, 4);
-                (size, count, true)
-            } else {
-                (file_size(path), 1, false)
+            // Compute size based on target kind
+            let (size_bytes, item_count, is_dir) = match &target.kind {
+                ScanTargetKind::Directory => {
+                    let path = Path::new(&target.path);
+                    if !path.exists() {
+                        continue;
+                    }
+                    let (size, count) = dir_size(path, 4);
+                    (size, count, true)
+                }
+                ScanTargetKind::File => {
+                    let path = Path::new(&target.path);
+                    if !path.exists() {
+                        continue;
+                    }
+                    (file_size(path), 1, false)
+                }
+                ScanTargetKind::Pattern { parent, pattern } => {
+                    let (size, count) = crate::disk::scanner::pattern_size(parent, pattern);
+                    if size == 0 {
+                        continue;
+                    }
+                    (size, count, false)
+                }
+                ScanTargetKind::Virtual { virtual_type } => {
+                    let size = match virtual_type {
+                        VirtualTarget::RecycleBin => recycle_bin_size(),
+                    };
+                    if size == 0 {
+                        continue;
+                    }
+                    (size, 1, true)
+                }
             };
 
             if size_bytes == 0 {
@@ -249,6 +306,21 @@ impl DiskService {
                 item_count,
                 safety: target.safety,
                 safety_reason: target.safety_reason.clone(),
+                requires_virtual_delete: matches!(&target.kind, ScanTargetKind::Virtual { .. }),
+                locks_process: target.locks_process.clone(),
+                pattern_parent: match &target.kind {
+                    ScanTargetKind::Pattern { parent, .. } => Some(parent.clone()),
+                    _ => None,
+                },
+                pattern_glob: match &target.kind {
+                    ScanTargetKind::Pattern { pattern, .. } => Some(pattern.clone()),
+                    _ => None,
+                },
+                virtual_type_str: match &target.kind {
+                    ScanTargetKind::Virtual { virtual_type } => Some(format!("{:?}", virtual_type)),
+                    _ => None,
+                },
+                action: target.action,
             };
 
             let group = groups.entry(target.category).or_insert_with(|| DiskCategoryGroup {
@@ -327,6 +399,42 @@ fn delete_path(path: &Path) -> Result<(), String> {
     // Try removing the now-empty directory
     let _ = std::fs::remove_dir(path);
     Ok(())
+}
+
+/// Delete a path based on its ScanTargetKind.
+fn delete_path_by_kind(path_str: &str, kind: &ScanTargetKind) -> Result<(), String> {
+    match kind {
+        ScanTargetKind::Directory => {
+            let path = Path::new(path_str);
+            if path.is_dir() {
+                delete_path(path)
+            } else {
+                Ok(())
+            }
+        }
+        ScanTargetKind::File => {
+            let path = Path::new(path_str);
+            if path.is_file() {
+                std::fs::remove_file(path).map_err(|e| e.to_string())
+            } else {
+                Ok(())
+            }
+        }
+        ScanTargetKind::Pattern { parent, pattern } => {
+            let files = pattern_files(parent, pattern);
+            let mut last_err = Ok(());
+            for file in &files {
+                if let Err(e) = std::fs::remove_file(file) {
+                    last_err = Err(e.to_string());
+                }
+            }
+            last_err
+        }
+        ScanTargetKind::Virtual { .. } => {
+            // Virtual targets handled separately before reaching here
+            Ok(())
+        }
+    }
 }
 
 /// Recursively deletes all files inside a directory, skipping locked ones.
