@@ -14,7 +14,7 @@ use crate::{
     app_state::AppState,
     license::LicenseTier,
     preferences::ShortcutAction,
-    windows::{hide_window, open_window, toggle_window},
+    windows::{apply_window_density, hide_window, open_window, toggle_window},
     AppTrayIcon, IsOpen,
 };
 
@@ -70,6 +70,7 @@ pub fn handle_action(app: &tauri::AppHandle, action: &ShortcutAction) {
     let state = app.state::<AppState>();
     match action {
         ShortcutAction::OpenClipboardHistory => {
+            apply_window_density(app, "clipboard");
             toggle_window(app, "clipboard");
         }
         ShortcutAction::ApplyWorkspace => {
@@ -106,6 +107,7 @@ pub fn handle_action(app: &tauri::AppHandle, action: &ShortcutAction) {
             });
         }
         ShortcutAction::OpenMonitor => {
+            apply_window_density(app, "monitor");
             toggle_window(app, "monitor");
         }
         ShortcutAction::OpenMenubarPopover => {

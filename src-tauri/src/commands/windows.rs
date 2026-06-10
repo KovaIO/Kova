@@ -11,6 +11,7 @@ pub fn open_monitor(app: AppHandle, tab: Option<String>) {
     if let Some(window) = app.get_webview_window("monitor") {
         let tab = tab.unwrap_or_else(|| "cpu".to_string());
         let _ = window.emit_to("monitor", "set-tab", tab);
+        windows::apply_window_density(&app, "monitor");
         windows::open_window(&app, "monitor");
     }
 }
@@ -24,6 +25,7 @@ pub fn open_process(app: AppHandle, pid: u32, tab: Option<String>) {
             "set-process",
             serde_json::json!({ "pid": pid, "tab": tab }),
         );
+        windows::apply_window_density(&app, "process");
         windows::open_window(&app, "process");
     }
 }

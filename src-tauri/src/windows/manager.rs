@@ -4,6 +4,8 @@ use std::sync::{
 };
 use tauri::{AppHandle, Emitter, Manager, WebviewWindow, WindowEvent};
 
+use crate::preferences::WindowDensity;
+
 pub fn open_window(app: &AppHandle, label: &str) {
     if let Some(window) = app.get_webview_window(label) {
         window.show().ok();
@@ -25,6 +27,35 @@ pub fn toggle_window(app: &AppHandle, label: &str) {
         } else {
             open_window(app, label);
         }
+    }
+}
+
+pub fn apply_window_density(app: &AppHandle, label: &str) {
+    if let Some(window) = app.get_webview_window(label) {
+        let state = app.state::<crate::app_state::AppState>();
+        let prefs = match state.preferences.get_preferences() {
+            Ok(prefs) => prefs,
+            Err(err) => {
+                eprintln!("Failed to get preferences: {err}");
+                return;
+            }
+        };
+
+        let width = match prefs.appearance.window_density {
+            WindowDensity::Wide => 480,
+            WindowDensity::Normal => 380,
+        };
+
+        let current_size = window.inner_size().unwrap();
+        let scale = window.scale_factor().unwrap();
+        let logical_height = (current_size.height as f64 / scale).round() as u32;
+
+        window.set_resizable(true).unwrap();
+        window
+            .set_size(tauri::LogicalSize::new(width, logical_height))
+            .unwrap();
+        window.set_resizable(false).unwrap();
+        window.center().unwrap();
     }
 }
 
@@ -79,7 +110,14 @@ pub struct WindowRect {
     pub height: f64,
 }
 
-pub fn resolve_rect(app: &AppHandle, fx: f32, fy: f32, fw: f32, fh: f32, gap: u32) -> Option<WindowRect> {
+pub fn resolve_rect(
+    app: &AppHandle,
+    fx: f32,
+    fy: f32,
+    fw: f32,
+    fh: f32,
+    gap: u32,
+) -> Option<WindowRect> {
     let window = app.get_webview_window("home")?;
     let monitor = window.primary_monitor().ok()??;
 

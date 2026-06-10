@@ -134,7 +134,7 @@ impl ToSql for AccentColor {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum WindowDensity {
     Normal,
