@@ -99,7 +99,11 @@
     }
 
     async function deleteOne(id: string) {
-        await deleteDiskItems([id]);
+        try {
+            await deleteDiskItems([id]);
+        } catch {
+            /* some files may be locked */
+        }
         confirmDeleteId = null;
         result = await fetchDiskScanResult();
         volume = await fetchDiskVolumeInfo();
@@ -111,11 +115,15 @@
     }
 
     async function deleteAll() {
-        await deleteAllDiskItems();
+        try {
+            await deleteAllDiskItems();
+        } catch {
+            /* some files may be locked */
+        }
         confirmDeleteAll = false;
         result = await fetchDiskScanResult();
         volume = await fetchDiskVolumeInfo();
-        view = "ready";
+        view = result?.categories.length ? "results" : "ready";
     }
 
     function categoryIcon(category: DiskCategory) {

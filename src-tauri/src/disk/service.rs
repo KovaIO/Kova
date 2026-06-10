@@ -64,15 +64,6 @@ impl DiskService {
     }
 
     pub fn scan_preview(&self) -> ScanPreview {
-        let targets = scan_targets();
-        let mut counts: HashMap<DiskCategory, u32> = HashMap::new();
-
-        for target in &targets {
-            if Path::new(&target.path).exists() {
-                *counts.entry(target.category).or_default() += 1;
-            }
-        }
-
         let categories = [
             DiskCategory::System,
             DiskCategory::Browsers,
@@ -125,7 +116,14 @@ impl DiskService {
         Ok(DiskItemDetail { item, children })
     }
 
-    pub fn delete_items(&self, ids: &[String]) -> Result<u64, String> {
+    pub async fn delete_items(self: &Arc<Self>, ids: Vec<String>) -> Result<u64, String> {
+        let this = Arc::clone(self);
+        tokio::task::spawn_blocking(move || this.delete_items_blocking(&ids))
+            .await
+            .map_err(|e| e.to_string())?
+    }
+
+    fn delete_items_blocking(&self, ids: &[String]) -> Result<u64, String> {
         let result = self
             .get_scan_result()
             .ok_or_else(|| "No scan results available".to_string())?;
@@ -152,8 +150,13 @@ impl DiskService {
                 continue;
             }
 
-            freed += delete_path(Path::new(&item.path))?;
-            deleted_ids.push(id.clone());
+            match delete_path(Path::new(&item.path)) {
+                Ok(()) => {
+                    freed += item.size_bytes;
+                    deleted_ids.push(id.clone());
+                }
+                Err(_) => continue,
+            }
         }
 
         if deleted_ids.is_empty() {
@@ -308,16 +311,53 @@ fn find_item<'a>(result: &'a DiskScanResult, id: &str) -> Option<&'a DiskScanIte
         .find(|item| item.id == id)
 }
 
-fn delete_path(path: &Path) -> Result<u64, String> {
-    if path.is_dir() {
-        let (size, _) = dir_size(path, 8);
-        std::fs::remove_dir_all(path).map_err(|e| e.to_string())?;
-        Ok(size)
-    } else {
-        let size = file_size(path);
-        std::fs::remove_file(path).map_err(|e| e.to_string())?;
-        Ok(size)
+fn delete_path(path: &Path) -> Result<(), String> {
+    if path.is_file() {
+        return std::fs::remove_file(path).map_err(|e| e.to_string());
     }
+
+    // Try fast removal first
+    if std::fs::remove_dir_all(path).is_ok() {
+        return Ok(());
+    }
+
+    // Fallback: delete files one by one, skip locked ones
+    delete_dir_contents(path)?;
+
+    // Try removing the now-empty directory
+    let _ = std::fs::remove_dir(path);
+    Ok(())
+}
+
+/// Recursively deletes all files inside a directory, skipping locked ones.
+/// After files are deleted, tries to remove empty subdirectories.
+fn delete_dir_contents(dir: &Path) -> Result<(), String> {
+    let mut stack = vec![dir.to_path_buf()];
+
+    while let Some(current) = stack.pop() {
+        let Ok(entries) = std::fs::read_dir(&current) else {
+            continue;
+        };
+
+        let mut subdirs = Vec::new();
+
+        for entry in entries.flatten() {
+            let entry_path = entry.path();
+            if entry_path.is_dir() {
+                subdirs.push(entry_path);
+            } else {
+                // Try to delete file, skip if locked
+                let _ = std::fs::remove_file(&entry_path);
+            }
+        }
+
+        // Process subdirectories depth-first
+        for sub in subdirs {
+            stack.push(sub);
+        }
+    }
+
+    Ok(())
 }
 
 fn volume_label() -> String {

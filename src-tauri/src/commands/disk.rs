@@ -51,13 +51,16 @@ pub async fn start_disk_scan(
 }
 
 #[tauri::command]
-pub fn delete_disk_items(state: State<AppState>, ids: Vec<String>) -> Result<u64, String> {
+pub async fn delete_disk_items(
+    state: State<'_, AppState>,
+    ids: Vec<String>,
+) -> Result<u64, String> {
     ensure_disk_clean(&state)?;
-    state.disk.delete_items(&ids)
+    state.disk.delete_items(ids).await
 }
 
 #[tauri::command]
-pub fn delete_all_disk_items(state: State<AppState>) -> Result<u64, String> {
+pub async fn delete_all_disk_items(state: State<'_, AppState>) -> Result<u64, String> {
     ensure_disk_clean(&state)?;
 
     let result = state
@@ -73,5 +76,5 @@ pub fn delete_all_disk_items(state: State<AppState>) -> Result<u64, String> {
         .map(|item| item.id.clone())
         .collect();
 
-    state.disk.delete_items(&ids)
+    state.disk.delete_items(ids).await
 }

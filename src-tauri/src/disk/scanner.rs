@@ -130,7 +130,6 @@ fn windows_targets(out: &mut Vec<ScanTarget>) {
 
     // ── System (hardcoded) ──────────────────────────────────
     push_dir(out, DiskCategory::System, "User Temp", &temp, DiskSafety::Safe, "Temporary files recreated by apps as needed.");
-    push_dir(out, DiskCategory::System, "Local Temp", &format!(r"{local}\Temp"), DiskSafety::Safe, "Local temporary files safe to remove while apps are closed.");
     push_dir(out, DiskCategory::System, "Windows Temp", r"C:\Windows\Temp", DiskSafety::Caution, "System temp folder. Close apps before cleaning.");
     push_dir(out, DiskCategory::System, "Windows Prefetch", r"C:\Windows\Prefetch", DiskSafety::Caution, "Prefetch cache. Windows rebuilds it as you launch apps.");
     push_dir(out, DiskCategory::System, "Windows SoftwareDistribution", r"C:\Windows\SoftwareDistribution\Download", DiskSafety::Caution, "Downloaded Windows Update files. Safe after updates are installed.");
