@@ -3,7 +3,8 @@
     import "../global.css";
     import { listen, type UnlistenFn } from "@tauri-apps/api/event";
     import { loadPreferences, setPreferences } from "$stores/preferences";
-    import { loadLicense } from "$stores/license";
+    import { license, loadLicense } from "$stores/license";
+    import type { LicenseInfo } from "$types/license";
     import type { Preferences } from "$types/preferences";
 
     onMount(async () => {
@@ -18,7 +19,9 @@
                 listen<Preferences>("preferences-updated", (e) =>
                     setPreferences(e.payload),
                 ),
-                // listen<LicenseInfo>("license-updated", (e) => license.set(e.payload)),
+                listen<LicenseInfo>("license-updated", (e) =>
+                    license.set(e.payload),
+                ),
             ]);
         })();
 
