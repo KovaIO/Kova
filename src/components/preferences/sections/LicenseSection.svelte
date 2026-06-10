@@ -1,14 +1,15 @@
 <script lang="ts">
     import PreferencesSection from "../PreferencesSection.svelte";
-    import { activateLicense, license } from "$stores/license";
+    import { activateLicense, getPortalUrl, license } from "$stores/license";
     import { openUrl } from "@tauri-apps/plugin-opener";
 
     let email = "";
+    let loadingPortal = false;
 
     $: isPro = $license?.tier === "pro";
 
     async function upgrade() {
-        openUrl("http://localhost:3000/#pricing");
+        openUrl("https://appkova.com/#pricing");
     }
 
     async function activate() {
@@ -16,6 +17,18 @@
 
         await activateLicense(email);
         email = "";
+    }
+
+    async function manageSubscription() {
+        loadingPortal = true;
+        try {
+            const url = await getPortalUrl();
+            openUrl(url);
+        } catch (e) {
+            console.error("failed to get portal URL:", e);
+        } finally {
+            loadingPortal = false;
+        }
     }
 
     function formatTimestamp(ts?: number | null) {
@@ -60,6 +73,17 @@
                 <span class="license-value">
                     {formatTimestamp($license?.activated_at)}
                 </span>
+            </div>
+
+            <div class="license-item">
+                <span class="license-label">Subscription</span>
+                <button
+                    class="portal-button"
+                    on:click={manageSubscription}
+                    disabled={loadingPortal}
+                >
+                    {loadingPortal ? "Loading..." : "Manage Subscription"}
+                </button>
             </div>
         {:else}
             <div class="license-item">
@@ -148,5 +172,27 @@
 
         background: var(--color-accent);
         color: var(--color-accent-text);
+    }
+
+    .portal-button {
+        padding: 6px 12px;
+        font-size: 13px;
+        font-weight: 600;
+
+        border: 1px solid var(--color-border-subtle);
+        border-radius: var(--radius-sm);
+
+        background: transparent;
+        color: var(--color-accent);
+        cursor: pointer;
+    }
+
+    .portal-button:hover {
+        background: var(--color-surface-elevated);
+    }
+
+    .portal-button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
     }
 </style>

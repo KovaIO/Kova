@@ -59,4 +59,32 @@ impl LicenseClient {
             .await
             .map_err(|e| e.to_string())
     }
+
+    pub async fn get_portal_url(&self, email: &str) -> Result<String, String> {
+        let url = format!("{}/api/portal", self.base_url);
+
+        let res = self
+            .client
+            .post(url)
+            .json(&serde_json::json!({ "email": email }))
+            .send()
+            .await
+            .map_err(|e| e.to_string())?;
+
+        if !res.status().is_success() {
+            let body = res.text().await.unwrap_or_default();
+
+            return Err(format!("portal session failed: {}", body));
+        }
+
+        let json: serde_json::Value = res
+            .json()
+            .await
+            .map_err(|e| e.to_string())?;
+
+        json["portal_url"]
+            .as_str()
+            .map(String::from)
+            .ok_or_else(|| "missing portal_url in response".to_string())
+    }
 }

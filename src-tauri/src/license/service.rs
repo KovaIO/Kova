@@ -154,4 +154,14 @@ impl LicenseService {
 
         Ok(Some(info))
     }
+
+    pub async fn get_portal_url(&self) -> Result<String, String> {
+        let email = {
+            let storage = self.storage.lock().unwrap();
+            let license = storage.load_license().map_err(|e| e.to_string())?;
+            license.email.ok_or_else(|| "no email on file".to_string())?
+        };
+
+        self.client.get_portal_url(&email).await
+    }
 }

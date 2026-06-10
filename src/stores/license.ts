@@ -15,6 +15,10 @@ export async function activateLicense(email: string) {
   license.set(info);
 }
 
+export async function getPortalUrl(): Promise<string> {
+  return invoke<string>("get_portal_url");
+}
+
 export function isPro(info: LicenseInfo | null): boolean {
   return info?.tier === "pro";
 }

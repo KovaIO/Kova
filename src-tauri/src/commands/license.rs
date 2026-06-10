@@ -26,3 +26,8 @@ pub async fn activate_license(
 
     Ok(info)
 }
+
+#[tauri::command]
+pub async fn get_portal_url(state: State<'_, AppState>) -> Result<String, String> {
+    state.license.get_portal_url().await
+}
