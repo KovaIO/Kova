@@ -1,188 +1,205 @@
+#[cfg(target_os = "windows")]
 pub fn set_brightness(percent: u8) -> Result<(), String> {
+    use std::ffi::c_void;
+    use windows::Win32::{
+        Devices::Display::{DISPLAY_BRIGHTNESS, IOCTL_VIDEO_SET_DISPLAY_BRIGHTNESS},
+        Foundation::CloseHandle,
+        Graphics::Gdi::{
+            DISPLAY_DEVICE_ACTIVE, DISPLAY_DEVICEW, EnumDisplayDevicesW, EnumDisplayMonitors,
+            GetMonitorInfoW, HDC, HMONITOR, MONITORINFO, MONITORINFOEXW,
+        },
+        Storage::FileSystem::{
+            CreateFileW, FILE_GENERIC_READ, FILE_GENERIC_WRITE, FILE_SHARE_READ, FILE_SHARE_WRITE,
+            OPEN_EXISTING,
+        },
+        System::IO::DeviceIoControl,
+        UI::WindowsAndMessaging::EDD_GET_DEVICE_INTERFACE_NAME,
+    };
+    use windows::Win32::Foundation::{LPARAM, RECT};
+    use windows::core::{BOOL, PCWSTR};
+
     let percent = percent.clamp(0, 100);
 
-    #[cfg(target_os = "windows")]
-    {
-        set_brightness_windows(percent)
+    unsafe extern "system" fn enum_monitors(
+        handle: HMONITOR,
+        _: HDC,
+        _: *mut RECT,
+        data: LPARAM,
+    ) -> BOOL {
+        unsafe { &mut *(data.0 as *mut Vec<HMONITOR>) }.push(handle);
+        BOOL(1)
     }
 
-    #[cfg(target_os = "macos")]
-    {
-        set_brightness_macos(percent)
-    }
-}
-
-#[cfg(target_os = "windows")]
-use std::process::Command;
-use windows::{
-    core::BOOL,
-    Win32::{
-        Foundation::{HANDLE, LPARAM, RECT},
-        Graphics::Gdi::{EnumDisplayMonitors, HDC, HMONITOR},
-    },
-};
-
-#[cfg(target_os = "windows")]
-fn set_brightness_windows(percent: u8) -> Result<(), String> {
-    let internal_result = set_windows_internal(percent);
-
-    let external_result = set_windows_external(percent);
-
-    if internal_result.is_err() && external_result.is_err() {
-        return Err(format!(
-            "Internal: {:?}, External: {:?}",
-            internal_result.err(),
-            external_result.err()
-        ));
-    }
-
-    Ok(())
-}
-
-#[cfg(target_os = "windows")]
-fn set_windows_internal(percent: u8) -> Result<(), String> {
-    let script = format!(
-        "(Get-CimInstance -Namespace root/WMI -ClassName WmiMonitorBrightnessMethods).WmiSetBrightness(1,{})",
-        percent
-    );
-
-    let output = Command::new("powershell")
-        .args(["-NoProfile", "-Command", &script])
-        .output()
-        .map_err(|e| e.to_string())?;
-
-    if !output.status.success() {
-        return Err(String::from_utf8_lossy(&output.stderr).to_string());
-    }
-
-    Ok(())
-}
-
-#[cfg(target_os = "windows")]
-fn set_windows_external(percent: u8) -> Result<(), String> {
+    let mut hmonitors = Vec::<HMONITOR>::new();
     unsafe {
         let _ = EnumDisplayMonitors(
             None,
             None,
-            Some(monitor_enum_proc),
+            Some(enum_monitors),
+            LPARAM(&mut hmonitors as *mut _ as isize),
+        );
+    }
+
+    let mut internal_ok = false;
+
+    for hmonitor in hmonitors {
+        let mut info = MONITORINFOEXW::default();
+        info.monitorInfo.cbSize = std::mem::size_of::<MONITORINFOEXW>() as u32;
+        if unsafe { GetMonitorInfoW(hmonitor, &mut info as *mut _ as *mut MONITORINFO) } == BOOL(0)
+        {
+            continue;
+        }
+
+        for dev_num in 0.. {
+            let mut dev = DISPLAY_DEVICEW {
+                cb: std::mem::size_of::<DISPLAY_DEVICEW>() as u32,
+                ..Default::default()
+            };
+            if unsafe {
+                EnumDisplayDevicesW(
+                    PCWSTR(info.szDevice.as_ptr()),
+                    dev_num,
+                    &mut dev,
+                    EDD_GET_DEVICE_INTERFACE_NAME,
+                )
+            } == BOOL(0)
+            {
+                break;
+            }
+
+            if dev.StateFlags.0 & DISPLAY_DEVICE_ACTIVE.0 == 0 {
+                continue;
+            }
+
+            let Ok(handle) = (unsafe {
+                CreateFileW(
+                    PCWSTR(dev.DeviceID.as_ptr()),
+                    (FILE_GENERIC_READ.0 | FILE_GENERIC_WRITE.0) as u32,
+                    FILE_SHARE_READ | FILE_SHARE_WRITE,
+                    None,
+                    OPEN_EXISTING,
+                    Default::default(),
+                    None,
+                )
+            }) else {
+                continue;
+            };
+
+            let mut brightness = DISPLAY_BRIGHTNESS {
+                ucACBrightness: percent,
+                ucDCBrightness: percent,
+                ucDisplayPolicy: 3,
+            };
+            let mut bytes = 0u32;
+            let ok = unsafe {
+                DeviceIoControl(
+                    handle,
+                    IOCTL_VIDEO_SET_DISPLAY_BRIGHTNESS,
+                    Some(&mut brightness as *mut _ as *mut c_void),
+                    std::mem::size_of::<DISPLAY_BRIGHTNESS>() as u32,
+                    None,
+                    0,
+                    Some(&mut bytes),
+                    None,
+                )
+            };
+            unsafe { let _ = CloseHandle(handle); }
+
+            if ok.is_ok() {
+                internal_ok = true;
+                break;
+            }
+        }
+    }
+
+    if internal_ok || set_windows_external(percent) {
+        Ok(())
+    } else {
+        Err("No monitor accepted brightness command".into())
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn set_windows_external(percent: u8) -> bool {
+    use windows::Win32::Foundation::{HANDLE, LPARAM, RECT};
+    use windows::Win32::Graphics::Gdi::{EnumDisplayMonitors, HDC, HMONITOR};
+    use windows::core::BOOL;
+
+    #[link(name = "Dxva2")]
+    unsafe extern "system" {
+        fn GetNumberOfPhysicalMonitorsFromHMONITOR(hmonitor: HMONITOR, count: *mut u32) -> BOOL;
+        fn GetPhysicalMonitorsFromHMONITOR(
+            hmonitor: HMONITOR,
+            count: u32,
+            monitors: *mut PHYSICAL_MONITOR,
+        ) -> BOOL;
+        fn DestroyPhysicalMonitors(count: u32, monitors: *mut PHYSICAL_MONITOR) -> BOOL;
+        fn SetVCPFeature(monitor: HANDLE, code: u8, value: u32) -> BOOL;
+    }
+
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    struct PHYSICAL_MONITOR {
+        handle: HANDLE,
+        description: [u16; 128],
+    }
+
+    unsafe extern "system" fn enum_proc(
+        monitor: HMONITOR,
+        _: HDC,
+        _: *mut RECT,
+        data: LPARAM,
+    ) -> BOOL {
+        let brightness = data.0 as u32;
+        let mut count = 0;
+
+        if !unsafe { GetNumberOfPhysicalMonitorsFromHMONITOR(monitor, &mut count) }.as_bool() {
+            return BOOL(1);
+        }
+
+        let mut monitors = vec![
+            PHYSICAL_MONITOR { handle: Default::default(), description: [0; 128] };
+            count as usize
+        ];
+
+        if unsafe { GetPhysicalMonitorsFromHMONITOR(monitor, count, monitors.as_mut_ptr()) }
+            .as_bool()
+        {
+            for m in &monitors {
+                unsafe { let _ = SetVCPFeature(m.handle, 0x10, brightness); };
+            }
+            unsafe { let _ = DestroyPhysicalMonitors(count, monitors.as_mut_ptr()); }
+        }
+
+        BOOL(1)
+    }
+
+    unsafe {
+        let _ = EnumDisplayMonitors(
+            None,
+            None,
+            Some(enum_proc),
             LPARAM(percent as isize),
         );
     }
 
-    Ok(())
-}
-
-#[cfg(target_os = "windows")]
-#[link(name = "Dxva2")]
-unsafe extern "system" {
-    fn GetNumberOfPhysicalMonitorsFromHMONITOR(hmonitor: HMONITOR, count: *mut u32) -> BOOL;
-
-    fn GetPhysicalMonitorsFromHMONITOR(
-        hmonitor: HMONITOR,
-        count: u32,
-        monitors: *mut PHYSICAL_MONITOR,
-    ) -> BOOL;
-
-    fn DestroyPhysicalMonitors(count: u32, monitors: *mut PHYSICAL_MONITOR) -> BOOL;
-
-    fn SetVCPFeature(monitor: HANDLE, code: u8, value: u32) -> BOOL;
-}
-
-#[cfg(target_os = "windows")]
-#[repr(C)]
-#[derive(Clone, Copy)]
-struct PHYSICAL_MONITOR {
-    handle: HANDLE,
-    description: [u16; 128],
-}
-
-#[cfg(target_os = "windows")]
-unsafe extern "system" fn monitor_enum_proc(
-    monitor: HMONITOR,
-    _: HDC,
-    _: *mut RECT,
-    data: LPARAM,
-) -> BOOL {
-    let brightness = data.0 as u32;
-
-    let mut count = 0;
-
-    if !unsafe { GetNumberOfPhysicalMonitorsFromHMONITOR(monitor, &mut count) }.as_bool() {
-        return BOOL(1);
-    }
-
-    let mut monitors = vec![
-        PHYSICAL_MONITOR {
-            handle: HANDLE::default(),
-            description: [0; 128],
-        };
-        count as usize
-    ];
-
-    if unsafe { GetPhysicalMonitorsFromHMONITOR(monitor, count, monitors.as_mut_ptr()) }.as_bool() {
-        let mut success = false;
-
-        for m in &monitors {
-            if unsafe { SetVCPFeature(m.handle, 0x10, brightness) }.as_bool() {
-                success = true;
-            }
-        }
-
-        if !success {
-            eprintln!("No monitor accepted DDC brightness command");
-        }
-
-        unsafe {
-            let _ = DestroyPhysicalMonitors(count, monitors.as_mut_ptr());
-        }
-    }
-
-    BOOL(1)
+    true
 }
 
 #[cfg(target_os = "macos")]
-fn set_brightness_macos(percent: u8) -> Result<(), String> {
-    set_macos_internal(percent)?;
-    set_macos_external(percent)?;
-
-    Ok(())
-}
-
-#[cfg(target_os = "macos")]
-fn set_macos_external(percent: u8) -> Result<(), String> {
-    use ddc_hi::{Ddc, Display};
-
-    let mut success = false;
-
-    for mut display in Display::enumerate() {
-        if display.set_vcp_feature(0x10, percent as u16).is_ok() {
-            success = true;
-        }
-    }
-
-    if !success {
-        return Err("No DDC monitor accepted brightness command".into());
-    }
-
-    Ok(())
-}
-
-#[cfg(target_os = "macos")]
-#[link(name = "DisplayServices", kind = "framework")]
-unsafe extern "C" {
-    fn DisplayServicesSetBrightness(display: u32, brightness: f32) -> i32;
-}
-
-#[cfg(target_os = "macos")]
-fn set_macos_internal(percent: u8) -> Result<(), String> {
+pub fn set_brightness(percent: u8) -> Result<(), String> {
     use core_graphics::display::CGMainDisplayID;
 
-    let display = unsafe { CGMainDisplayID() };
-
+    let percent = percent.clamp(0, 100);
     let value = percent as f32 / 100.0;
 
+    extern "C" {
+        #[link(name = "DisplayServices", kind = "framework")]
+        fn DisplayServicesSetBrightness(display: u32, brightness: f32) -> i32;
+    }
+
     unsafe {
-        let _ = DisplayServicesSetBrightness(display, value);
+        let _ = DisplayServicesSetBrightness(CGMainDisplayID(), value);
     }
 
     Ok(())

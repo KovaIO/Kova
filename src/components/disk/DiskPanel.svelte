@@ -165,17 +165,11 @@
 <div class="disk-panel">
     {#if view === "detail" && detail}
         <div class="detail-view">
-            <button
-                type="button"
-                class="back-btn"
-                onclick={() => (view = "results")}
-            >
-                <ArrowLeft size={14} />
-                Back
-            </button>
-
             <div class="card detail-card">
                 <div class="detail-head">
+                    <button class="back-btn" onclick={() => (view = "results")}>
+                        <ArrowLeft size={14} />
+                    </button>
                     <div class="detail-icon">
                         <Folder size={18} />
                     </div>
@@ -286,31 +280,25 @@
             </div>
         {:else if view === "ready"}
             <div class="card ready-card">
-                <div class="ready-head">
+                <div class="ready-content">
                     <HardDrive size={18} />
-                    <div>
-                        <h3>Ready to clean</h3>
-                        <p>
-                            Scan {volume?.mount_path ?? "your disk"} for
-                            reclaimable cache and temporary files.
-                        </p>
-                    </div>
-                </div>
+                    <h3>Ready to clean</h3>
+                    <p>
+                        Scan {volume?.mount_path ?? "your disk"} for
+                        reclaimable cache and temporary files.
+                    </p>
 
-                <div class="preview-list">
-                    <span class="section-label">What will be scanned</span>
-                    {#each preview?.categories ?? [] as cat}
-                        <div class="preview-row">
-                            {#if categoryIcon(cat.category)}
-                                {@const Icon = categoryIcon(cat.category)}
-                                <Icon size={14} />
-                            {/if}
-                            <span class="preview-name">{cat.label}</span>
-                            <span class="preview-count"
-                                >{cat.target_count} targets</span
-                            >
-                        </div>
-                    {/each}
+                    <div class="preview-badges">
+                        {#each preview?.categories ?? [] as cat}
+                            <div class="preview-badge">
+                                {#if categoryIcon(cat.category)}
+                                    {@const Icon = categoryIcon(cat.category)}
+                                    <Icon size={12} />
+                                {/if}
+                                <span class="badge-name">{cat.label}</span>
+                            </div>
+                        {/each}
+                    </div>
                 </div>
 
                 <button
@@ -483,64 +471,57 @@
         overflow: hidden;
     }
 
-    .ready-head {
+    .ready-card {
+        align-items: center;
+        text-align: center;
+    }
+
+    .ready-content {
+        flex: 1;
         display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
         gap: 8px;
-        margin-bottom: 8px;
+        min-height: 0;
         color: var(--color-text-secondary);
     }
 
-    .ready-head h3 {
+    .ready-content h3 {
         font-size: 13px;
         font-weight: 600;
         color: var(--color-text-primary);
         margin-bottom: 2px;
     }
 
-    .ready-head p {
+    .ready-content p {
         font-size: 11px;
         line-height: 1.4;
         color: var(--color-text-muted);
     }
 
-    .section-label {
-        display: block;
-        font-size: 10px;
-        font-weight: 500;
-        color: var(--color-text-dim);
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-        margin-bottom: 6px;
-    }
-
-    .preview-list {
-        flex: 1;
-        overflow-y: auto;
-        margin-bottom: 8px;
-        scrollbar-width: none;
-    }
-
-    .preview-list::-webkit-scrollbar {
-        display: none;
-    }
-
-    .preview-row {
+    .preview-badges {
         display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 6px;
+    }
+
+    .preview-badge {
+        display: inline-flex;
         align-items: center;
         gap: 6px;
-        padding: 5px 0;
-        border-bottom: 1px solid var(--color-border-subtle);
-        font-size: 11.5px;
+        padding: 5px 10px;
+        background: var(--color-border-subtle);
+        border-radius: var(--radius-sm);
+        font-size: 11px;
         color: var(--color-text-secondary);
     }
 
-    .preview-name {
-        flex: 1;
-    }
-
-    .preview-count {
-        font-size: 10px;
-        color: var(--color-text-dim);
+    .badge-name {
+        font-weight: 500;
+        color: var(--color-text-muted);
     }
 
     .scan-card {
@@ -791,6 +772,7 @@
 
     .scan-btn {
         width: 100%;
+        margin-top: auto;
     }
 
     .detail-view {
@@ -823,6 +805,7 @@
 
     .detail-head {
         display: flex;
+        align-items: center;
         gap: 8px;
         margin-bottom: 8px;
     }

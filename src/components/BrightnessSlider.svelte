@@ -11,12 +11,23 @@
 
     let pending = false;
 
+    let throttleTimer: ReturnType<typeof setTimeout> | null = null;
+
     $: if (!dragging && !pending) {
         localValue = value;
     }
 
     function onInput(e: Event) {
         localValue = +(e.target as HTMLInputElement).value;
+
+        if (!throttleTimer) {
+            throttleTimer = setTimeout(() => {
+                throttleTimer = null;
+                if (dragging) {
+                    onchange(localValue);
+                }
+            }, 30);
+        }
     }
 
     function onPointerDown() {
@@ -27,6 +38,10 @@
     async function onPointerUp() {
         if (disabled) return;
         dragging = false;
+        if (throttleTimer) {
+            clearTimeout(throttleTimer);
+            throttleTimer = null;
+        }
         pending = true;
         try {
             await onchange(localValue);

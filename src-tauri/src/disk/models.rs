@@ -48,7 +48,6 @@ pub struct ScanPreviewCategory {
     pub category: DiskCategory,
     pub label: String,
     pub description: String,
-    pub target_count: u32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
