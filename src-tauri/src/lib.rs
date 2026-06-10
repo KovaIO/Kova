@@ -17,11 +17,12 @@ use std::sync::{
     Arc,
 };
 
+use tauri::WindowEvent;
 use tauri::{
     tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent},
-    Emitter,
+    Emitter, Manager,
 };
-use tauri::{Manager, WindowEvent};
+use tauri_plugin_autostart::MacosLauncher;
 use tauri_plugin_positioner::{Position, WindowExt};
 
 use commands::{
@@ -51,7 +52,10 @@ struct AppTrayIcon(TrayIcon);
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .plugin(tauri_plugin_autostart::Builder::new().build())
+        .plugin(tauri_plugin_autostart::init(
+            MacosLauncher::LaunchAgent,
+            Some(vec!["--autostarted"]),
+        ))
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_positioner::init())
@@ -121,6 +125,16 @@ pub fn run() {
             let app_state = initialize_app_state(app)?;
 
             app.manage(app_state.clone());
+
+            if let Ok(prefs) = app_state.preferences.get_preferences() {
+                use tauri_plugin_autostart::ManagerExt;
+                let autostart = app.autolaunch();
+                if prefs.general.launch_at_startup {
+                    let _ = autostart.enable();
+                } else {
+                    let _ = autostart.disable();
+                }
+            }
 
             let app_handle = app.handle().clone();
             let license_service = app_state.license.clone();

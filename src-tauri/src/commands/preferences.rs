@@ -1,4 +1,4 @@
-use tauri::State;
+use tauri::{AppHandle, State};
 
 use crate::{
     app_state::AppState,
@@ -32,9 +32,22 @@ pub fn get_preferences(state: State<AppState>) -> Result<Preferences, String> {
 pub fn update_general_preferences(
     prefs: GeneralPreferences,
     state: State<AppState>,
+    app: AppHandle,
 ) -> Result<(), String> {
     with_emit(&state, || {
-        state.preferences.update_general_preferences(prefs)
+        state
+            .preferences
+            .update_general_preferences(prefs.clone())?;
+
+        use tauri_plugin_autostart::ManagerExt;
+        let autostart = app.autolaunch();
+        if prefs.launch_at_startup {
+            let _ = autostart.enable();
+        } else {
+            let _ = autostart.disable();
+        }
+
+        Ok(())
     })
 }
 
