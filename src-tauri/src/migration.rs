@@ -20,7 +20,8 @@ pub fn run_migrations(conn: &Connection) -> Result<()> {
 
         CREATE TABLE IF NOT EXISTS appearance_preferences (
             accent_color TEXT NOT NULL DEFAULT 'purple',
-            window_density TEXT NOT NULL DEFAULT 'normal'
+            window_density TEXT NOT NULL DEFAULT 'normal',
+            metric_card_style TEXT NOT NULL DEFAULT 'block'
         );
 
         CREATE TABLE IF NOT EXISTS power_preferences (
@@ -115,13 +116,13 @@ fn seed_defaults(conn: &Connection) -> Result<()> {
 
     conn.execute(
         "
-            INSERT INTO appearance_preferences (accent_color, window_density)
-            SELECT ?1, ?2
+            INSERT INTO appearance_preferences (accent_color, window_density, metric_card_style)
+            SELECT ?1, ?2, ?3
             WHERE NOT EXISTS (
                 SELECT 1 FROM appearance_preferences
             )
             ",
-        params![a.accent_color, a.window_density],
+        params![a.accent_color, a.window_density, a.metric_card_style],
     )?;
 
     conn.execute(

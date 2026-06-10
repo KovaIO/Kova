@@ -24,9 +24,12 @@ export type AccentColor = "blue" | "purple" | "green" | "orange" | "white";
 
 export type WindowDensity = "normal" | "wide";
 
+export type MetricCardStyle = "block" | "ring";
+
 export interface AppearancePreferences {
   accent_color: AccentColor;
   window_density: WindowDensity;
+  metric_card_style: MetricCardStyle;
 }
 
 export interface PowerPreferences {

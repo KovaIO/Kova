@@ -1,6 +1,7 @@
 <script lang="ts">
     import { invoke } from "@tauri-apps/api/core";
     import type { Component } from "svelte";
+    import { preferences } from "$stores/preferences";
 
     export let icon: Component;
     export let label: string;
@@ -12,6 +13,8 @@
 
     let hovered = false;
 
+    $: metricStyle = $preferences?.appearance.metric_card_style ?? "block";
+
     async function openMonitor() {
         await invoke("open_monitor", { tab });
     }
@@ -20,12 +23,36 @@
 {#if show}
     <button
         class="card"
+        class:ring={metricStyle === "ring"}
         aria-label="{label} metric"
         on:click={openMonitor}
         on:mouseenter={() => (hovered = true)}
         on:mouseleave={() => (hovered = false)}
     >
-        <div class="fill" style="height: {value}%;"></div>
+        {#if metricStyle === "ring"}
+            <svg class="ring-svg" viewBox="0 0 36 36">
+                <circle
+                    class="ring-bg"
+                    cx="18"
+                    cy="18"
+                    r="16.5"
+                    fill="none"
+                    stroke-width="3"
+                />
+                <circle
+                    class="ring-fill"
+                    cx="18"
+                    cy="18"
+                    r="16.5"
+                    fill="none"
+                    stroke-width="3"
+                    stroke-dasharray="{value} {100 - value}"
+                    stroke-dashoffset="25"
+                />
+            </svg>
+        {:else}
+            <div class="fill" style="height: {value}%;"></div>
+        {/if}
 
         <div class="content normal">
             <div class="icon-wrap" class:hidden={hovered}>
@@ -39,20 +66,22 @@
             <span class="label">{label}</span>
         </div>
 
-        <div
-            class="content accent"
-            style="clip-path: inset({100 - value}% 0 0 0)"
-        >
-            <div class="icon-wrap" class:hidden={hovered}>
-                <svelte:component this={icon} size={18} strokeWidth={1.5} />
-            </div>
+        {#if metricStyle !== "ring"}
+            <div
+                class="content accent"
+                style="clip-path: inset({100 - value}% 0 0 0)"
+            >
+                <div class="icon-wrap" class:hidden={hovered}>
+                    <svelte:component this={icon} size={18} strokeWidth={1.5} />
+                </div>
 
-            <div class="value-wrap" class:visible={hovered}>
-                <span class="val">{displayValue}</span>
-            </div>
+                <div class="value-wrap" class:visible={hovered}>
+                    <span class="val">{displayValue}</span>
+                </div>
 
-            <span class="label">{label}</span>
-        </div>
+                <span class="label">{label}</span>
+            </div>
+        {/if}
     </button>
 {/if}
 
@@ -69,6 +98,20 @@
         flex-shrink: 0;
     }
 
+    .card.ring {
+        background: transparent;
+        border: none;
+    }
+
+    .card.ring .label {
+        bottom: 20px;
+        font-size: 9px;
+    }
+
+    .card.ring .icon-wrap {
+        top: 40%;
+    }
+
     .fill {
         position: absolute;
         bottom: 0;
@@ -82,6 +125,22 @@
         transition: height 600ms cubic-bezier(0.4, 0, 0.2, 1);
         border-radius: 0 0 12px 12px;
         opacity: 0.9;
+    }
+
+    .ring-svg {
+        position: absolute;
+        inset: 0px;
+    }
+
+    .ring-bg {
+        stroke: var(--color-border-subtle);
+        opacity: 0.4;
+    }
+
+    .ring-fill {
+        stroke: var(--color-accent);
+        stroke-linecap: round;
+        transition: stroke-dasharray 600ms cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .content {

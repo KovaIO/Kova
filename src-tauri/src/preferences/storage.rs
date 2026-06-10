@@ -67,7 +67,7 @@ impl PreferencesStorage {
 
     pub fn load_appearance_preferences(&self) -> Result<AppearancePreferences> {
         let mut stmt = self.conn.prepare(
-            "SELECT accent_color, window_density
+            "SELECT accent_color, window_density, metric_card_style
              FROM appearance_preferences
              LIMIT 1",
         )?;
@@ -76,6 +76,7 @@ impl PreferencesStorage {
             Ok(AppearancePreferences {
                 accent_color: row.get(0)?,
                 window_density: row.get(1)?,
+                metric_card_style: row.get(2)?,
             })
         })
     }
@@ -175,9 +176,9 @@ impl PreferencesStorage {
         self.conn.execute(
             "
             UPDATE appearance_preferences
-            SET accent_color = ?1, window_density = ?2
+            SET accent_color = ?1, window_density = ?2, metric_card_style = ?3
             ",
-            params![prefs.accent_color, prefs.window_density,],
+            params![prefs.accent_color, prefs.window_density, prefs.metric_card_style],
         )?;
 
         Ok(())

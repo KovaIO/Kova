@@ -5,7 +5,11 @@
     import { preferences } from "$stores/preferences";
     import { updateAppearance } from "$services/preferences";
 
-    import type { AccentColor, WindowDensity } from "$types/preferences";
+    import type {
+        AccentColor,
+        WindowDensity,
+        MetricCardStyle,
+    } from "$types/preferences";
     import { ACCENT_COLORS } from "$utils/accent-colors";
 
     const DENSITIES: {
@@ -22,10 +26,25 @@
         },
     ];
 
+    const METRIC_STYLES: {
+        value: MetricCardStyle;
+        label: string;
+    }[] = [
+        {
+            value: "block",
+            label: "Block",
+        },
+        {
+            value: "ring",
+            label: "Ring",
+        },
+    ];
+
     $: appearance = $preferences?.appearance;
 
     $: accentColor = appearance?.accent_color ?? "purple";
     $: windowDensity = appearance?.window_density ?? "normal";
+    $: metricCardStyle = appearance?.metric_card_style ?? "block";
 
     function selectAccentColor(color: AccentColor) {
         updateAppearance({
@@ -39,6 +58,15 @@
 
         updateAppearance({
             window_density: value,
+        });
+    }
+
+    function onMetricStyleChange(event: Event) {
+        const value = (event.target as HTMLSelectElement)
+            .value as MetricCardStyle;
+
+        updateAppearance({
+            metric_card_style: value,
         });
     }
 </script>
@@ -79,6 +107,23 @@
             on:change={onDensityChange}
         >
             {#each DENSITIES as option}
+                <option value={option.value}>
+                    {option.label}
+                </option>
+            {/each}
+        </select>
+    </PreferenceItem>
+
+    <PreferenceItem
+        label="Metric cards"
+        description="Choose the visual style for system metric indicators"
+    >
+        <select
+            class="select"
+            value={metricCardStyle}
+            on:change={onMetricStyleChange}
+        >
+            {#each METRIC_STYLES as option}
                 <option value={option.value}>
                     {option.label}
                 </option>

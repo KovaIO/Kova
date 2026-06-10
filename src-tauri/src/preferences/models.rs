@@ -86,6 +86,7 @@ impl Default for ClipboardPreferences {
 pub struct AppearancePreferences {
     pub accent_color: AccentColor,
     pub window_density: WindowDensity,
+    pub metric_card_style: MetricCardStyle,
 }
 
 impl Default for AppearancePreferences {
@@ -93,6 +94,7 @@ impl Default for AppearancePreferences {
         Self {
             accent_color: AccentColor::Purple,
             window_density: WindowDensity::Normal,
+            metric_card_style: MetricCardStyle::Block,
         }
     }
 }
@@ -158,6 +160,34 @@ impl ToSql for WindowDensity {
         Ok(match self {
             Self::Normal => "normal".into(),
             Self::Wide => "wide".into(),
+        })
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum MetricCardStyle {
+    Block,
+    Ring,
+}
+
+impl FromSql for MetricCardStyle {
+    fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
+        match value.as_str()? {
+            "block" => Ok(Self::Block),
+            "ring" => Ok(Self::Ring),
+            _ => Err(FromSqlError::Other(
+                format!("Unknown metric card style: {}", value.as_str()?).into(),
+            )),
+        }
+    }
+}
+
+impl ToSql for MetricCardStyle {
+    fn to_sql(&self) -> rusqlite::Result<ToSqlOutput<'_>> {
+        Ok(match self {
+            Self::Block => "block".into(),
+            Self::Ring => "ring".into(),
         })
     }
 }
