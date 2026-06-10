@@ -49,6 +49,12 @@ impl AppState {
             let _ = self.app_handle.emit("preferences-updated", prefs);
         }
     }
+
+    pub fn emit_workspaces_updated(&self) {
+        if let Ok(profiles) = self.workspaces.get_profiles() {
+            let _ = self.app_handle.emit("workspaces-updated", profiles);
+        }
+    }
 }
 
 pub fn initialize_app_state(app: &tauri::App) -> Result<AppState, Box<dyn std::error::Error>> {

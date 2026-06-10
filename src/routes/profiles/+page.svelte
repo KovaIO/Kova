@@ -1,5 +1,6 @@
 <script lang="ts">
     import { onMount, onDestroy } from "svelte";
+    import { listen } from "@tauri-apps/api/event";
     import { getCurrentWindow } from "@tauri-apps/api/window";
     import type { WorkspaceProfile } from "$types/preferences";
     import { applyWorkspace, getWorkspaceProfiles } from "$services/workspaces";
@@ -13,6 +14,7 @@
     let profiles: WorkspaceProfile[] = [];
     let selected: string | null = null;
     let applying = false;
+    let unlisten: (() => void) | undefined;
 
     function toGrid(val: number, total: number) {
         return Math.round(val * total);
@@ -34,10 +36,20 @@
     onMount(async () => {
         await loadProfiles();
         window.addEventListener("keydown", onKey);
+        unlisten = await listen<WorkspaceProfile[]>(
+            "workspaces-updated",
+            (e) => {
+                profiles = e.payload.slice(0, MAX_PROFILES);
+                if (!selected || !profiles.some((p) => p.id === selected)) {
+                    selected = profiles[0]?.id ?? null;
+                }
+            },
+        );
     });
 
     onDestroy(() => {
         window.removeEventListener("keydown", onKey);
+        unlisten?.();
     });
 
     function onKey(e: KeyboardEvent) {
@@ -182,7 +194,7 @@
     }
 
     .item.selected .thumbnail {
-        border-color: rgba(255, 255, 255, 0.25);
+        border-color: var(--color-accent, rgba(255, 255, 255, 0.25));
     }
 
     .slot {

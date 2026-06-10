@@ -29,7 +29,9 @@ pub fn save_workspace_profile(
     state
         .workspaces
         .save_profile(profile)
-        .map_err(|e| e.to_string())
+        .map_err(|e| e.to_string())?;
+    state.emit_workspaces_updated();
+    Ok(())
 }
 
 #[tauri::command]
@@ -37,7 +39,9 @@ pub fn delete_workspace_profile(profile_id: String, state: State<AppState>) -> R
     state
         .workspaces
         .delete_profile(&profile_id)
-        .map_err(|e| e.to_string())
+        .map_err(|e| e.to_string())?;
+    state.emit_workspaces_updated();
+    Ok(())
 }
 
 #[tauri::command]
