@@ -9,14 +9,13 @@ use tauri::{AppHandle, Emitter};
 
 use crate::disk::{
     models::{
-        CleanupAction, DiskCategory, DiskCategoryGroup, DiskItemChild, DiskItemDetail,
-        DiskScanItem, DiskScanProgress, DiskScanResult, DiskSafety, DiskVolumeInfo, ScanPreview,
+        CleanupAction, DiskCategory, DiskCategoryGroup, DiskItemChild, DiskItemDetail, DiskSafety,
+        DiskScanItem, DiskScanProgress, DiskScanResult, DiskVolumeInfo, ScanPreview,
         ScanPreviewCategory, ScanTargetKind, VirtualTarget,
     },
     scanner::{
-        dir_size, empty_recycle_bin, file_size, is_any_process_running, is_path_deletable,
-        item_id, list_children, pattern_files, primary_mount_path, recycle_bin_size,
-        scan_targets,
+        dir_size, empty_recycle_bin, file_size, is_any_process_running, is_path_deletable, item_id,
+        list_children, pattern_files, primary_mount_path, recycle_bin_size, scan_targets,
     },
     storage::DiskStorage,
 };
@@ -47,11 +46,7 @@ impl DiskService {
         let (used, total, percent) = primary_disk_metrics(&disks, index);
         let available = total.saturating_sub(used);
 
-        let last_scan_at = self
-            .storage
-            .lock()
-            .ok()
-            .and_then(|s| s.last_scan_at());
+        let last_scan_at = self.storage.lock().ok().and_then(|s| s.last_scan_at());
 
         DiskVolumeInfo {
             mount_path: mount,
@@ -165,15 +160,13 @@ impl DiskService {
             // Handle virtual targets (Recycle Bin)
             if item.requires_virtual_delete {
                 match item.virtual_type() {
-                    Some(VirtualTarget::RecycleBin) => {
-                        match empty_recycle_bin() {
-                            Ok(freed_bytes) => {
-                                freed += freed_bytes;
-                                deleted_ids.push(id.clone());
-                            }
-                            Err(_) => continue,
+                    Some(VirtualTarget::RecycleBin) => match empty_recycle_bin() {
+                        Ok(freed_bytes) => {
+                            freed += freed_bytes;
+                            deleted_ids.push(id.clone());
                         }
-                    }
+                        Err(_) => continue,
+                    },
                     _ => continue,
                 }
                 continue;
@@ -323,12 +316,14 @@ impl DiskService {
                 action: target.action,
             };
 
-            let group = groups.entry(target.category).or_insert_with(|| DiskCategoryGroup {
-                category: target.category,
-                label: target.category.label().to_string(),
-                total_bytes: 0,
-                items: Vec::new(),
-            });
+            let group = groups
+                .entry(target.category)
+                .or_insert_with(|| DiskCategoryGroup {
+                    category: target.category,
+                    label: target.category.label().to_string(),
+                    total_bytes: 0,
+                    items: Vec::new(),
+                });
 
             group.total_bytes += size_bytes;
             group.items.push(item);

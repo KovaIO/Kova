@@ -4,7 +4,12 @@ use crate::{
 };
 use tauri::AppHandle;
 
-pub fn apply_window(app_handle: &AppHandle, workspace_app: &WorkspaceApp, matched: &MatchedWindow, gap: u32) {
+pub fn apply_window(
+    app_handle: &AppHandle,
+    workspace_app: &WorkspaceApp,
+    matched: &MatchedWindow,
+    gap: u32,
+) {
     let Some(rect) = resolve_rect(
         app_handle,
         workspace_app.x,
@@ -80,9 +85,9 @@ pub fn move_window(hwnd: usize, rect: &WindowRect) {
         Foundation::HWND,
         System::Threading::{AttachThreadInput, GetCurrentThreadId},
         UI::WindowsAndMessaging::{
-            BringWindowToTop, GetForegroundWindow, GetWindowThreadProcessId, SetForegroundWindow,
-            SetWindowPos, ShowWindow, SWP_FRAMECHANGED, SWP_NOZORDER, SWP_SHOWWINDOW, SW_RESTORE,
-            GetWindowInfo, WINDOWINFO,
+            BringWindowToTop, GetForegroundWindow, GetWindowInfo, GetWindowThreadProcessId,
+            SetForegroundWindow, SetWindowPos, ShowWindow, SWP_FRAMECHANGED, SWP_NOZORDER,
+            SWP_SHOWWINDOW, SW_RESTORE, WINDOWINFO,
         },
     };
 
@@ -103,7 +108,7 @@ pub fn move_window(hwnd: usize, rect: &WindowRect) {
 
         // Expand rect to compensate for invisible border
         let x = rect.x as i32 - border;
-        let y = rect.y as i32;  // top border is usually 0 on modern Windows
+        let y = rect.y as i32; // top border is usually 0 on modern Windows
         let w = rect.width as i32 + border * 2;
         let h = rect.height as i32 + border;
 

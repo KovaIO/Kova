@@ -17,9 +17,7 @@ pub fn get_current_metrics(history: tauri::State<SharedHistory>) -> Option<Metri
     let processes: Vec<FlatProcess> = h
         .process_history
         .back()
-        .map(|snapshot| {
-            enrich_process_snapshots(&snapshot.processes, &h.process_metadata)
-        })
+        .map(|snapshot| enrich_process_snapshots(&snapshot.processes, &h.process_metadata))
         .unwrap_or_default();
 
     Some(Metrics {

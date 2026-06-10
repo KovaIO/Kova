@@ -1,12 +1,14 @@
 #[cfg(target_os = "windows")]
 pub fn set_brightness(percent: u8) -> Result<(), String> {
     use std::ffi::c_void;
+    use windows::core::{BOOL, PCWSTR};
+    use windows::Win32::Foundation::{LPARAM, RECT};
     use windows::Win32::{
         Devices::Display::{DISPLAY_BRIGHTNESS, IOCTL_VIDEO_SET_DISPLAY_BRIGHTNESS},
         Foundation::CloseHandle,
         Graphics::Gdi::{
-            DISPLAY_DEVICE_ACTIVE, DISPLAY_DEVICEW, EnumDisplayDevicesW, EnumDisplayMonitors,
-            GetMonitorInfoW, HDC, HMONITOR, MONITORINFO, MONITORINFOEXW,
+            EnumDisplayDevicesW, EnumDisplayMonitors, GetMonitorInfoW, DISPLAY_DEVICEW,
+            DISPLAY_DEVICE_ACTIVE, HDC, HMONITOR, MONITORINFO, MONITORINFOEXW,
         },
         Storage::FileSystem::{
             CreateFileW, FILE_GENERIC_READ, FILE_GENERIC_WRITE, FILE_SHARE_READ, FILE_SHARE_WRITE,
@@ -15,8 +17,6 @@ pub fn set_brightness(percent: u8) -> Result<(), String> {
         System::IO::DeviceIoControl,
         UI::WindowsAndMessaging::EDD_GET_DEVICE_INTERFACE_NAME,
     };
-    use windows::Win32::Foundation::{LPARAM, RECT};
-    use windows::core::{BOOL, PCWSTR};
 
     let percent = percent.clamp(0, 100);
 
@@ -103,7 +103,9 @@ pub fn set_brightness(percent: u8) -> Result<(), String> {
                     None,
                 )
             };
-            unsafe { let _ = CloseHandle(handle); }
+            unsafe {
+                let _ = CloseHandle(handle);
+            }
 
             if ok.is_ok() {
                 internal_ok = true;
@@ -121,9 +123,9 @@ pub fn set_brightness(percent: u8) -> Result<(), String> {
 
 #[cfg(target_os = "windows")]
 fn set_windows_external(percent: u8) -> bool {
+    use windows::core::BOOL;
     use windows::Win32::Foundation::{HANDLE, LPARAM, RECT};
     use windows::Win32::Graphics::Gdi::{EnumDisplayMonitors, HDC, HMONITOR};
-    use windows::core::BOOL;
 
     #[link(name = "Dxva2")]
     unsafe extern "system" {
@@ -158,7 +160,10 @@ fn set_windows_external(percent: u8) -> bool {
         }
 
         let mut monitors = vec![
-            PHYSICAL_MONITOR { handle: Default::default(), description: [0; 128] };
+            PHYSICAL_MONITOR {
+                handle: Default::default(),
+                description: [0; 128]
+            };
             count as usize
         ];
 
@@ -166,21 +171,20 @@ fn set_windows_external(percent: u8) -> bool {
             .as_bool()
         {
             for m in &monitors {
-                unsafe { let _ = SetVCPFeature(m.handle, 0x10, brightness); };
+                unsafe {
+                    let _ = SetVCPFeature(m.handle, 0x10, brightness);
+                };
             }
-            unsafe { let _ = DestroyPhysicalMonitors(count, monitors.as_mut_ptr()); }
+            unsafe {
+                let _ = DestroyPhysicalMonitors(count, monitors.as_mut_ptr());
+            }
         }
 
         BOOL(1)
     }
 
     unsafe {
-        let _ = EnumDisplayMonitors(
-            None,
-            None,
-            Some(enum_proc),
-            LPARAM(percent as isize),
-        );
+        let _ = EnumDisplayMonitors(None, None, Some(enum_proc), LPARAM(percent as isize));
     }
 
     true

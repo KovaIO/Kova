@@ -41,7 +41,13 @@ impl WorkspaceStorage {
         let result = self.conn.query_row(
             "SELECT id, name, gap FROM workspace_profiles WHERE id = ?1",
             [profile_id],
-            |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?, row.get::<_, u32>(2)?)),
+            |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, u32>(2)?,
+                ))
+            },
         );
 
         match result {

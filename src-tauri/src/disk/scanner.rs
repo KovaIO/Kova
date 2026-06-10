@@ -239,10 +239,7 @@ pub fn is_any_process_running(processes: &[String]) -> bool {
                     continue;
                 }
                 // comm is the bare executable name, e.g. "Google Chrome"
-                if processes
-                    .iter()
-                    .any(|p| line.eq_ignore_ascii_case(p))
-                {
+                if processes.iter().any(|p| line.eq_ignore_ascii_case(p)) {
                     return true;
                 }
             }
@@ -315,21 +312,15 @@ pub fn recycle_bin_size() -> u64 {
 /// Empty the Recycle Bin on Windows.
 #[cfg(target_os = "windows")]
 pub fn empty_recycle_bin() -> Result<u64, String> {
-    use windows::Win32::UI::Shell::SHEmptyRecycleBinW;
     use windows::core::PCWSTR;
+    use windows::Win32::UI::Shell::SHEmptyRecycleBinW;
 
     let before = recycle_bin_size();
 
     // SHERB_NOCONFIRMATION (0x1) | SHERB_NOPROGRESSUI (0x2) | SHERB_NOSOUND (0x4)
     let flags = 0x7u32;
 
-    let result = unsafe {
-        SHEmptyRecycleBinW(
-            None,
-            PCWSTR::null(),
-            flags,
-        )
-    };
+    let result = unsafe { SHEmptyRecycleBinW(None, PCWSTR::null(), flags) };
 
     match result {
         Ok(()) => Ok(before),
@@ -423,50 +414,266 @@ fn windows_targets(out: &mut Vec<ScanTarget>) {
     let userprofile = env::var("USERPROFILE").unwrap_or_default();
 
     // ── System ──────────────────────────────────────────────
-    push_dir(out, DiskCategory::System, "User Temp", &temp, DiskSafety::Safe, "Temporary files recreated by apps as needed.", &[]);
-    push_dir(out, DiskCategory::System, "Windows Temp", r"C:\Windows\Temp", DiskSafety::Safe, "System temp folder. Files in use will fail to delete automatically.", &[]);
+    push_dir(
+        out,
+        DiskCategory::System,
+        "User Temp",
+        &temp,
+        DiskSafety::Safe,
+        "Temporary files recreated by apps as needed.",
+        &[],
+    );
+    push_dir(
+        out,
+        DiskCategory::System,
+        "Windows Temp",
+        r"C:\Windows\Temp",
+        DiskSafety::Safe,
+        "System temp folder. Files in use will fail to delete automatically.",
+        &[],
+    );
 
     // ── Browsers ────────────────────────────────────────────
-    push_dir(out, DiskCategory::Browsers, "Chrome Cache", &format!(r"{local}\Google\Chrome\User Data\Default\Cache"), DiskSafety::Safe, "Browser cache only. Pages may reload slower after cleanup.", &["chrome.exe"]);
-    push_dir(out, DiskCategory::Browsers, "Chrome Code Cache", &format!(r"{local}\Google\Chrome\User Data\Default\Code Cache"), DiskSafety::Safe, "Cached scripts and assets for Chrome.", &["chrome.exe"]);
-    push_dir(out, DiskCategory::Browsers, "Chrome Service Worker", &format!(r"{local}\Google\Chrome\User Data\Default\Service Worker\CacheStorage"), DiskSafety::Safe, "Chrome service worker cache.", &["chrome.exe"]);
-    push_dir(out, DiskCategory::Browsers, "Edge Cache", &format!(r"{local}\Microsoft\Edge\User Data\Default\Cache"), DiskSafety::Safe, "Edge browser cache files.", &["msedge.exe"]);
-    push_dir(out, DiskCategory::Browsers, "Edge Code Cache", &format!(r"{local}\Microsoft\Edge\User Data\Default\Code Cache"), DiskSafety::Safe, "Cached scripts and assets for Edge.", &["msedge.exe"]);
+    push_dir(
+        out,
+        DiskCategory::Browsers,
+        "Chrome Cache",
+        &format!(r"{local}\Google\Chrome\User Data\Default\Cache"),
+        DiskSafety::Safe,
+        "Browser cache only. Pages may reload slower after cleanup.",
+        &["chrome.exe"],
+    );
+    push_dir(
+        out,
+        DiskCategory::Browsers,
+        "Chrome Code Cache",
+        &format!(r"{local}\Google\Chrome\User Data\Default\Code Cache"),
+        DiskSafety::Safe,
+        "Cached scripts and assets for Chrome.",
+        &["chrome.exe"],
+    );
+    push_dir(
+        out,
+        DiskCategory::Browsers,
+        "Chrome Service Worker",
+        &format!(r"{local}\Google\Chrome\User Data\Default\Service Worker\CacheStorage"),
+        DiskSafety::Safe,
+        "Chrome service worker cache.",
+        &["chrome.exe"],
+    );
+    push_dir(
+        out,
+        DiskCategory::Browsers,
+        "Edge Cache",
+        &format!(r"{local}\Microsoft\Edge\User Data\Default\Cache"),
+        DiskSafety::Safe,
+        "Edge browser cache files.",
+        &["msedge.exe"],
+    );
+    push_dir(
+        out,
+        DiskCategory::Browsers,
+        "Edge Code Cache",
+        &format!(r"{local}\Microsoft\Edge\User Data\Default\Code Cache"),
+        DiskSafety::Safe,
+        "Cached scripts and assets for Edge.",
+        &["msedge.exe"],
+    );
 
     // Firefox — enumerate actual profile directories
     discover_firefox_caches(out, &local);
 
-    push_dir(out, DiskCategory::Browsers, "Brave Cache", &format!(r"{local}\BraveSoftware\Brave-Browser\User Data\Default\Cache"), DiskSafety::Safe, "Brave browser cache.", &["brave.exe"]);
-    push_dir(out, DiskCategory::Browsers, "Brave Code Cache", &format!(r"{local}\BraveSoftware\Brave-Browser\User Data\Default\Code Cache"), DiskSafety::Safe, "Brave cached scripts and assets.", &["brave.exe"]);
-    push_dir(out, DiskCategory::Browsers, "Opera Cache", &format!(r"{appdata}\Opera Software\Opera Stable\Cache"), DiskSafety::Safe, "Opera browser cache.", &["opera.exe"]);
-    push_dir(out, DiskCategory::Browsers, "Vivaldi Cache", &format!(r"{local}\Vivaldi\User Data\Default\Cache"), DiskSafety::Safe, "Vivaldi browser cache.", &["vivaldi.exe"]);
+    push_dir(
+        out,
+        DiskCategory::Browsers,
+        "Brave Cache",
+        &format!(r"{local}\BraveSoftware\Brave-Browser\User Data\Default\Cache"),
+        DiskSafety::Safe,
+        "Brave browser cache.",
+        &["brave.exe"],
+    );
+    push_dir(
+        out,
+        DiskCategory::Browsers,
+        "Brave Code Cache",
+        &format!(r"{local}\BraveSoftware\Brave-Browser\User Data\Default\Code Cache"),
+        DiskSafety::Safe,
+        "Brave cached scripts and assets.",
+        &["brave.exe"],
+    );
+    push_dir(
+        out,
+        DiskCategory::Browsers,
+        "Opera Cache",
+        &format!(r"{appdata}\Opera Software\Opera Stable\Cache"),
+        DiskSafety::Safe,
+        "Opera browser cache.",
+        &["opera.exe"],
+    );
+    push_dir(
+        out,
+        DiskCategory::Browsers,
+        "Vivaldi Cache",
+        &format!(r"{local}\Vivaldi\User Data\Default\Cache"),
+        DiskSafety::Safe,
+        "Vivaldi browser cache.",
+        &["vivaldi.exe"],
+    );
 
     // ── Development — Package managers ───────────────────────
-    push_dir(out, DiskCategory::Development, "npm Cache", &format!(r"{appdata}\npm-cache"), DiskSafety::Safe, "npm download cache. Packages will re-download when needed.", &[]);
-    push_dir(out, DiskCategory::Development, "npm Cache (alt)", &format!(r"{userprofile}\.npm\_cacache"), DiskSafety::Safe, "Legacy npm cache location.", &[]);
-    push_dir(out, DiskCategory::Development, "pnpm Cache", &format!(r"{local}\pnpm\cache"), DiskSafety::Safe, "pnpm download cache.", &[]);
-    push_dir(out, DiskCategory::Development, "Yarn Cache", &format!(r"{local}\Yarn\Cache"), DiskSafety::Safe, "Yarn package cache.", &[]);
-    push_dir(out, DiskCategory::Development, "pip Cache", &format!(r"{local}\pip\Cache"), DiskSafety::Safe, "Python pip wheel cache.", &[]);
-    push_dir(out, DiskCategory::Development, "pip HTTP Cache", &format!(r"{local}\pip\http"), DiskSafety::Safe, "Python pip HTTP cache.", &[]);
-    push_dir(out, DiskCategory::Development, "Cargo Registry Cache", &format!(r"{userprofile}\.cargo\registry\cache"), DiskSafety::Safe, "Rust crate download cache.", &[]);
-    push_dir(out, DiskCategory::Development, "Gradle Cache", &format!(r"{userprofile}\.gradle\caches"), DiskSafety::Caution, "Gradle build cache. Next build may re-download many GB.", &[]);
-    push_dir(out, DiskCategory::Development, "NuGet Cache", &format!(r"{local}\NuGet\v3-cache"), DiskSafety::Safe, "NuGet package cache.", &[]);
-    push_dir(out, DiskCategory::Development, "Go Build Cache", &format!(r"{userprofile}\.cache\go-build"), DiskSafety::Safe, "Go build cache.", &[]);
-    push_dir(out, DiskCategory::Development, "Bun Cache", &format!(r"{userprofile}\.bun\install\cache"), DiskSafety::Safe, "Bun package manager cache.", &[]);
-    push_dir(out, DiskCategory::Development, "Conan Cache", &format!(r"{userprofile}\.conan"), DiskSafety::Safe, "Conan C++ package manager cache.", &[]);
-    push_dir(out, DiskCategory::Development, "vcpkg Cache", &format!(r"{local}\vcpkg\archives"), DiskSafety::Safe, "vcpkg package archives.", &[]);
+    push_dir(
+        out,
+        DiskCategory::Development,
+        "npm Cache",
+        &format!(r"{appdata}\npm-cache"),
+        DiskSafety::Safe,
+        "npm download cache. Packages will re-download when needed.",
+        &[],
+    );
+    push_dir(
+        out,
+        DiskCategory::Development,
+        "npm Cache (alt)",
+        &format!(r"{userprofile}\.npm\_cacache"),
+        DiskSafety::Safe,
+        "Legacy npm cache location.",
+        &[],
+    );
+    push_dir(
+        out,
+        DiskCategory::Development,
+        "pnpm Cache",
+        &format!(r"{local}\pnpm\cache"),
+        DiskSafety::Safe,
+        "pnpm download cache.",
+        &[],
+    );
+    push_dir(
+        out,
+        DiskCategory::Development,
+        "Yarn Cache",
+        &format!(r"{local}\Yarn\Cache"),
+        DiskSafety::Safe,
+        "Yarn package cache.",
+        &[],
+    );
+    push_dir(
+        out,
+        DiskCategory::Development,
+        "pip Cache",
+        &format!(r"{local}\pip\Cache"),
+        DiskSafety::Safe,
+        "Python pip wheel cache.",
+        &[],
+    );
+    push_dir(
+        out,
+        DiskCategory::Development,
+        "pip HTTP Cache",
+        &format!(r"{local}\pip\http"),
+        DiskSafety::Safe,
+        "Python pip HTTP cache.",
+        &[],
+    );
+    push_dir(
+        out,
+        DiskCategory::Development,
+        "Cargo Registry Cache",
+        &format!(r"{userprofile}\.cargo\registry\cache"),
+        DiskSafety::Safe,
+        "Rust crate download cache.",
+        &[],
+    );
+    push_dir(
+        out,
+        DiskCategory::Development,
+        "Gradle Cache",
+        &format!(r"{userprofile}\.gradle\caches"),
+        DiskSafety::Caution,
+        "Gradle build cache. Next build may re-download many GB.",
+        &[],
+    );
+    push_dir(
+        out,
+        DiskCategory::Development,
+        "NuGet Cache",
+        &format!(r"{local}\NuGet\v3-cache"),
+        DiskSafety::Safe,
+        "NuGet package cache.",
+        &[],
+    );
+    push_dir(
+        out,
+        DiskCategory::Development,
+        "Go Build Cache",
+        &format!(r"{userprofile}\.cache\go-build"),
+        DiskSafety::Safe,
+        "Go build cache.",
+        &[],
+    );
+    push_dir(
+        out,
+        DiskCategory::Development,
+        "Bun Cache",
+        &format!(r"{userprofile}\.bun\install\cache"),
+        DiskSafety::Safe,
+        "Bun package manager cache.",
+        &[],
+    );
+    push_dir(
+        out,
+        DiskCategory::Development,
+        "Conan Cache",
+        &format!(r"{userprofile}\.conan"),
+        DiskSafety::Safe,
+        "Conan C++ package manager cache.",
+        &[],
+    );
+    push_dir(
+        out,
+        DiskCategory::Development,
+        "vcpkg Cache",
+        &format!(r"{local}\vcpkg\archives"),
+        DiskSafety::Safe,
+        "vcpkg package archives.",
+        &[],
+    );
 
     // ── Development — Electron IDEs (generalized) ────────────
     discover_electron_ide_caches(out, &appdata);
 
-    push_dir(out, DiskCategory::Development, "JetBrains Transient", &format!(r"{local}\JetBrains\Transient"), DiskSafety::Safe, "JetBrains IDE transient cache.", &[]);
+    push_dir(
+        out,
+        DiskCategory::Development,
+        "JetBrains Transient",
+        &format!(r"{local}\JetBrains\Transient"),
+        DiskSafety::Safe,
+        "JetBrains IDE transient cache.",
+        &[],
+    );
 
     // ── Development — JetBrains & Android Studio ─────────────
     discover_jetbrains_and_android_caches(out, &local);
 
     // ── Development — Game engines ──────────────────────────
-    push_dir(out, DiskCategory::Development, "Unreal DerivedDataCache", &format!(r"{local}\UnrealEngine\Common\DerivedDataCache"), DiskSafety::Safe, "Unreal Engine derived data cache. Regenerated automatically.", &["UnrealEditor.exe", "UE4Editor.exe"]);
-    push_dir(out, DiskCategory::Development, "Unity Cache", &format!(r"{local}\Unity\cache"), DiskSafety::Safe, "Unity cache. Regenerated automatically.", &["Unity.exe", "Unity Hub.exe"]);
+    push_dir(
+        out,
+        DiskCategory::Development,
+        "Unreal DerivedDataCache",
+        &format!(r"{local}\UnrealEngine\Common\DerivedDataCache"),
+        DiskSafety::Safe,
+        "Unreal Engine derived data cache. Regenerated automatically.",
+        &["UnrealEditor.exe", "UE4Editor.exe"],
+    );
+    push_dir(
+        out,
+        DiskCategory::Development,
+        "Unity Cache",
+        &format!(r"{local}\Unity\cache"),
+        DiskSafety::Safe,
+        "Unity cache. Regenerated automatically.",
+        &["Unity.exe", "Unity Hub.exe"],
+    );
 
     // ── Applications (dynamic) ──────────────────────────────
     let mut seen = std::collections::HashSet::new();
@@ -484,10 +691,25 @@ fn windows_targets(out: &mut Vec<ScanTarget>) {
         DiskSafety::Caution,
         "Windows thumbnail previews. They rebuild over time.",
     );
-    push_dir(out, DiskCategory::Storage, "Delivery Optimization", &format!(r"{local}\Microsoft\Windows\DeliveryOptimization\Cache"), DiskSafety::Safe, "Windows update delivery cache.", &[]);
+    push_dir(
+        out,
+        DiskCategory::Storage,
+        "Delivery Optimization",
+        &format!(r"{local}\Microsoft\Windows\DeliveryOptimization\Cache"),
+        DiskSafety::Safe,
+        "Windows update delivery cache.",
+        &[],
+    );
 
     // ── Storage — Recycle Bin ───────────────────────────────
-    push_virtual(out, DiskCategory::Storage, "Recycle Bin", DiskSafety::Caution, "Empties the Recycle Bin on all drives. Review contents before cleaning.", VirtualTarget::RecycleBin);
+    push_virtual(
+        out,
+        DiskCategory::Storage,
+        "Recycle Bin",
+        DiskSafety::Caution,
+        "Empties the Recycle Bin on all drives. Review contents before cleaning.",
+        VirtualTarget::RecycleBin,
+    );
 
     // ── Storage — Docker ────────────────────────────────────
     discover_docker_storage(out, &local);
@@ -496,37 +718,165 @@ fn windows_targets(out: &mut Vec<ScanTarget>) {
     discover_wsl_storage(out, &local);
 
     // ── Other ───────────────────────────────────────────────
-    push_dir(out, DiskCategory::Other, "DirectX Shader Cache", &format!(r"{local}\D3DSCache"), DiskSafety::Safe, "Regenerated GPU shader cache.", &[]);
-    push_dir(out, DiskCategory::Other, "NVIDIA DXCache", &format!(r"{local}\NVIDIA\DXCache"), DiskSafety::Safe, "NVIDIA DirectX shader cache. Regenerated automatically.", &[]);
-    push_dir(out, DiskCategory::Other, "NVIDIA GLCache", &format!(r"{local}\NVIDIA\GLCache"), DiskSafety::Safe, "NVIDIA OpenGL shader cache. Regenerated automatically.", &[]);
-    push_dir(out, DiskCategory::Other, "AMD DxCache", &format!(r"{local}\AMD\DxCache"), DiskSafety::Safe, "AMD DirectX shader cache. Regenerated automatically.", &[]);
-    push_dir(out, DiskCategory::Other, "Crash Dumps", &format!(r"{local}\CrashDumps"), DiskSafety::Safe, "Application crash dump files.", &[]);
-    push_dir(out, DiskCategory::Other, "Windows Error Reporting", &format!(r"{local}\Microsoft\Windows\WER"), DiskSafety::Safe, "Windows crash reports and diagnostics.", &[]);
-    push_dir(out, DiskCategory::Other, "Internet Cache", &format!(r"{local}\Microsoft\Windows\INetCache"), DiskSafety::Safe, "Legacy Windows internet cache.", &[]);
-    push_file(out, DiskCategory::Other, "Icon Cache", &format!(r"{local}\IconCache.db"), DiskSafety::Safe, "Windows icon cache. Rebuilt automatically.", &[]);
+    push_dir(
+        out,
+        DiskCategory::Other,
+        "DirectX Shader Cache",
+        &format!(r"{local}\D3DSCache"),
+        DiskSafety::Safe,
+        "Regenerated GPU shader cache.",
+        &[],
+    );
+    push_dir(
+        out,
+        DiskCategory::Other,
+        "NVIDIA DXCache",
+        &format!(r"{local}\NVIDIA\DXCache"),
+        DiskSafety::Safe,
+        "NVIDIA DirectX shader cache. Regenerated automatically.",
+        &[],
+    );
+    push_dir(
+        out,
+        DiskCategory::Other,
+        "NVIDIA GLCache",
+        &format!(r"{local}\NVIDIA\GLCache"),
+        DiskSafety::Safe,
+        "NVIDIA OpenGL shader cache. Regenerated automatically.",
+        &[],
+    );
+    push_dir(
+        out,
+        DiskCategory::Other,
+        "AMD DxCache",
+        &format!(r"{local}\AMD\DxCache"),
+        DiskSafety::Safe,
+        "AMD DirectX shader cache. Regenerated automatically.",
+        &[],
+    );
+    push_dir(
+        out,
+        DiskCategory::Other,
+        "Crash Dumps",
+        &format!(r"{local}\CrashDumps"),
+        DiskSafety::Safe,
+        "Application crash dump files.",
+        &[],
+    );
+    push_dir(
+        out,
+        DiskCategory::Other,
+        "Windows Error Reporting",
+        &format!(r"{local}\Microsoft\Windows\WER"),
+        DiskSafety::Safe,
+        "Windows crash reports and diagnostics.",
+        &[],
+    );
+    push_dir(
+        out,
+        DiskCategory::Other,
+        "Internet Cache",
+        &format!(r"{local}\Microsoft\Windows\INetCache"),
+        DiskSafety::Safe,
+        "Legacy Windows internet cache.",
+        &[],
+    );
+    push_file(
+        out,
+        DiskCategory::Other,
+        "Icon Cache",
+        &format!(r"{local}\IconCache.db"),
+        DiskSafety::Safe,
+        "Windows icon cache. Rebuilt automatically.",
+        &[],
+    );
 
     // ── System — MEMORY.DMP ─────────────────────────────────
-    push_file(out, DiskCategory::System, "Crash Dump (MEMORY.DMP)", r"C:\Windows\MEMORY.DMP", DiskSafety::Caution, "Kernel crash dump. Can be 10–50 GB. Only needed for crash analysis.", &[]);
+    push_file(
+        out,
+        DiskCategory::System,
+        "Crash Dump (MEMORY.DMP)",
+        r"C:\Windows\MEMORY.DMP",
+        DiskSafety::Caution,
+        "Kernel crash dump. Can be 10–50 GB. Only needed for crash analysis.",
+        &[],
+    );
 
     // ── System — Minidumps ──────────────────────────────────
-    push_dir(out, DiskCategory::System, "Minidumps", r"C:\Windows\Minidump", DiskSafety::Safe, "Small crash dump files. Safe to clean.", &[]);
+    push_dir(
+        out,
+        DiskCategory::System,
+        "Minidumps",
+        r"C:\Windows\Minidump",
+        DiskSafety::Safe,
+        "Small crash dump files. Safe to clean.",
+        &[],
+    );
 
     // ── System — Windows.old ────────────────────────────────
-    push_dir(out, DiskCategory::System, "Windows.old", r"C:\Windows.old", DiskSafety::Caution, "Previous Windows installation. After cleanup you cannot roll back.", &[]);
+    push_dir(
+        out,
+        DiskCategory::System,
+        "Windows.old",
+        r"C:\Windows.old",
+        DiskSafety::Caution,
+        "Previous Windows installation. After cleanup you cannot roll back.",
+        &[],
+    );
 
     // ── System — Windows Update Download Cache ──────────────
-    push_dir(out, DiskCategory::System, "Windows Update Downloads", r"C:\Windows\SoftwareDistribution\Download", DiskSafety::Caution, "Cached Windows Update installers. Only safe to clean when no updates are pending.", &["wuauserv.exe"]);
+    push_dir(
+        out,
+        DiskCategory::System,
+        "Windows Update Downloads",
+        r"C:\Windows\SoftwareDistribution\Download",
+        DiskSafety::Caution,
+        "Cached Windows Update installers. Only safe to clean when no updates are pending.",
+        &["wuauserv.exe"],
+    );
 
     // ── Development — Visual Studio ─────────────────────────
-    push_dir(out, DiskCategory::Development, "VS Component Model Cache", &format!(r"{local}\Microsoft\VisualStudio\ComponentModelCache"), DiskSafety::Safe, "Visual Studio component model cache. Regenerated on next launch.", &[]);
-    push_dir(out, DiskCategory::Development, "VS Image Library", &format!(r"{local}\Microsoft\VisualStudio\ImageLibrary"), DiskSafety::Safe, "Visual Studio image cache. Regenerated on next launch.", &[]);
-    push_dir(out, DiskCategory::Development, "VS MEF Cache", &format!(r"{local}\Microsoft\VisualStudio\MefCache"), DiskSafety::Safe, "Visual Studio MEF extension cache.", &[]);
+    push_dir(
+        out,
+        DiskCategory::Development,
+        "VS Component Model Cache",
+        &format!(r"{local}\Microsoft\VisualStudio\ComponentModelCache"),
+        DiskSafety::Safe,
+        "Visual Studio component model cache. Regenerated on next launch.",
+        &[],
+    );
+    push_dir(
+        out,
+        DiskCategory::Development,
+        "VS Image Library",
+        &format!(r"{local}\Microsoft\VisualStudio\ImageLibrary"),
+        DiskSafety::Safe,
+        "Visual Studio image cache. Regenerated on next launch.",
+        &[],
+    );
+    push_dir(
+        out,
+        DiskCategory::Development,
+        "VS MEF Cache",
+        &format!(r"{local}\Microsoft\VisualStudio\MefCache"),
+        DiskSafety::Safe,
+        "Visual Studio MEF extension cache.",
+        &[],
+    );
 
     // ── Storage — Unreal Engine Vault Cache (AnalyzeOnly) ───
     push_file_analyze_only(out, DiskCategory::Storage, "Unreal Vault Cache", &format!(r"{appdata}\Unreal Engine\UnrealEngineVaultCache"), DiskSafety::Caution, "Downloaded Unreal Engine marketplace assets. Do NOT delete — these are your purchased assets.");
 
     // ── Other — NVIDIA ProgramData cache ────────────────────
-    push_dir(out, DiskCategory::Other, "NVIDIA ProgramData Cache", r"C:\ProgramData\NVIDIA Corporation\NV_Cache", DiskSafety::Safe, "NVIDIA driver shader cache. Regenerated automatically.", &[]);
+    push_dir(
+        out,
+        DiskCategory::Other,
+        "NVIDIA ProgramData Cache",
+        r"C:\ProgramData\NVIDIA Corporation\NV_Cache",
+        DiskSafety::Safe,
+        "NVIDIA driver shader cache. Regenerated automatically.",
+        &[],
+    );
 }
 
 /// Scans LOCALAPPDATA for JetBrains product caches (AndroidStudio, IntelliJ, CLion, etc.)
@@ -536,9 +886,7 @@ fn discover_jetbrains_and_android_caches(out: &mut Vec<ScanTarget>, local: &str)
     // JetBrains products live under LOCALAPPDATA\JetBrains\Transient (already added)
     // and under their own vendor directories.
     // Also scan for versioned JetBrains product directories.
-    let jetbrains_products = [
-        "JetBrains",
-    ];
+    let jetbrains_products = ["JetBrains"];
 
     for vendor in &jetbrains_products {
         let vendor_dir = format!("{local}\\{vendor}");
@@ -656,7 +1004,10 @@ fn discover_firefox_caches(out: &mut Vec<ScanTarget>, local: &str) {
         }
 
         // Firefox profiles are named like: xxxxxxxx.default-release
-        let profile_name = profile_dir.file_name().unwrap_or_default().to_string_lossy();
+        let profile_name = profile_dir
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy();
 
         // disk cache (main cache)
         let cache2 = profile_dir.join("cache2");
@@ -733,19 +1084,42 @@ fn discover_electron_ide_caches(out: &mut Vec<ScanTarget>, appdata: &str) {
 /// Scans a parent directory (e.g. LOCALAPPDATA or APPDATA) and discovers
 /// application cache subdirectories automatically.
 #[cfg(target_os = "windows")]
-fn discover_windows_app_caches(out: &mut Vec<ScanTarget>, parent: &str, seen: &mut std::collections::HashSet<String>) {
+fn discover_windows_app_caches(
+    out: &mut Vec<ScanTarget>,
+    parent: &str,
+    seen: &mut std::collections::HashSet<String>,
+) {
     let Ok(entries) = std::fs::read_dir(parent) else {
         return;
     };
 
     // Skip directories already handled by explicit targets above
     let skip_dirs = [
-        "Microsoft", "Google", "Mozilla", "BraveSoftware",
-        "Opera Software", "Vivaldi", "Temp", "CrashDumps",
-        "D3DSCache", "pip", "pnpm", "Yarn", "NuGet", "JetBrains",
-        "NVIDIA", "AMD", "UnrealEngine", "Unity",
-        "Code", "Code - Insiders", "VSCodium", "Cursor",
-        "Windsurf", "Arc", "Zed",
+        "Microsoft",
+        "Google",
+        "Mozilla",
+        "BraveSoftware",
+        "Opera Software",
+        "Vivaldi",
+        "Temp",
+        "CrashDumps",
+        "D3DSCache",
+        "pip",
+        "pnpm",
+        "Yarn",
+        "NuGet",
+        "JetBrains",
+        "NVIDIA",
+        "AMD",
+        "UnrealEngine",
+        "Unity",
+        "Code",
+        "Code - Insiders",
+        "VSCodium",
+        "Cursor",
+        "Windsurf",
+        "Arc",
+        "Zed",
     ];
 
     for entry in entries.flatten() {
@@ -895,58 +1269,370 @@ fn macos_targets(out: &mut Vec<ScanTarget>) {
         .unwrap_or_default();
 
     // ── System ──────────────────────────────────────────────
-    push_dir(out, DiskCategory::System, "User Caches", &format!("{home}/Library/Caches"), DiskSafety::Caution, "App cache folder. Apps rebuild caches as needed.", &[]);
-    push_dir(out, DiskCategory::System, "User Logs", &format!("{home}/Library/Logs"), DiskSafety::Safe, "Application log files.", &[]);
-    push_dir(out, DiskCategory::System, "Cocoa Cache", &format!("{home}/Library/Caches/com.apple.Cocoa"), DiskSafety::Safe, "Cocoa framework cache.", &[]);
-    push_dir(out, DiskCategory::System, "CoreServices Cache", &format!("{home}/Library/Caches/com.apple.CoreServices"), DiskSafety::Safe, "macOS CoreServices cache.", &[]);
-    push_dir(out, DiskCategory::System, "System Diagnostics", &format!("{home}/Library/Logs/DiagnosticReports"), DiskSafety::Safe, "System diagnostic and crash reports.", &[]);
+    push_dir(
+        out,
+        DiskCategory::System,
+        "User Caches",
+        &format!("{home}/Library/Caches"),
+        DiskSafety::Caution,
+        "App cache folder. Apps rebuild caches as needed.",
+        &[],
+    );
+    push_dir(
+        out,
+        DiskCategory::System,
+        "User Logs",
+        &format!("{home}/Library/Logs"),
+        DiskSafety::Safe,
+        "Application log files.",
+        &[],
+    );
+    push_dir(
+        out,
+        DiskCategory::System,
+        "Cocoa Cache",
+        &format!("{home}/Library/Caches/com.apple.Cocoa"),
+        DiskSafety::Safe,
+        "Cocoa framework cache.",
+        &[],
+    );
+    push_dir(
+        out,
+        DiskCategory::System,
+        "CoreServices Cache",
+        &format!("{home}/Library/Caches/com.apple.CoreServices"),
+        DiskSafety::Safe,
+        "macOS CoreServices cache.",
+        &[],
+    );
+    push_dir(
+        out,
+        DiskCategory::System,
+        "System Diagnostics",
+        &format!("{home}/Library/Logs/DiagnosticReports"),
+        DiskSafety::Safe,
+        "System diagnostic and crash reports.",
+        &[],
+    );
 
     // ── Browsers ────────────────────────────────────────────
-    push_dir(out, DiskCategory::Browsers, "Safari Cache", &format!("{home}/Library/Caches/com.apple.Safari"), DiskSafety::Safe, "Safari web cache.", &["Safari"]);
-    push_dir(out, DiskCategory::Browsers, "Safari SafeBrowsing", &format!("{home}/Library/Caches/com.apple.Safari/SafeBrowsing"), DiskSafety::Safe, "Safari safe browsing data cache.", &["Safari"]);
-    push_dir(out, DiskCategory::Browsers, "Chrome Cache", &format!("{home}/Library/Caches/Google/Chrome"), DiskSafety::Safe, "Chrome browser cache.", &["Google Chrome"]);
-    push_dir(out, DiskCategory::Browsers, "Chrome Code Cache", &format!("{home}/Library/Caches/Google/Chrome/Code Cache"), DiskSafety::Safe, "Chrome code cache.", &["Google Chrome"]);
-    push_dir(out, DiskCategory::Browsers, "Edge Cache", &format!("{home}/Library/Caches/Microsoft Edge"), DiskSafety::Safe, "Edge browser cache.", &["Microsoft Edge"]);
-    push_dir(out, DiskCategory::Browsers, "Firefox Cache", &format!("{home}/Library/Caches/Firefox"), DiskSafety::Safe, "Firefox browser cache.", &["firefox"]);
-    push_dir(out, DiskCategory::Browsers, "Brave Cache", &format!("{home}/Library/Caches/BraveSoftware"), DiskSafety::Safe, "Brave browser cache.", &["Brave Browser"]);
-    push_dir(out, DiskCategory::Browsers, "Opera Cache", &format!("{home}/Library/Caches/com.operasoftware.Opera"), DiskSafety::Safe, "Opera browser cache.", &["Opera"]);
-    push_dir(out, DiskCategory::Browsers, "Vivaldi Cache", &format!("{home}/Library/Caches/Vivaldi"), DiskSafety::Safe, "Vivaldi browser cache.", &["Vivaldi"]);
+    push_dir(
+        out,
+        DiskCategory::Browsers,
+        "Safari Cache",
+        &format!("{home}/Library/Caches/com.apple.Safari"),
+        DiskSafety::Safe,
+        "Safari web cache.",
+        &["Safari"],
+    );
+    push_dir(
+        out,
+        DiskCategory::Browsers,
+        "Safari SafeBrowsing",
+        &format!("{home}/Library/Caches/com.apple.Safari/SafeBrowsing"),
+        DiskSafety::Safe,
+        "Safari safe browsing data cache.",
+        &["Safari"],
+    );
+    push_dir(
+        out,
+        DiskCategory::Browsers,
+        "Chrome Cache",
+        &format!("{home}/Library/Caches/Google/Chrome"),
+        DiskSafety::Safe,
+        "Chrome browser cache.",
+        &["Google Chrome"],
+    );
+    push_dir(
+        out,
+        DiskCategory::Browsers,
+        "Chrome Code Cache",
+        &format!("{home}/Library/Caches/Google/Chrome/Code Cache"),
+        DiskSafety::Safe,
+        "Chrome code cache.",
+        &["Google Chrome"],
+    );
+    push_dir(
+        out,
+        DiskCategory::Browsers,
+        "Edge Cache",
+        &format!("{home}/Library/Caches/Microsoft Edge"),
+        DiskSafety::Safe,
+        "Edge browser cache.",
+        &["Microsoft Edge"],
+    );
+    push_dir(
+        out,
+        DiskCategory::Browsers,
+        "Firefox Cache",
+        &format!("{home}/Library/Caches/Firefox"),
+        DiskSafety::Safe,
+        "Firefox browser cache.",
+        &["firefox"],
+    );
+    push_dir(
+        out,
+        DiskCategory::Browsers,
+        "Brave Cache",
+        &format!("{home}/Library/Caches/BraveSoftware"),
+        DiskSafety::Safe,
+        "Brave browser cache.",
+        &["Brave Browser"],
+    );
+    push_dir(
+        out,
+        DiskCategory::Browsers,
+        "Opera Cache",
+        &format!("{home}/Library/Caches/com.operasoftware.Opera"),
+        DiskSafety::Safe,
+        "Opera browser cache.",
+        &["Opera"],
+    );
+    push_dir(
+        out,
+        DiskCategory::Browsers,
+        "Vivaldi Cache",
+        &format!("{home}/Library/Caches/Vivaldi"),
+        DiskSafety::Safe,
+        "Vivaldi browser cache.",
+        &["Vivaldi"],
+    );
 
     // ── Development — Package managers ───────────────────────
-    push_dir(out, DiskCategory::Development, "npm Cache", &format!("{home}/.npm/_cacache"), DiskSafety::Safe, "npm download cache.", &[]);
-    push_dir(out, DiskCategory::Development, "pnpm Cache", &format!("{home}/Library/pnpm/store"), DiskSafety::Safe, "pnpm content-addressable store.", &[]);
-    push_dir(out, DiskCategory::Development, "Yarn Cache", &format!("{home}/Library/Caches/Yarn"), DiskSafety::Safe, "Yarn package cache.", &[]);
-    push_dir(out, DiskCategory::Development, "pip Cache", &format!("{home}/Library/Caches/pip"), DiskSafety::Safe, "Python pip cache.", &[]);
-    push_dir(out, DiskCategory::Development, "Cargo Cache", &format!("{home}/.cargo/registry/cache"), DiskSafety::Safe, "Rust crate download cache.", &[]);
-    push_dir(out, DiskCategory::Development, "Cargo Git Cache", &format!("{home}/.cargo/git/db"), DiskSafety::Safe, "Rust cargo git checkout cache.", &[]);
-    push_dir(out, DiskCategory::Development, "Gradle Cache", &format!("{home}/.gradle/caches"), DiskSafety::Caution, "Gradle build cache. Next build may re-download many GB.", &[]);
-    push_dir(out, DiskCategory::Development, "Go Build Cache", &format!("{home}/Library/Caches/go-build"), DiskSafety::Safe, "Go build cache.", &[]);
-    push_dir(out, DiskCategory::Development, "Homebrew Cache", &format!("{home}/Library/Caches/Homebrew"), DiskSafety::Safe, "Homebrew download cache.", &[]);
-    push_dir(out, DiskCategory::Development, "Bun Cache", &format!("{home}/.bun/install/cache"), DiskSafety::Safe, "Bun package manager cache.", &[]);
-    push_dir(out, DiskCategory::Development, "Conan Cache", &format!("{home}/.conan"), DiskSafety::Safe, "Conan C++ package manager cache.", &[]);
+    push_dir(
+        out,
+        DiskCategory::Development,
+        "npm Cache",
+        &format!("{home}/.npm/_cacache"),
+        DiskSafety::Safe,
+        "npm download cache.",
+        &[],
+    );
+    push_dir(
+        out,
+        DiskCategory::Development,
+        "pnpm Cache",
+        &format!("{home}/Library/pnpm/store"),
+        DiskSafety::Safe,
+        "pnpm content-addressable store.",
+        &[],
+    );
+    push_dir(
+        out,
+        DiskCategory::Development,
+        "Yarn Cache",
+        &format!("{home}/Library/Caches/Yarn"),
+        DiskSafety::Safe,
+        "Yarn package cache.",
+        &[],
+    );
+    push_dir(
+        out,
+        DiskCategory::Development,
+        "pip Cache",
+        &format!("{home}/Library/Caches/pip"),
+        DiskSafety::Safe,
+        "Python pip cache.",
+        &[],
+    );
+    push_dir(
+        out,
+        DiskCategory::Development,
+        "Cargo Cache",
+        &format!("{home}/.cargo/registry/cache"),
+        DiskSafety::Safe,
+        "Rust crate download cache.",
+        &[],
+    );
+    push_dir(
+        out,
+        DiskCategory::Development,
+        "Cargo Git Cache",
+        &format!("{home}/.cargo/git/db"),
+        DiskSafety::Safe,
+        "Rust cargo git checkout cache.",
+        &[],
+    );
+    push_dir(
+        out,
+        DiskCategory::Development,
+        "Gradle Cache",
+        &format!("{home}/.gradle/caches"),
+        DiskSafety::Caution,
+        "Gradle build cache. Next build may re-download many GB.",
+        &[],
+    );
+    push_dir(
+        out,
+        DiskCategory::Development,
+        "Go Build Cache",
+        &format!("{home}/Library/Caches/go-build"),
+        DiskSafety::Safe,
+        "Go build cache.",
+        &[],
+    );
+    push_dir(
+        out,
+        DiskCategory::Development,
+        "Homebrew Cache",
+        &format!("{home}/Library/Caches/Homebrew"),
+        DiskSafety::Safe,
+        "Homebrew download cache.",
+        &[],
+    );
+    push_dir(
+        out,
+        DiskCategory::Development,
+        "Bun Cache",
+        &format!("{home}/.bun/install/cache"),
+        DiskSafety::Safe,
+        "Bun package manager cache.",
+        &[],
+    );
+    push_dir(
+        out,
+        DiskCategory::Development,
+        "Conan Cache",
+        &format!("{home}/.conan"),
+        DiskSafety::Safe,
+        "Conan C++ package manager cache.",
+        &[],
+    );
 
     // ── Development — IDEs ──────────────────────────────────
-    push_dir(out, DiskCategory::Development, "VS Code Cache", &format!("{home}/Library/Application Support/Code/Cache"), DiskSafety::Safe, "VS Code cache files.", &["Code"]);
-    push_dir(out, DiskCategory::Development, "VS Code CachedData", &format!("{home}/Library/Application Support/Code/CachedData"), DiskSafety::Safe, "VS Code cached editor data.", &["Code"]);
-    push_dir(out, DiskCategory::Development, "VS Code GPUCache", &format!("{home}/Library/Application Support/Code/GPUCache"), DiskSafety::Safe, "VS Code GPU shader cache.", &["Code"]);
-    push_dir(out, DiskCategory::Development, "VS Code Extensions Cache", &format!("{home}/Library/Application Support/Code/Service Worker/CacheStorage"), DiskSafety::Safe, "VS Code service worker cache.", &["Code"]);
-    push_dir(out, DiskCategory::Development, "Cursor Cache", &format!("{home}/Library/Application Support/Cursor/Cache"), DiskSafety::Safe, "Cursor editor cache.", &["Cursor"]);
-    push_dir(out, DiskCategory::Development, "Cursor CachedData", &format!("{home}/Library/Application Support/Cursor/CachedData"), DiskSafety::Safe, "Cursor cached editor data.", &["Cursor"]);
-    push_dir(out, DiskCategory::Development, "JetBrains Caches", &format!("{home}/Library/Caches/JetBrains"), DiskSafety::Safe, "JetBrains IDE caches.", &[]);
-    push_dir(out, DiskCategory::Development, "Xcode DerivedData", &format!("{home}/Library/Developer/Xcode/DerivedData"), DiskSafety::Caution, "Xcode build artifacts. Projects rebuild on next compile.", &["Xcode"]);
-    push_dir(out, DiskCategory::Development, "Android SDK Cache", &format!("{home}/Library/Android/sdk/.temp"), DiskSafety::Safe, "Android SDK temporary build files.", &[]);
+    push_dir(
+        out,
+        DiskCategory::Development,
+        "VS Code Cache",
+        &format!("{home}/Library/Application Support/Code/Cache"),
+        DiskSafety::Safe,
+        "VS Code cache files.",
+        &["Code"],
+    );
+    push_dir(
+        out,
+        DiskCategory::Development,
+        "VS Code CachedData",
+        &format!("{home}/Library/Application Support/Code/CachedData"),
+        DiskSafety::Safe,
+        "VS Code cached editor data.",
+        &["Code"],
+    );
+    push_dir(
+        out,
+        DiskCategory::Development,
+        "VS Code GPUCache",
+        &format!("{home}/Library/Application Support/Code/GPUCache"),
+        DiskSafety::Safe,
+        "VS Code GPU shader cache.",
+        &["Code"],
+    );
+    push_dir(
+        out,
+        DiskCategory::Development,
+        "VS Code Extensions Cache",
+        &format!("{home}/Library/Application Support/Code/Service Worker/CacheStorage"),
+        DiskSafety::Safe,
+        "VS Code service worker cache.",
+        &["Code"],
+    );
+    push_dir(
+        out,
+        DiskCategory::Development,
+        "Cursor Cache",
+        &format!("{home}/Library/Application Support/Cursor/Cache"),
+        DiskSafety::Safe,
+        "Cursor editor cache.",
+        &["Cursor"],
+    );
+    push_dir(
+        out,
+        DiskCategory::Development,
+        "Cursor CachedData",
+        &format!("{home}/Library/Application Support/Cursor/CachedData"),
+        DiskSafety::Safe,
+        "Cursor cached editor data.",
+        &["Cursor"],
+    );
+    push_dir(
+        out,
+        DiskCategory::Development,
+        "JetBrains Caches",
+        &format!("{home}/Library/Caches/JetBrains"),
+        DiskSafety::Safe,
+        "JetBrains IDE caches.",
+        &[],
+    );
+    push_dir(
+        out,
+        DiskCategory::Development,
+        "Xcode DerivedData",
+        &format!("{home}/Library/Developer/Xcode/DerivedData"),
+        DiskSafety::Caution,
+        "Xcode build artifacts. Projects rebuild on next compile.",
+        &["Xcode"],
+    );
+    push_dir(
+        out,
+        DiskCategory::Development,
+        "Android SDK Cache",
+        &format!("{home}/Library/Android/sdk/.temp"),
+        DiskSafety::Safe,
+        "Android SDK temporary build files.",
+        &[],
+    );
 
     // ── Development — Game engines ──────────────────────────
-    push_dir(out, DiskCategory::Development, "Unity Cache", &format!("{home}/Library/Cache/Unity"), DiskSafety::Safe, "Unity cache. Regenerated automatically.", &["Unity"]);
+    push_dir(
+        out,
+        DiskCategory::Development,
+        "Unity Cache",
+        &format!("{home}/Library/Cache/Unity"),
+        DiskSafety::Safe,
+        "Unity cache. Regenerated automatically.",
+        &["Unity"],
+    );
 
     // ── Applications (dynamic) ──────────────────────────────
     discover_macos_app_caches(out, &home);
 
     // ── Other ───────────────────────────────────────────────
-    push_dir(out, DiskCategory::Other, "QuickLook Cache", &format!("{home}/Library/Caches/com.apple.QuickLook"), DiskSafety::Safe, "Preview thumbnail cache.", &[]);
-    push_dir(out, DiskCategory::Other, "Font Cache", &format!("{home}/Library/Caches/com.apple.ATS"), DiskSafety::Safe, "Font rendering cache.", &[]);
-    push_dir(out, DiskCategory::Other, "Spotlight Cache", &format!("{home}/Library/Caches/com.apple.Spotlight"), DiskSafety::Safe, "Spotlight search index cache.", &[]);
-    push_dir(out, DiskCategory::Other, "UIServer Cache", &format!("{home}/Library/Caches/com.apple.WindowManager"), DiskSafety::Safe, "Window Manager cache.", &[]);
+    push_dir(
+        out,
+        DiskCategory::Other,
+        "QuickLook Cache",
+        &format!("{home}/Library/Caches/com.apple.QuickLook"),
+        DiskSafety::Safe,
+        "Preview thumbnail cache.",
+        &[],
+    );
+    push_dir(
+        out,
+        DiskCategory::Other,
+        "Font Cache",
+        &format!("{home}/Library/Caches/com.apple.ATS"),
+        DiskSafety::Safe,
+        "Font rendering cache.",
+        &[],
+    );
+    push_dir(
+        out,
+        DiskCategory::Other,
+        "Spotlight Cache",
+        &format!("{home}/Library/Caches/com.apple.Spotlight"),
+        DiskSafety::Safe,
+        "Spotlight search index cache.",
+        &[],
+    );
+    push_dir(
+        out,
+        DiskCategory::Other,
+        "UIServer Cache",
+        &format!("{home}/Library/Caches/com.apple.WindowManager"),
+        DiskSafety::Safe,
+        "Window Manager cache.",
+        &[],
+    );
 }
 
 /// Scans ~/Library/Caches and ~/Library/Application Support/*/Cache to
@@ -970,9 +1656,16 @@ fn discover_macos_app_caches(out: &mut Vec<ScanTarget>, home: &str) {
                 || name.starts_with("com.microsoft.")
                 || matches!(
                     name.as_str(),
-                    "Google" | "Firefox" | "BraveSoftware" | "Vivaldi"
-                        | "com.operasoftware.Opera" | "Homebrew" | "Yarn"
-                        | "pip" | "go-build" | "JetBrains"
+                    "Google"
+                        | "Firefox"
+                        | "BraveSoftware"
+                        | "Vivaldi"
+                        | "com.operasoftware.Opera"
+                        | "Homebrew"
+                        | "Yarn"
+                        | "pip"
+                        | "go-build"
+                        | "JetBrains"
                 )
             {
                 continue;
@@ -1008,9 +1701,18 @@ fn discover_macos_app_caches(out: &mut Vec<ScanTarget>, home: &str) {
             if app_name.starts_with("com.apple.")
                 || matches!(
                     app_name.as_str(),
-                    "Google" | "Firefox" | "BraveSoftware" | "Slack"
-                        | "Code" | "Cursor" | "discord" | "Spotify"
-                        | "Notion" | "Figma" | "1Password" | "Microsoft"
+                    "Google"
+                        | "Firefox"
+                        | "BraveSoftware"
+                        | "Slack"
+                        | "Code"
+                        | "Cursor"
+                        | "discord"
+                        | "Spotify"
+                        | "Notion"
+                        | "Figma"
+                        | "1Password"
+                        | "Microsoft"
                         | "JetBrains"
                 )
             {

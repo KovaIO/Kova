@@ -178,7 +178,11 @@ impl PreferencesStorage {
             UPDATE appearance_preferences
             SET accent_color = ?1, window_density = ?2, metric_card_style = ?3
             ",
-            params![prefs.accent_color, prefs.window_density, prefs.metric_card_style],
+            params![
+                prefs.accent_color,
+                prefs.window_density,
+                prefs.metric_card_style
+            ],
         )?;
 
         Ok(())

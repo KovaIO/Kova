@@ -77,10 +77,7 @@ impl LicenseClient {
             return Err(format!("portal session failed: {}", body));
         }
 
-        let json: serde_json::Value = res
-            .json()
-            .await
-            .map_err(|e| e.to_string())?;
+        let json: serde_json::Value = res.json().await.map_err(|e| e.to_string())?;
 
         json["portal_url"]
             .as_str()
