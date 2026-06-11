@@ -9,6 +9,7 @@ mod migration;
 mod preferences;
 mod processes;
 mod shortcuts;
+mod update;
 mod windows;
 mod workspaces;
 
@@ -44,6 +45,7 @@ use crate::{
     app_state::initialize_app_state,
     metrics::{models::new_shared_history, start_metrics_loop},
     shortcuts::{handle_action, load_shortcuts, ShortcutMap},
+    update::{check_for_updates, dismiss_update, get_update, install_update, UpdateState},
 };
 
 struct IsOpen(Arc<AtomicBool>);
@@ -56,6 +58,8 @@ pub fn run() {
             MacosLauncher::LaunchAgent,
             Some(vec!["--autostarted"]),
         ))
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_positioner::init())
@@ -119,7 +123,10 @@ pub fn run() {
             delete_all_disk_items,
             open_preferences,
             open_monitor,
-            open_process
+            open_process,
+            get_update,
+            dismiss_update,
+            install_update
         ])
         .setup(|app| {
             let app_state = initialize_app_state(app)?;
@@ -149,6 +156,14 @@ pub fn run() {
                         eprintln!("license verification failed: {}", err);
                     }
                 }
+            });
+
+            app.manage(UpdateState::new());
+
+            let update_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+                check_for_updates(update_handle).await;
             });
 
             let shortcut_map = load_shortcuts(app, app_state.clone())?;
@@ -253,6 +268,9 @@ pub fn run() {
             }
             if let Some(clippy) = app.get_webview_window("profiles") {
                 windows::attach_focus_hide(clippy);
+            }
+            if let Some(update) = app.get_webview_window("update") {
+                windows::attach_focus_hide(update);
             }
 
             Ok(())

@@ -99,6 +99,21 @@
         "transparent": true,
         "devtools": false,
         "center": true
+      },
+      {
+        "url": "/update",
+        "label": "update",
+        "title": "Update Available",
+        "width": 400,
+        "height": 300,
+        "decorations": false,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "visible": false,
+        "resizable": false,
+        "shadow": false,
+        "transparent": true,
+        "devtools": false
       }
     ],
     "security": {
@@ -119,5 +134,17 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": ["https://api.appkova.com/updates/latest.json"],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDU4MkZFMDZFMjg4NjZEQzAKUldUQWJZWW9idUF2V0ZzRXNHVTlMSkM5Nk1hL281RlR2aHBLaVNobmd4SlNzTlowNExDcnhYejIK",
+      "windows": {
+        "installerPath": ""
+      },
+      "macos": {
+        "appImageSubpath": ""
+      }
+    }
   }
 }
