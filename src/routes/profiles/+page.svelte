@@ -4,6 +4,7 @@
     import { getCurrentWindow } from "@tauri-apps/api/window";
     import type { WorkspaceProfile } from "$types/preferences";
     import { applyWorkspace, getWorkspaceProfiles } from "$services/workspaces";
+    import WindowAnimation from "$components/WindowAnimation.svelte";
 
     const COLS = 8;
     const ROWS = 8;
@@ -96,61 +97,63 @@
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="root" on:click={close}>
-    <div class="ring-container">
-        {#each profiles as profile, i}
-            {@const pos = getItemPosition(i, profiles.length)}
-            {@const isActive = selected === profile.id}
+<WindowAnimation>
+    <div class="root" on:click={close}>
+        <div class="ring-container">
+            {#each profiles as profile, i}
+                {@const pos = getItemPosition(i, profiles.length)}
+                {@const isActive = selected === profile.id}
 
-            <div
-                class="item"
-                class:selected={isActive}
-                style="
+                <div
+                    class="item"
+                    class:selected={isActive}
+                    style="
                     transform: translate({pos.x}px, {pos.y}px) scale({isActive
-                    ? SELECTED_SCALE
-                    : 1});
+                        ? SELECTED_SCALE
+                        : 1});
                 "
-                on:mouseenter={() => (selected = profile.id)}
-                on:click|stopPropagation={() => apply(profile.id)}
-            >
-                <div class="thumbnail">
-                    {#each profile.apps as app}
-                        {@const gx = toGrid(app.x, COLS)}
-                        {@const gy = toGrid(app.y, ROWS)}
-                        {@const gw = toGrid(app.width, COLS)}
-                        {@const gh = toGrid(app.height, ROWS)}
+                    on:mouseenter={() => (selected = profile.id)}
+                    on:click|stopPropagation={() => apply(profile.id)}
+                >
+                    <div class="thumbnail">
+                        {#each profile.apps as app}
+                            {@const gx = toGrid(app.x, COLS)}
+                            {@const gy = toGrid(app.y, ROWS)}
+                            {@const gw = toGrid(app.width, COLS)}
+                            {@const gh = toGrid(app.height, ROWS)}
 
-                        <div
-                            class="slot"
-                            style="
+                            <div
+                                class="slot"
+                                style="
                                 left:{pct(gx, COLS)}%;
                                 top:{pct(gy, ROWS)}%;
                                 width:{pct(gw, COLS)}%;
                                 height:{pct(gh, ROWS)}%;
                             "
-                        >
-                            {#if app.icon}
-                                <img
-                                    class="icon"
-                                    src="data:image/png;base64,{app.icon}"
-                                    alt={app.name}
-                                />
-                            {:else}
-                                <span class="initial">
-                                    {app.name.charAt(0).toUpperCase()}
-                                </span>
-                            {/if}
-                        </div>
-                    {/each}
-                </div>
+                            >
+                                {#if app.icon}
+                                    <img
+                                        class="icon"
+                                        src="data:image/png;base64,{app.icon}"
+                                        alt={app.name}
+                                    />
+                                {:else}
+                                    <span class="initial">
+                                        {app.name.charAt(0).toUpperCase()}
+                                    </span>
+                                {/if}
+                            </div>
+                        {/each}
+                    </div>
 
-                {#if isActive}
-                    <div class="label">{profile.name}</div>
-                {/if}
-            </div>
-        {/each}
+                    {#if isActive}
+                        <div class="label">{profile.name}</div>
+                    {/if}
+                </div>
+            {/each}
+        </div>
     </div>
-</div>
+</WindowAnimation>
 
 <style>
     .root {
