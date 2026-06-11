@@ -15,34 +15,8 @@ export const SHORTCUT_CATALOG: ShortcutCatalogEntry[] = [
     section: "Apply Workspace",
   },
   {
-    action: "open_window_switcher",
-    label: "Open window switcher",
-    section: "Window Switcher",
-  },
-  {
-    action: "previous_window",
-    label: "Select previous window",
-    section: "Window Switcher",
-  },
-  {
-    action: "search_window_switcher",
-    label: "Search",
-    section: "Window Switcher",
-  },
-  { action: "expand_tabs", label: "Expand tabs", section: "Window Switcher" },
-  {
-    action: "collapse_tabs",
-    label: "Collapse tabs",
-    section: "Window Switcher",
-  },
-  {
     action: "open_clipboard_history",
     label: "Open clipboard history",
-    section: "Clipboard History",
-  },
-  {
-    action: "search_clipboard_history",
-    label: "Search clipboard history",
     section: "Clipboard History",
   },
   {

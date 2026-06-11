@@ -219,14 +219,7 @@ pub struct Shortcut {
 pub enum ShortcutAction {
     ApplyWorkspace,
 
-    OpenWindowSwitcher,
-    PreviousWindow,
-    SearchWindowSwitcher,
-    ExpandTabs,
-    CollapseTabs,
-
     OpenClipboardHistory,
-    SearchClipboardHistory,
 
     OpenMonitor,
     OpenMenubarPopover,
@@ -237,14 +230,7 @@ impl FromSql for ShortcutAction {
         match value.as_str()? {
             "apply_workspace" => Ok(Self::ApplyWorkspace),
 
-            "open_window_switcher" => Ok(Self::OpenWindowSwitcher),
-            "previous_window" => Ok(Self::PreviousWindow),
-            "search_window_switcher" => Ok(Self::SearchWindowSwitcher),
-            "expand_tabs" => Ok(Self::ExpandTabs),
-            "collapse_tabs" => Ok(Self::CollapseTabs),
-
             "open_clipboard_history" => Ok(Self::OpenClipboardHistory),
-            "search_clipboard_history" => Ok(Self::SearchClipboardHistory),
 
             "open_monitor" => Ok(Self::OpenMonitor),
             "open_menubar_popover" => Ok(Self::OpenMenubarPopover),
@@ -261,14 +247,7 @@ impl ToSql for ShortcutAction {
         Ok(match self {
             Self::ApplyWorkspace => "apply_workspace".into(),
 
-            Self::OpenWindowSwitcher => "open_window_switcher".into(),
-            Self::PreviousWindow => "previous_window".into(),
-            Self::SearchWindowSwitcher => "search_window_switcher".into(),
-            Self::ExpandTabs => "expand_tabs".into(),
-            Self::CollapseTabs => "collapse_tabs".into(),
-
             Self::OpenClipboardHistory => "open_clipboard_history".into(),
-            Self::SearchClipboardHistory => "search_clipboard_history".into(),
 
             Self::OpenMonitor => "open_monitor".into(),
             Self::OpenMenubarPopover => "open_menubar_popover".into(),
