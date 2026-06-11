@@ -8,7 +8,7 @@
     import LicenseSection from "$components/preferences/sections/LicenseSection.svelte";
     import ClipboardHistorySection from "$components/preferences/sections/ClipboardHistorySection.svelte";
     import KeyboardShortcutsSection from "$components/preferences/sections/KeyboardShortcutsSection.svelte";
-    import PowerManagementSection from "$components/preferences/sections/PowerManagementSection.svelte";
+    // import PowerManagementSection from "$components/preferences/sections/PowerManagementSection.svelte";
     import HelpFeedbackSection from "$components/preferences/sections/HelpFeedbackSection.svelte";
     import WorkspacesSection from "$components/preferences/sections/WorkspacesSection.svelte";
     import AppearanceSection from "$components/preferences/sections/AppearanceSection.svelte";
@@ -21,7 +21,7 @@
         { id: "workspace-profiles", label: "Workspace Profiles" },
         { id: "clipboard-history", label: "Clipboard History" },
         { id: "keyboard-shortcuts", label: "Keyboard Shortcuts" },
-        { id: "power-management", label: "Power Management" },
+        // { id: "power-management", label: "Power Management" },
         { id: "help-feedback", label: "Help & Feedback" },
         { id: "license", label: "License" },
     ];
@@ -64,8 +64,8 @@
                 <ClipboardHistorySection />
             {:else if activeSection === "keyboard-shortcuts"}
                 <KeyboardShortcutsSection />
-            {:else if activeSection === "power-management"}
-                <PowerManagementSection />
+                <!-- {:else if activeSection === "power-management"}
+                <PowerManagementSection /> -->
             {:else if activeSection === "help-feedback"}
                 <HelpFeedbackSection />
             {:else if activeSection === "license"}

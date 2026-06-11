@@ -8,22 +8,22 @@
     import { preferences } from "$stores/preferences";
     import type { GeneralPreferences } from "$types/preferences";
 
-    const LANGUAGES = [
-        { value: "en", label: "English" },
-        { value: "es", label: "Spanish" },
-        { value: "fr", label: "French" },
-        { value: "de", label: "German" },
-    ] as const;
+    // const LANGUAGES = [
+    //     { value: "en", label: "English" },
+    //     { value: "es", label: "Spanish" },
+    //     { value: "fr", label: "French" },
+    //     { value: "de", label: "German" },
+    // ] as const;
 
     $: general = $preferences?.general;
     $: monitorDim = general?.monitor_dim ?? 90;
-    $: language = general?.language ?? "en";
+    // $: language = general?.language ?? "en";
     $: monitorDimmingEnabled = canUse("monitor_dimming", $license);
 
-    function onLanguageChange(event: Event) {
-        const value = (event.target as HTMLSelectElement).value;
-        updateGeneral({ language: value });
-    }
+    // function onLanguageChange(event: Event) {
+    //     const value = (event.target as HTMLSelectElement).value;
+    //     updateGeneral({ language: value });
+    // }
 </script>
 
 <PreferencesSection
@@ -74,7 +74,7 @@
         {/if}
     </div>
 
-    <PreferenceItem
+    <!-- <PreferenceItem
         label="Language"
         description="Select your preferred language for the interface"
     >
@@ -83,7 +83,7 @@
                 <option value={option.value}>{option.label}</option>
             {/each}
         </select>
-    </PreferenceItem>
+    </PreferenceItem> -->
 </PreferencesSection>
 
 <style>
