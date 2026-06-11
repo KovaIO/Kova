@@ -61,6 +61,10 @@
     async function openPreferences() {
         await invoke("open_preferences");
     }
+
+    async function exitApp() {
+        await invoke("exit_app");
+    }
 </script>
 
 <WindowAnimation>
@@ -113,9 +117,14 @@
             {/if}
         </div>
 
-        <button class="prefs-btn" type="button" on:click={openPreferences}
-            >Preferences</button
-        >
+        <div class="actions">
+            <button class="prefs-btn" type="button" on:click={openPreferences}
+                >Preferences</button
+            >
+            <button class="exit-btn" type="button" on:click={exitApp}>
+                Exit
+            </button>
+        </div>
     </div>
 </WindowAnimation>
 
@@ -164,8 +173,13 @@
         padding: 0 2px;
     }
 
+    .actions {
+        display: flex;
+        gap: 6px;
+    }
+
     .prefs-btn {
-        width: 100%;
+        flex: 1;
         padding: 12px 18px;
         border: 2px solid var(--color-border-subtle);
         border-radius: var(--radius-md);
@@ -183,5 +197,25 @@
     .prefs-btn:hover {
         background: var(--color-button-bg-hover);
         color: var(--color-text-secondary);
+    }
+
+    .exit-btn {
+        padding: 12px 14px;
+        border: 2px solid var(--color-border-subtle);
+        border-radius: var(--radius-md);
+        background: var(--color-main-bg);
+        backdrop-filter: blur(var(--blur-glass));
+        color: var(--color-text-tertiary);
+        font-size: 12.5px;
+        font-weight: 500;
+        font-family: inherit;
+        letter-spacing: 0.02em;
+        text-align: center;
+        transition: var(--transition-medium);
+    }
+
+    .exit-btn:hover {
+        background: var(--color-danger-soft);
+        color: var(--color-danger);
     }
 </style>
