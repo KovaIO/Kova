@@ -118,4 +118,9 @@ impl PreferencesService {
             .save_appearance_preferences(&prefs)
             .map_err(|e| e.to_string())
     }
+
+    pub fn save_monitor_dim(&self, dim: u8) -> Result<()> {
+        let storage = self.storage.lock().unwrap();
+        storage.save_monitor_dim(dim)
+    }
 }

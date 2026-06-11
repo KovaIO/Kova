@@ -90,6 +90,14 @@ pub fn get_brightness() -> Result<u8, String> {
 }
 
 #[tauri::command]
+pub fn save_monitor_dim(dim: u8, state: State<AppState>) -> Result<(), String> {
+    state
+        .preferences
+        .save_monitor_dim(dim)
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 pub fn update_appearance_preferences(
     prefs: AppearancePreferences,
     state: State<AppState>,

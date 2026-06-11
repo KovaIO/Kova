@@ -187,4 +187,12 @@ impl PreferencesStorage {
 
         Ok(())
     }
+
+    pub fn save_monitor_dim(&self, dim: u8) -> Result<()> {
+        self.conn.execute(
+            "UPDATE general_preferences SET monitor_dim = ?1",
+            params![dim],
+        )?;
+        Ok(())
+    }
 }

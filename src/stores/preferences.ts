@@ -14,8 +14,15 @@ export function normalizePreferences(prefs: Preferences): Preferences {
   };
 }
 
-export function setPreferences(prefs: Preferences) {
+export async function setPreferences(prefs: Preferences) {
   const normalized = normalizePreferences(prefs);
+
+  try {
+    const realBrightness = await invoke<number>("get_brightness");
+    normalized.general.monitor_dim = realBrightness;
+  } catch {
+    // keep DB value if brightness read fails
+  }
 
   applyAccentColor(normalized.appearance.accent_color);
 
@@ -24,7 +31,7 @@ export function setPreferences(prefs: Preferences) {
 
 export async function loadPreferences() {
   const prefs = await invoke<Preferences>("get_preferences");
-  setPreferences(prefs);
+  await setPreferences(prefs);
 }
 
 export async function refreshBrightness() {
@@ -32,9 +39,13 @@ export async function refreshBrightness() {
     const realBrightness = await invoke<number>("get_brightness");
     preferences.update((current) =>
       current
-        ? { ...current, general: { ...current.general, monitor_dim: realBrightness } }
+        ? {
+            ...current,
+            general: { ...current.general, monitor_dim: realBrightness },
+          }
         : current,
     );
+    await invoke("save_monitor_dim", { dim: realBrightness });
   } catch {
     // brightness read failed, keep current value
   }
