@@ -28,7 +28,6 @@
         startDiskScan,
     } from "$services/disk";
     import type {
-        CleanupAction,
         DiskCategory,
         DiskItemDetail,
         DiskScanItem,
@@ -38,7 +37,7 @@
         DiskVolumeInfo,
         ScanPreview,
     } from "$types/disk";
-    import { formatLastScan, safetyLabel } from "$types/disk";
+    import { safetyLabel } from "$types/disk";
     import { formatBytes } from "$utils/format";
 
     type View = "ready" | "scanning" | "results" | "detail";
