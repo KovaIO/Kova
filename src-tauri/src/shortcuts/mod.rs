@@ -136,7 +136,6 @@ pub fn handle_action(app: &tauri::AppHandle, action: &ShortcutAction) {
                 is_open.0.store(true, Ordering::Relaxed);
             }
         }
-        _ => {}
     }
 }
 

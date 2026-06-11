@@ -1,11 +1,12 @@
 <script lang="ts">
+    import { onMount, onDestroy } from "svelte";
     import PreferencesSection from "../PreferencesSection.svelte";
     import PreferenceItem from "../PreferenceItem.svelte";
     import Toggle from "$components/Toggle.svelte";
     import BrightnessSlider from "$components/BrightnessSlider.svelte";
     import { updateGeneral } from "$services/preferences";
     import { canUse, license } from "$stores/license";
-    import { preferences } from "$stores/preferences";
+    import { preferences, refreshBrightness } from "$stores/preferences";
     import type { GeneralPreferences } from "$types/preferences";
 
     // const LANGUAGES = [
@@ -16,9 +17,21 @@
     // ] as const;
 
     $: general = $preferences?.general;
-    $: monitorDim = general?.monitor_dim ?? 90;
+    $: monitorDim = general?.monitor_dim ?? 100;
     // $: language = general?.language ?? "en";
     $: monitorDimmingEnabled = canUse("monitor_dimming", $license);
+
+    function onFocus() {
+        refreshBrightness();
+    }
+
+    onMount(() => {
+        window.addEventListener("focus", onFocus);
+    });
+
+    onDestroy(() => {
+        window.removeEventListener("focus", onFocus);
+    });
 
     // function onLanguageChange(event: Event) {
     //     const value = (event.target as HTMLSelectElement).value;

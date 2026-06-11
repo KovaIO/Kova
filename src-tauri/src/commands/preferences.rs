@@ -85,6 +85,11 @@ pub fn update_shortcuts(
 }
 
 #[tauri::command]
+pub fn get_brightness() -> Result<u8, String> {
+    crate::preferences::monitor::get_brightness()
+}
+
+#[tauri::command]
 pub fn update_appearance_preferences(
     prefs: AppearancePreferences,
     state: State<AppState>,

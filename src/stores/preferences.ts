@@ -26,3 +26,16 @@ export async function loadPreferences() {
   const prefs = await invoke<Preferences>("get_preferences");
   setPreferences(prefs);
 }
+
+export async function refreshBrightness() {
+  try {
+    const realBrightness = await invoke<number>("get_brightness");
+    preferences.update((current) =>
+      current
+        ? { ...current, general: { ...current.general, monitor_dim: realBrightness } }
+        : current,
+    );
+  } catch {
+    // brightness read failed, keep current value
+  }
+}

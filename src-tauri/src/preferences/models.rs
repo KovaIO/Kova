@@ -58,7 +58,7 @@ impl Default for GeneralPreferences {
             launch_at_startup: true,
             show_menu_bar: true,
             language: "en".to_string(),
-            monitor_dim: 90,
+            monitor_dim: 100,
         }
     }
 }

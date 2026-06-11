@@ -208,3 +208,131 @@ pub fn set_brightness(percent: u8) -> Result<(), String> {
 
     Ok(())
 }
+
+#[cfg(target_os = "windows")]
+pub fn get_brightness() -> Result<u8, String> {
+    use windows::core::BOOL;
+    use windows::Win32::Foundation::{HANDLE, LPARAM, RECT};
+    use windows::Win32::Graphics::Gdi::{EnumDisplayMonitors, HDC, HMONITOR};
+
+    #[link(name = "Dxva2")]
+    unsafe extern "system" {
+        fn GetNumberOfPhysicalMonitorsFromHMONITOR(hmonitor: HMONITOR, count: *mut u32) -> BOOL;
+        fn GetPhysicalMonitorsFromHMONITOR(
+            hmonitor: HMONITOR,
+            count: u32,
+            monitors: *mut PHYSICAL_MONITOR,
+        ) -> BOOL;
+        fn DestroyPhysicalMonitors(count: u32, monitors: *mut PHYSICAL_MONITOR) -> BOOL;
+        fn GetVCPFeatureAndVCPFeatureReply(
+            monitor: HANDLE,
+            code: u8,
+            pvct: *mut VCP_CODE_TYPE,
+            current_value: *mut u32,
+            maximum_value: *mut u32,
+        ) -> BOOL;
+    }
+
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    struct PHYSICAL_MONITOR {
+        handle: HANDLE,
+        description: [u16; 128],
+    }
+
+    #[repr(C)]
+    struct VCP_CODE_TYPE {
+        _unused: [u8; 0],
+    }
+
+    struct BrightnessResult {
+        value: Option<u8>,
+    }
+
+    let mut result = BrightnessResult { value: None };
+
+    unsafe extern "system" fn enum_proc(
+        monitor: HMONITOR,
+        _: HDC,
+        _: *mut RECT,
+        data: LPARAM,
+    ) -> BOOL {
+        let result = &mut *(data.0 as *mut BrightnessResult);
+        let mut count = 0;
+
+        if !unsafe { GetNumberOfPhysicalMonitorsFromHMONITOR(monitor, &mut count) }.as_bool() {
+            return BOOL(1);
+        }
+
+        let mut monitors = vec![
+            PHYSICAL_MONITOR {
+                handle: Default::default(),
+                description: [0; 128],
+            };
+            count as usize
+        ];
+
+        if unsafe { GetPhysicalMonitorsFromHMONITOR(monitor, count, monitors.as_mut_ptr()) }
+            .as_bool()
+        {
+            for m in &monitors {
+                let mut current = 0u32;
+                let mut maximum = 0u32;
+                if unsafe {
+                    GetVCPFeatureAndVCPFeatureReply(
+                        m.handle,
+                        0x10,
+                        std::ptr::null_mut(),
+                        &mut current,
+                        &mut maximum,
+                    )
+                }
+                .as_bool()
+                    && maximum > 0
+                {
+                    result.value = Some(((current as f64 / maximum as f64) * 100.0) as u8);
+                    break;
+                }
+            }
+            unsafe {
+                let _ = DestroyPhysicalMonitors(count, monitors.as_mut_ptr());
+            }
+        }
+
+        if result.value.is_some() {
+            BOOL(0)
+        } else {
+            BOOL(1)
+        }
+    }
+
+    unsafe {
+        let _ = EnumDisplayMonitors(
+            None,
+            None,
+            Some(enum_proc),
+            LPARAM(&mut result as *mut _ as isize),
+        );
+    }
+
+    result
+        .value
+        .ok_or_else(|| "No monitor reported brightness".into())
+}
+
+#[cfg(target_os = "macos")]
+pub fn get_brightness() -> Result<u8, String> {
+    use core_graphics::display::CGMainDisplayID;
+
+    extern "C" {
+        #[link(name = "DisplayServices", kind = "framework")]
+        fn DisplayServicesGetBrightness(display: u32, brightness: *mut f32) -> i32;
+    }
+
+    let mut value: f32 = 0.0;
+    unsafe {
+        let _ = DisplayServicesGetBrightness(CGMainDisplayID(), &mut value);
+    }
+
+    Ok((value * 100.0).round() as u8)
+}

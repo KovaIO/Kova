@@ -64,3 +64,7 @@ export function updateShortcuts(shortcuts: Shortcut[]) {
     shortcuts: shortcutsForApi(normalized),
   });
 }
+
+export function getBrightness(): Promise<number> {
+  return invoke("get_brightness");
+}

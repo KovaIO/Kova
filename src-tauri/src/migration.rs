@@ -9,7 +9,7 @@ pub fn run_migrations(conn: &Connection) -> Result<()> {
             launch_at_startup INTEGER NOT NULL DEFAULT 0,
             show_menu_bar INTEGER NOT NULL DEFAULT 1,
             language TEXT NOT NULL DEFAULT 'en',
-            monitor_dim INTEGER NOT NULL DEFAULT 90
+            monitor_dim INTEGER NOT NULL DEFAULT 100
         );
 
         CREATE TABLE IF NOT EXISTS clipboard_preferences (

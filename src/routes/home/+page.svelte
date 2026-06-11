@@ -8,7 +8,7 @@
     import { Cpu, MemoryStick, HardDrive } from "@lucide/svelte";
     import { updateClipboard, updateGeneral } from "$services/preferences";
     import { canUse, license } from "$stores/license";
-    import { preferences } from "$stores/preferences";
+    import { preferences, refreshBrightness } from "$stores/preferences";
     import WindowAnimation from "$components/WindowAnimation.svelte";
 
     interface SystemMetrics {
@@ -50,12 +50,21 @@
         unlisten = await listen<SystemMetrics>("system-metrics", (event) => {
             applyMetrics(event.payload);
         });
+
+        window.addEventListener("focus", onFocus);
     });
 
-    onDestroy(() => unlisten?.());
+    onDestroy(() => {
+        unlisten?.();
+        window.removeEventListener("focus", onFocus);
+    });
+
+    function onFocus() {
+        refreshBrightness();
+    }
 
     $: clipboardEnabled = $preferences?.clipboard.enabled ?? true;
-    $: monitorDim = $preferences?.general.monitor_dim ?? 90;
+    $: monitorDim = $preferences?.general.monitor_dim ?? 100;
     $: monitorDimmingEnabled = canUse("monitor_dimming", $license);
 
     async function openPreferences() {
