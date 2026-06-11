@@ -145,8 +145,6 @@
 
     let unlisten: UnlistenFn;
     onMount(async () => {
-        if (pid) await loadProcess();
-
         unlisten = await listen<Metrics>("metrics", (e) => {
             if (!historyMode) {
                 applyLiveMetrics(e.payload);
@@ -180,6 +178,8 @@
                       : cpuHistory
             ).length;
         });
+
+        if (pid) await loadProcess();
     });
 
     async function quitProcess(force = false) {

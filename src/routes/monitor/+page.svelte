@@ -70,8 +70,6 @@
     let unlisten: UnlistenFn;
 
     onMount(async () => {
-        const snap = await invoke<Metrics | null>("get_current_metrics");
-        if (snap) applyLiveMetrics(snap);
         unlisten = await listen<Metrics>("metrics", (e) => {
             if (!historyMode) {
                 applyLiveMetrics(e.payload);
@@ -106,6 +104,13 @@
                       : cpuHistory
             ).length;
         });
+
+        let snap = await invoke<Metrics | null>("get_current_metrics");
+        while (!snap) {
+            await new Promise((r) => setTimeout(r, 100));
+            snap = await invoke<Metrics | null>("get_current_metrics");
+        }
+        applyLiveMetrics(snap);
     });
 
     onDestroy(async () => {
