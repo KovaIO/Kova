@@ -309,8 +309,8 @@
                     <HardDrive size={18} />
                     <h3>Ready to clean</h3>
                     <p>
-                        Scan {volume?.mount_path ?? "your disk"} for
-                        reclaimable cache and temporary files.
+                        Scan {volume?.mount_path ?? "your disk"} for reclaimable cache
+                        and temporary files.
                     </p>
 
                     <div class="preview-badges">
@@ -643,7 +643,6 @@
         color: var(--color-text-secondary);
         font: inherit;
         font-size: 12px;
-        cursor: pointer;
         text-align: left;
     }
 
@@ -683,7 +682,6 @@
         font: inherit;
         font-size: 11.5px;
         text-align: left;
-        cursor: pointer;
         border-radius: var(--radius-sm);
     }
 
@@ -714,7 +712,6 @@
         color: var(--color-text-dim);
         display: grid;
         place-items: center;
-        cursor: pointer;
         opacity: 0;
         transition: opacity var(--transition-fast);
     }
@@ -768,7 +765,6 @@
         font-size: 12px;
         font-weight: 500;
         font-family: inherit;
-        cursor: pointer;
         transition: all var(--transition-fast);
     }
 
@@ -825,7 +821,6 @@
         color: var(--color-text-muted);
         font-size: 11px;
         font-family: inherit;
-        cursor: pointer;
         border-radius: var(--radius-sm);
     }
 

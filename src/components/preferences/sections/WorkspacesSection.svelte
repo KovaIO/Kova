@@ -10,6 +10,7 @@
         saveWorkspaceProfile,
         deleteWorkspaceProfile,
     } from "$services/workspaces";
+    import { openUrl } from "@tauri-apps/plugin-opener";
 
     $: isPro = canUse("workspace_profiles", $license);
 
@@ -30,7 +31,10 @@
     let dragStartCell = { col: 0, row: 0 };
     let dragStartApp = { x: 0, y: 0, width: 0, height: 0 };
     let canvasEl: HTMLDivElement;
-    let hoveredCell: { col: number; row: number } | null = null;
+
+    async function upgrade() {
+        openUrl("https://appkova.com/#pricing");
+    }
 
     onMount(async () => {
         try {
@@ -99,7 +103,12 @@
 
     function newProfile() {
         const id = crypto.randomUUID();
-        const profile: WorkspaceProfile = { id, name: "New Profile", gap: 0, apps: [] };
+        const profile: WorkspaceProfile = {
+            id,
+            name: "New Profile",
+            gap: 0,
+            apps: [],
+        };
         profiles = [...profiles, profile];
         selected = profile;
     }
@@ -365,7 +374,9 @@
                 Workspace Profiles let you save app arrangements and restore
                 them instantly. Upgrade to Pro to unlock.
             </p>
-            <button class="upgrade-btn">Upgrade to Pro</button>
+            <button class="upgrade-btn" on:click={upgrade}
+                >Upgrade to Pro</button
+            >
         </div>
     </PreferencesSection>
 {:else}
@@ -643,7 +654,6 @@
         border: none;
         background: transparent;
         text-align: left;
-        cursor: pointer;
         border-bottom: 1px solid var(--color-border-subtle);
         transition: background var(--transition-fast);
         position: relative;
@@ -691,7 +701,6 @@
         color: var(--color-text-dim);
         font-size: 12px;
         font-family: inherit;
-        cursor: pointer;
         transition: all var(--transition-fast);
     }
     .new-profile-btn:hover {
@@ -751,7 +760,6 @@
         color: var(--color-text-secondary);
         font-size: 12px;
         font-family: inherit;
-        cursor: pointer;
         transition: all var(--transition-fast);
     }
     .add-app-btn:hover {
@@ -768,7 +776,6 @@
         font-size: 12px;
         font-family: inherit;
         font-weight: 500;
-        cursor: pointer;
         transition: all var(--transition-fast);
     }
     .save-btn:hover:not(:disabled) {
@@ -790,7 +797,6 @@
         background: transparent;
         color: var(--color-text-dim);
         border-radius: var(--radius-sm);
-        cursor: pointer;
         transition: all var(--transition-fast);
     }
     .delete-btn:hover {
@@ -907,7 +913,6 @@
         font-size: 16px;
         line-height: 1;
         padding: 2px 6px;
-        cursor: pointer;
         opacity: 0;
         border-radius: 4px;
         transition: opacity 120ms ease;
@@ -929,7 +934,6 @@
             var(--color-accent) 50%
         );
         opacity: 0.6;
-        cursor: pointer;
         transition: opacity 120ms ease;
     }
     .resize-handle:hover {
@@ -1024,7 +1028,6 @@
         font-size: 13px;
         font-weight: 600;
         font-family: inherit;
-        cursor: pointer;
         transition: opacity var(--transition-fast);
     }
     .upgrade-btn:hover {
@@ -1064,7 +1067,6 @@
     .gap-slider {
         width: 64px;
         accent-color: var(--color-accent);
-        cursor: pointer;
     }
 
     .gap-value {
