@@ -8,18 +8,6 @@ pub struct MatchedWindow {
 }
 
 #[cfg(target_os = "macos")]
-pub fn find_window(app: &WorkspaceApp) -> Option<MatchedWindow> {
-    if is_macos_app_running(&app.name) {
-        Some(MatchedWindow {
-            handle: 0,
-            title: app.name.clone(),
-        })
-    } else {
-        None
-    }
-}
-
-#[cfg(target_os = "macos")]
 pub fn find_all_windows(app: &WorkspaceApp) -> Vec<MatchedWindow> {
     let count = count_macos_app_instances(&app.name);
     (0..count)
@@ -28,19 +16,6 @@ pub fn find_all_windows(app: &WorkspaceApp) -> Vec<MatchedWindow> {
             title: app.name.clone(),
         })
         .collect()
-}
-
-#[cfg(target_os = "macos")]
-fn is_macos_app_running(app_name: &str) -> bool {
-    let output = std::process::Command::new("pgrep")
-        .arg("-fi") // -f = full command line, -i = case insensitive
-        .arg(app_name)
-        .output();
-
-    match output {
-        Ok(o) => o.status.success() && !o.stdout.is_empty(),
-        Err(_) => false,
-    }
 }
 
 #[cfg(target_os = "macos")]
@@ -67,142 +42,8 @@ fn count_macos_app_instances(app_name: &str) -> usize {
 }
 
 #[cfg(target_os = "windows")]
-pub fn find_window(app: &WorkspaceApp) -> Option<MatchedWindow> {
-    find_window_windows(app)
-}
-
-#[cfg(target_os = "windows")]
 pub fn find_all_windows(app: &WorkspaceApp) -> Vec<MatchedWindow> {
     find_all_windows_windows(app)
-}
-
-#[cfg(target_os = "windows")]
-fn find_window_windows(app: &WorkspaceApp) -> Option<MatchedWindow> {
-    use windows::{
-        core::BOOL,
-        Win32::{
-            Foundation::{HWND, LPARAM},
-            UI::WindowsAndMessaging::{EnumWindows, GetWindowThreadProcessId, IsWindowVisible},
-        },
-    };
-
-    let target_exe: Option<String> =
-        app.exe_path
-            .as_deref()
-            .map(|s| s.to_lowercase())
-            .or_else(|| {
-                let p = app.path.to_lowercase();
-                if p.ends_with(".exe") {
-                    Some(p)
-                } else {
-                    None
-                }
-            });
-
-    let target_is_explorer = app.name.eq_ignore_ascii_case("file explorer")
-        || app.name.eq_ignore_ascii_case("windows explorer")
-        || target_exe
-            .as_deref()
-            .map(|p| p.ends_with(r"windows\explorer.exe"))
-            .unwrap_or(false);
-
-    let app_name_lower = app.name.to_lowercase();
-
-    struct SearchData {
-        target_exe: Option<String>,
-        target_is_explorer: bool,
-        app_name_lower: String,
-        result: Option<MatchedWindow>,
-    }
-
-    unsafe extern "system" fn enum_proc(hwnd: HWND, lparam: LPARAM) -> BOOL {
-        let data = &mut *(lparam.0 as *mut SearchData);
-
-        if !IsWindowVisible(hwnd).as_bool() {
-            return true.into();
-        }
-
-        let title = get_window_title(hwnd);
-        if title.is_empty() {
-            return true.into();
-        }
-
-        if data.target_is_explorer {
-            let mut pid = 0u32;
-            GetWindowThreadProcessId(hwnd, Some(&mut pid));
-            if pid == 0 {
-                return true.into();
-            }
-            let Some(exe) = process_exe(pid) else {
-                return true.into();
-            };
-            if !exe.to_lowercase().ends_with(r"windows\explorer.exe") {
-                return true.into();
-            }
-            let class = get_window_class(hwnd);
-            if class == "CabinetWClass" || class == "ExploreWClass" {
-                data.result = Some(MatchedWindow {
-                    handle: hwnd.0 as usize,
-                    title,
-                });
-                return false.into();
-            }
-            return true.into();
-        }
-
-        if let Some(ref target) = data.target_exe {
-            let mut pid = 0u32;
-            GetWindowThreadProcessId(hwnd, Some(&mut pid));
-            if pid == 0 {
-                return true.into();
-            }
-
-            if let Some(exe) = process_exe(pid) {
-                let exe_lower = exe.to_lowercase();
-
-                if exe_lower == *target {
-                    data.result = Some(MatchedWindow {
-                        handle: hwnd.0 as usize,
-                        title,
-                    });
-                    return false.into();
-                }
-
-                if let Some(parent_exe) = parent_process_exe(pid) {
-                    if parent_exe.to_lowercase() == *target {
-                        data.result = Some(MatchedWindow {
-                            handle: hwnd.0 as usize,
-                            title,
-                        });
-                        return false.into();
-                    }
-                }
-            }
-        }
-
-        if title.to_lowercase().contains(&data.app_name_lower) {
-            data.result = Some(MatchedWindow {
-                handle: hwnd.0 as usize,
-                title,
-            });
-            return false.into();
-        }
-
-        true.into()
-    }
-
-    let mut data = SearchData {
-        target_exe,
-        target_is_explorer,
-        app_name_lower,
-        result: None,
-    };
-
-    unsafe {
-        let _ = EnumWindows(Some(enum_proc), LPARAM(&mut data as *mut _ as isize));
-    }
-
-    data.result
 }
 
 #[cfg(target_os = "windows")]

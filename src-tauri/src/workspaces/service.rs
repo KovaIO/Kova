@@ -4,7 +4,7 @@ use std::sync::Mutex;
 use rusqlite::Result;
 
 use crate::workspaces::{
-    applier::{apply_window, focus_window},
+    applier::{apply_window, focus_window, minimize_other_windows},
     launch_app,
     matcher::find_all_windows,
     WorkspaceProfile, WorkspaceStorage,
@@ -67,7 +67,10 @@ impl WorkspaceService {
             entry.indices.push(i);
         }
 
-        // Phase 1: Match existing windows to layout entries, launch what's missing
+        // Phase 1: Minimize all other windows first (clean desktop)
+        minimize_other_windows(&std::collections::HashSet::new());
+
+        // Phase 2: Match existing windows to layout entries, launch what's missing
         let mut final_windows: Vec<Option<crate::workspaces::matcher::MatchedWindow>> =
             (0..profile.apps.len()).map(|_| None).collect();
 
@@ -99,7 +102,7 @@ impl WorkspaceService {
             }
         }
 
-        // Phase 2: Position existing windows immediately, poll for new ones
+        // Phase 3: Position existing windows immediately, poll for new ones
         let used_handles = std::sync::Arc::new(tokio::sync::Mutex::new(Vec::<usize>::new()));
         let mut handles = Vec::new();
         for i in 0..profile.apps.len() {
@@ -135,7 +138,7 @@ impl WorkspaceService {
             let _ = h.await;
         }
 
-        // Phase 3: Focus all windows in layout order
+        // Phase 4: Focus all windows in layout order
         tokio::time::sleep(std::time::Duration::from_millis(200)).await;
         for app in &profile.apps {
             if let Some(window) = find_all_windows(app).first().cloned() {
