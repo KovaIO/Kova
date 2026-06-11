@@ -1,7 +1,7 @@
 use std::sync::Mutex;
 
 use serde::Serialize;
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_updater::UpdaterExt;
 
 #[derive(Debug, Clone, Serialize)]
@@ -37,15 +37,32 @@ pub async fn check_for_updates(app: AppHandle) {
 
     let notes = update.body.clone().unwrap_or_default();
 
-    let state = UpdateState {
-        pending: Mutex::new(Some(PendingUpdate {
+    let state = app.state::<UpdateState>();
+    {
+        let mut pending = state.pending.lock().unwrap();
+        *pending = Some(PendingUpdate {
             version: update.version.clone(),
             notes,
-        })),
-        downloading: Mutex::new(false),
-    };
+        });
+    }
 
-    app.manage(state);
+    if app.get_webview_window("update").is_none() {
+        if let Ok(w) = WebviewWindowBuilder::new(&app, "update", WebviewUrl::App("/update".into()))
+            .title("Update Available")
+            .inner_size(400.0, 300.0)
+            .decorations(false)
+            .shadow(false)
+            .transparent(true)
+            .always_on_top(true)
+            .skip_taskbar(true)
+            .resizable(false)
+            .devtools(false)
+            .center()
+            .build()
+        {
+            crate::windows::attach_focus_hide(w);
+        }
+    }
 
     if let Some(win) = app.get_webview_window("update") {
         if let Ok(Some(monitor)) = win.current_monitor() {

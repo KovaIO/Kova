@@ -269,9 +269,6 @@ pub fn run() {
             if let Some(clippy) = app.get_webview_window("profiles") {
                 windows::attach_focus_hide(clippy);
             }
-            if let Some(update) = app.get_webview_window("update") {
-                windows::attach_focus_hide(update);
-            }
 
             Ok(())
         })
