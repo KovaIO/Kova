@@ -48,6 +48,7 @@
 
     let selectedHistoryIndex: number | null = null;
     let historyMode = false;
+    let prevHistoryLength = 0;
 
     async function loadProcess() {
         const [cpuH, ramH, netH] = await invoke<[number[], number[], number[]]>(
@@ -72,6 +73,14 @@
 
         historyMode = true;
         selectedHistoryIndex = index;
+
+        const history =
+            activeTab === "ram"
+                ? ramHistory
+                : activeTab === "network"
+                  ? networkHistory
+                  : cpuHistory;
+        prevHistoryLength = history.length;
 
         const snap = await invoke<Metrics>("get_snapshot", { index });
 
@@ -146,8 +155,30 @@
             appendLiveGraphPoint(e.payload);
 
             if (selectedHistoryIndex !== null) {
-                selectedHistoryIndex--;
+                const history =
+                    activeTab === "ram"
+                        ? ramHistory
+                        : activeTab === "network"
+                          ? networkHistory
+                          : cpuHistory;
+                if (history.length === prevHistoryLength) {
+                    selectedHistoryIndex--;
+                }
+                if (
+                    history.length === 0 ||
+                    selectedHistoryIndex < 0 ||
+                    selectedHistoryIndex >= history.length
+                ) {
+                    selectedHistoryIndex = null;
+                }
             }
+            prevHistoryLength = (
+                activeTab === "ram"
+                    ? ramHistory
+                    : activeTab === "network"
+                      ? networkHistory
+                      : cpuHistory
+            ).length;
         });
     });
 
