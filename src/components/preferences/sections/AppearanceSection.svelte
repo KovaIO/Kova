@@ -1,6 +1,7 @@
 <script lang="ts">
     import PreferencesSection from "../PreferencesSection.svelte";
     import PreferenceItem from "../PreferenceItem.svelte";
+    import Select from "$components/Select.svelte";
 
     import { preferences } from "$stores/preferences";
     import { updateAppearance } from "$services/preferences";
@@ -51,24 +52,6 @@
             accent_color: color,
         });
     }
-
-    function onDensityChange(event: Event) {
-        const value = (event.target as HTMLSelectElement)
-            .value as WindowDensity;
-
-        updateAppearance({
-            window_density: value,
-        });
-    }
-
-    function onMetricStyleChange(event: Event) {
-        const value = (event.target as HTMLSelectElement)
-            .value as MetricCardStyle;
-
-        updateAppearance({
-            metric_card_style: value,
-        });
-    }
 </script>
 
 <PreferencesSection
@@ -101,34 +84,22 @@
         label="Window density"
         description="Adjust how much horizontal space is used throughout the interface"
     >
-        <select
-            class="select"
-            value={windowDensity}
-            on:change={onDensityChange}
-        >
-            {#each DENSITIES as option}
-                <option value={option.value}>
-                    {option.label}
-                </option>
-            {/each}
-        </select>
+        <Select
+            bind:value={windowDensity}
+            options={DENSITIES}
+            onchange={(v) => updateAppearance({ window_density: v as WindowDensity })}
+        />
     </PreferenceItem>
 
     <PreferenceItem
         label="Metric cards"
         description="Choose the visual style for system metric indicators"
     >
-        <select
-            class="select"
-            value={metricCardStyle}
-            on:change={onMetricStyleChange}
-        >
-            {#each METRIC_STYLES as option}
-                <option value={option.value}>
-                    {option.label}
-                </option>
-            {/each}
-        </select>
+        <Select
+            bind:value={metricCardStyle}
+            options={METRIC_STYLES}
+            onchange={(v) => updateAppearance({ metric_card_style: v as MetricCardStyle })}
+        />
     </PreferenceItem>
 </PreferencesSection>
 
@@ -166,24 +137,5 @@
         height: 100%;
         border-radius: inherit;
         border: 1px solid var(--color-border-medium);
-    }
-
-    .select {
-        padding: 8px 12px;
-        border-radius: var(--radius-sm);
-        border: 1px solid var(--color-border-medium);
-        background: var(--color-button-bg);
-        color: var(--color-text-primary);
-        font-size: 13px;
-        min-width: 140px;
-    }
-
-    .select:hover {
-        background: var(--color-button-bg-hover);
-    }
-
-    .select:focus {
-        outline: none;
-        border-color: var(--color-accent);
     }
 </style>

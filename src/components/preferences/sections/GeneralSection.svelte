@@ -119,23 +119,4 @@
         width: 240px;
         height: 4px;
     }
-
-    .select {
-        padding: 8px 12px;
-        border-radius: var(--radius-sm);
-        border: 1px solid var(--color-border-medium);
-        background: var(--color-button-bg);
-        color: var(--color-text-primary);
-        font-size: 13px;
-        min-width: 140px;
-    }
-
-    .select:hover {
-        background: var(--color-button-bg-hover);
-    }
-
-    .select:focus {
-        outline: none;
-        border-color: var(--color-accent);
-    }
 </style>

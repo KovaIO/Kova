@@ -2,6 +2,7 @@
     import PreferencesSection from "../PreferencesSection.svelte";
     import PreferenceItem from "../PreferenceItem.svelte";
     import Toggle from "$components/Toggle.svelte";
+    import Select from "$components/Select.svelte";
     import AppPickerModal from "$components/clipboard/AppPickerModal.svelte";
     import { clearClipboardHistory } from "$services/clipboard";
     import { updateClipboard } from "$services/preferences";
@@ -42,11 +43,6 @@
             ignored_apps: ignoredApps.filter((_, i) => i !== index),
         });
     }
-
-    function onHistoryLimitChange(event: Event) {
-        const value = Number((event.target as HTMLSelectElement).value);
-        updateClipboard({ history_limit: value });
-    }
 </script>
 
 {#if showPicker}
@@ -74,15 +70,11 @@
             label="History limit"
             description="Maximum number of items to keep in history"
         >
-            <select
-                class="select"
-                value={historyLimit}
-                on:change={onHistoryLimitChange}
-            >
-                {#each historyOptions as option}
-                    <option value={option.value}>{option.label}</option>
-                {/each}
-            </select>
+            <Select
+                bind:value={historyLimit}
+                options={historyOptions}
+                onchange={(v) => updateClipboard({ history_limit: Number(v) })}
+            />
         </PreferenceItem>
 
         {#if $license?.tier === "free"}
@@ -203,23 +195,6 @@
 </PreferencesSection>
 
 <style>
-    .select {
-        padding: 8px 12px;
-        border-radius: var(--radius-sm);
-        border: 1px solid var(--color-border-medium);
-        background: var(--color-button-bg);
-        color: var(--color-text-primary);
-        font-size: 13px;
-        min-width: 140px;
-    }
-    .select:hover {
-        background: var(--color-button-bg-hover);
-    }
-    .select:focus {
-        outline: none;
-        border-color: var(--color-accent-border);
-    }
-
     .history-limit-group {
         display: flex;
         flex-direction: column;
