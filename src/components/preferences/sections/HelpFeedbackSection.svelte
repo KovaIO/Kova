@@ -1,34 +1,32 @@
 <script lang="ts">
     import PreferencesSection from "../PreferencesSection.svelte";
+    import { openUrl } from "@tauri-apps/plugin-opener";
 </script>
 
 <PreferencesSection
     title="Help & Feedback"
-    description="Get help or send feedback about the application"
+    description="If you have any issues or feedback, feel free to reach out."
 >
     <div class="help-links">
-        <button class="help-link">
+        <button
+            class="help-link"
+            onclick={() =>
+                openUrl("mailto:campfire.softwaredev@gmail.com")}
+        >
             <div class="help-link-content">
-                <div class="help-link-title">Documentation</div>
-                <div class="help-link-description">View user guides and tutorials</div>
+                <div class="help-link-title">Email</div>
+                <div class="help-link-description">
+                    campfire.softwaredev@gmail.com
+                </div>
             </div>
         </button>
-        <button class="help-link">
+        <button
+            class="help-link"
+            onclick={() => openUrl("https://x.com/Kevin_rh0")}
+        >
             <div class="help-link-content">
-                <div class="help-link-title">Community Forum</div>
-                <div class="help-link-description">Join discussions with other users</div>
-            </div>
-        </button>
-        <button class="help-link">
-            <div class="help-link-content">
-                <div class="help-link-title">Report a Bug</div>
-                <div class="help-link-description">Submit bug reports and issues</div>
-            </div>
-        </button>
-        <button class="help-link">
-            <div class="help-link-content">
-                <div class="help-link-title">Feature Request</div>
-                <div class="help-link-description">Suggest new features or improvements</div>
+                <div class="help-link-title">X (Twitter)</div>
+                <div class="help-link-description">https://x.com/Kevin_rh0</div>
             </div>
         </button>
     </div>
@@ -50,6 +48,7 @@
         border-radius: var(--radius-sm);
         border: 1px solid var(--color-border-subtle);
         text-decoration: none;
+        cursor: pointer;
         transition: all 150ms ease;
     }
 
