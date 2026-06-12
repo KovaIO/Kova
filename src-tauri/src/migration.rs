@@ -6,7 +6,7 @@ pub fn run_migrations(conn: &Connection) -> Result<()> {
     conn.execute_batch(
         "
         CREATE TABLE IF NOT EXISTS general_preferences (
-            launch_at_startup INTEGER NOT NULL DEFAULT 0,
+            launch_at_startup INTEGER NOT NULL DEFAULT 1,
             show_menu_bar INTEGER NOT NULL DEFAULT 1,
             language TEXT NOT NULL DEFAULT 'en',
             monitor_dim INTEGER NOT NULL DEFAULT 100
