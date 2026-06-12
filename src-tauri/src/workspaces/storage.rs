@@ -64,12 +64,14 @@ impl WorkspaceStorage {
 
     fn load_apps(&self, profile_id: &str) -> Result<Vec<WorkspaceApp>> {
         let mut stmt = self.conn.prepare(
-            "SELECT name, path, exe_path, icon, x, y, width, height
+            "SELECT name, path, exe_path, icon, x, y, width, height, urls
              FROM workspace_apps
              WHERE profile_id = ?1
              ORDER BY rowid",
         )?;
         let rows = stmt.query_map([profile_id], |row| {
+            let urls_json: String = row.get(8)?;
+            let urls: Vec<String> = serde_json::from_str(&urls_json).unwrap_or_default();
             Ok(WorkspaceApp {
                 name: row.get(0)?,
                 path: row.get(1)?,
@@ -79,6 +81,7 @@ impl WorkspaceStorage {
                 y: row.get(5)?,
                 width: row.get(6)?,
                 height: row.get(7)?,
+                urls,
             })
         })?;
 
@@ -102,12 +105,22 @@ impl WorkspaceStorage {
         {
             let mut stmt = tx.prepare(
                 "INSERT INTO workspace_apps
-                    (profile_id, name, path, icon, x, y, width, height)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                    (profile_id, name, path, exe_path, icon, x, y, width, height, urls)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
             )?;
             for app in &profile.apps {
+                let urls_json = serde_json::to_string(&app.urls).unwrap_or_else(|_| "[]".into());
                 stmt.execute(params![
-                    profile.id, app.name, app.path, app.icon, app.x, app.y, app.width, app.height,
+                    profile.id,
+                    app.name,
+                    app.path,
+                    app.exe_path,
+                    app.icon,
+                    app.x,
+                    app.y,
+                    app.width,
+                    app.height,
+                    urls_json,
                 ])?;
             }
         }

@@ -2,6 +2,7 @@
     import { onMount } from "svelte";
     import PreferencesSection from "../PreferencesSection.svelte";
     import AppPickerModal from "$components/clipboard/AppPickerModal.svelte";
+    import BrowserUrlModal from "$components/workspaces/BrowserUrlModal.svelte";
     import { canUse, license } from "$stores/license";
     import type { WorkspaceApp, WorkspaceProfile } from "$types/preferences";
     import type { IgnoredApp } from "$types/preferences";
@@ -17,12 +18,31 @@
     const COLS = 12;
     const ROWS = 8;
 
+    const BROWSER_KEYWORDS = [
+        "chrome", "firefox", "edge", "arc", "zen", "brave", "opera",
+        "vivaldi", "waterfox", "librewolf", "browser", "safari",
+    ];
+
+    function isBrowserApp(app: WorkspaceApp): boolean {
+        const name = app.name.toLowerCase();
+        const path = (app.exe_path ?? app.path).toLowerCase();
+        return BROWSER_KEYWORDS.some(
+            (k) => name.includes(k) || path.includes(k),
+        );
+    }
+
     let profiles: WorkspaceProfile[] = [];
     let selected: WorkspaceProfile | null = null;
     let loading = true;
     let saving = false;
     let showAppPicker = false;
     let noSpaceError = false;
+
+    // URL modal state
+    let showUrlModal = false;
+    let urlModalAppName = "";
+    let urlModalAppIndex: number | null = null;
+    let urlModalUrls: string[] = [];
 
     // drag state
     let dragging: WorkspaceApp | null = null;
@@ -194,6 +214,12 @@
         };
         selected = { ...selected, apps: [...selected.apps, newApp] };
         showAppPicker = false;
+        saveSelected();
+
+        if (isBrowserApp(newApp)) {
+            const idx = selected.apps.length - 1;
+            openUrlModal(idx);
+        }
     }
 
     function removeApp(index: number) {
@@ -201,6 +227,24 @@
         const apps = [...selected.apps];
         apps.splice(index, 1);
         selected = { ...selected, apps };
+    }
+
+    function openUrlModal(index: number) {
+        if (!selected) return;
+        const app = selected.apps[index];
+        if (!app) return;
+        urlModalAppName = app.name;
+        urlModalAppIndex = index;
+        urlModalUrls = [...(app.urls ?? [])];
+        showUrlModal = true;
+    }
+
+    function onUrlSave(urls: string[]) {
+        if (!selected || urlModalAppIndex === null) return;
+        const apps = [...selected.apps];
+        apps[urlModalAppIndex] = { ...apps[urlModalAppIndex], urls };
+        selected = { ...selected, apps };
+        saveSelected();
     }
 
     function startDrag(
@@ -546,6 +590,8 @@
                                     "
                                     on:mousedown={(e) =>
                                         startDrag(e, app, "move")}
+                                    on:dblclick|stopPropagation={() =>
+                                        isBrowserApp(app) && openUrlModal(i)}
                                 >
                                     <div class="slot-inner">
                                         {#if app.icon}
@@ -562,6 +608,23 @@
                                             </div>
                                         {/if}
                                     </div>
+
+                                    {#if isBrowserApp(app)}
+                                        <button
+                                            class="url-badge"
+                                            on:click|stopPropagation={() =>
+                                                openUrlModal(i)}
+                                            aria-label="Edit URLs"
+                                        >
+                                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                                            </svg>
+                                            {#if (app.urls?.length ?? 0) > 0}
+                                                <span class="url-count">{app.urls!.length}</span>
+                                            {/if}
+                                        </button>
+                                    {/if}
 
                                     <button
                                         class="slot-remove"
@@ -613,6 +676,15 @@
     <AppPickerModal
         onpick={onAppPicked}
         onclose={() => (showAppPicker = false)}
+    />
+{/if}
+
+{#if showUrlModal}
+    <BrowserUrlModal
+        appName={urlModalAppName}
+        urls={urlModalUrls}
+        onsave={onUrlSave}
+        onclose={() => (showUrlModal = false)}
     />
 {/if}
 
@@ -922,6 +994,36 @@
     }
     .slot-remove:hover {
         opacity: 1 !important;
+    }
+
+    .url-badge {
+        position: absolute;
+        bottom: 4px;
+        left: 4px;
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        padding: 2px 5px;
+        border: none;
+        border-radius: 4px;
+        background: var(--color-accent);
+        color: #fff;
+        font-size: 10px;
+        cursor: pointer;
+        opacity: 0;
+        transition: opacity 120ms ease;
+        z-index: 2;
+    }
+    .app-slot:hover .url-badge {
+        opacity: 0.8;
+    }
+    .url-badge:hover {
+        opacity: 1 !important;
+    }
+
+    .url-count {
+        font-weight: 600;
+        font-size: 9px;
     }
 
     .resize-handle {

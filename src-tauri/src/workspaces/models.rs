@@ -10,6 +10,8 @@ pub struct WorkspaceApp {
     pub y: f32,
     pub width: f32,
     pub height: f32,
+    #[serde(default)]
+    pub urls: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

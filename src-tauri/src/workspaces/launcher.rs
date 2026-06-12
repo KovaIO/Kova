@@ -1,19 +1,19 @@
 use std::process::Command;
 
-pub fn launch_app(path: &str) -> Result<(), String> {
+pub fn launch_app(path: &str, urls: &[String]) -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
-        launch_windows(path)
+        launch_windows(path, urls)
     }
 
     #[cfg(target_os = "macos")]
     {
-        launch_macos(path)
+        launch_macos(path, urls)
     }
 }
 
 #[cfg(target_os = "windows")]
-fn launch_windows(path: &str) -> Result<(), String> {
+fn launch_windows(path: &str, urls: &[String]) -> Result<(), String> {
     if path.is_empty() {
         return Err("No path provided".into());
     }
@@ -29,8 +29,24 @@ fn launch_windows(path: &str) -> Result<(), String> {
             .map(|e| e.eq_ignore_ascii_case("exe"))
             .unwrap_or(false)
     {
-        Command::new(path)
-            .spawn()
+        let mut cmd = Command::new(path);
+
+        if !urls.is_empty() {
+            let lower = path.to_lowercase();
+            if lower.contains("firefox")
+                || lower.contains("waterfox")
+                || lower.contains("librewolf")
+            {
+                cmd.arg("-new-window");
+            } else {
+                cmd.arg("--new-window");
+            }
+        }
+
+        for url in urls {
+            cmd.arg(url);
+        }
+        cmd.spawn()
             .map_err(|e| format!("Failed to launch {path}: {e}"))?;
         return Ok(());
     }
@@ -68,11 +84,13 @@ fn launch_uwp(aumid: &str) -> Result<(), String> {
 }
 
 #[cfg(target_os = "macos")]
-fn launch_macos(path: &str) -> Result<(), String> {
-    Command::new("open")
-        .arg(path)
-        .spawn()
-        .map_err(|e| e.to_string())?;
+fn launch_macos(path: &str, urls: &[String]) -> Result<(), String> {
+    let mut cmd = Command::new("open");
+    for url in urls {
+        cmd.arg(url);
+    }
+    cmd.arg(path);
+    cmd.spawn().map_err(|e| e.to_string())?;
 
     Ok(())
 }

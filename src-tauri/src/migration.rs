@@ -70,7 +70,8 @@ pub fn run_migrations(conn: &Connection) -> Result<()> {
             x REAL NOT NULL DEFAULT 0.0,
             y REAL NOT NULL DEFAULT 0.0,
             width REAL NOT NULL DEFAULT 0.5,
-            height REAL NOT NULL DEFAULT 0.5
+            height REAL NOT NULL DEFAULT 0.5,
+            urls TEXT DEFAULT '[]'
         );
 
         CREATE TABLE IF NOT EXISTS license (

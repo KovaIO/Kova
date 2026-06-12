@@ -59,6 +59,7 @@ export interface WorkspaceApp {
   y: number;
   width: number;
   height: number;
+  urls?: string[];
 }
 
 export interface WorkspaceProfile {
