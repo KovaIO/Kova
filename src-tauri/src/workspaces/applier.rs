@@ -96,7 +96,6 @@ pub fn move_window(hwnd: usize, rect: &WindowRect) {
         let hwnd = HWND(hwnd as *mut core::ffi::c_void);
         let _ = ShowWindow(hwnd, SW_RESTORE);
 
-        // Get the invisible border size for this window
         let mut wi = WINDOWINFO {
             cbSize: std::mem::size_of::<WINDOWINFO>() as u32,
             ..Default::default()
@@ -107,19 +106,15 @@ pub fn move_window(hwnd: usize, rect: &WindowRect) {
             0
         };
 
-        // Expand rect to compensate for invisible border
         let x = rect.x as i32 - border;
-        let y = rect.y as i32; // top border is usually 0 on modern Windows
+        let y = rect.y as i32;
         let w = rect.width as i32 + border * 2;
         let h = rect.height as i32 + border;
 
         let flags = SWP_NOZORDER | SWP_FRAMECHANGED | SWP_SHOWWINDOW;
-
         SetWindowPos(hwnd, None, x, y, w, h, flags).ok();
-        std::thread::sleep(std::time::Duration::from_millis(150));
+        std::thread::sleep(std::time::Duration::from_millis(50));
         SetWindowPos(hwnd, None, x, y, w, h, flags).ok();
-
-        // ... rest of focus code unchanged
 
         let foreground = GetForegroundWindow();
         let mut fg_pid = 0u32;

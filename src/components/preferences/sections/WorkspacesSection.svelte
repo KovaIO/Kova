@@ -19,9 +19,27 @@
     const ROWS = 8;
 
     const BROWSER_KEYWORDS = [
-        "chrome", "firefox", "edge", "arc", "zen", "brave", "opera",
-        "vivaldi", "waterfox", "librewolf", "browser", "safari",
+        "chrome",
+        "firefox",
+        "edge",
+        "arc",
+        "zen",
+        "brave",
+        "opera",
+        "vivaldi",
+        "waterfox",
+        "librewolf",
+        "browser",
+        "safari",
     ];
+
+    // Known apps with hardcoded minimum sizes (in pixels)
+    const KNOWN_MIN_WIDTH: Record<string, number> = {
+        spotify: 800,
+    };
+    const KNOWN_MIN_HEIGHT: Record<string, number> = {
+        spotify: 600,
+    };
 
     function isBrowserApp(app: WorkspaceApp): boolean {
         const name = app.name.toLowerCase();
@@ -29,6 +47,30 @@
         return BROWSER_KEYWORDS.some(
             (k) => name.includes(k) || path.includes(k),
         );
+    }
+
+    function getMinCols(app: WorkspaceApp): number {
+        const name = app.name.toLowerCase();
+        const path = (app.exe_path ?? app.path).toLowerCase();
+        const key = Object.keys(KNOWN_MIN_WIDTH).find(
+            (k) => name.includes(k) || path.includes(k),
+        );
+        if (!key) return 1;
+        const minPx = KNOWN_MIN_WIDTH[key];
+        const screenW = window.screen.availWidth;
+        return Math.max(1, Math.ceil((minPx / screenW) * COLS));
+    }
+
+    function getMinRows(app: WorkspaceApp): number {
+        const name = app.name.toLowerCase();
+        const path = (app.exe_path ?? app.path).toLowerCase();
+        const key = Object.keys(KNOWN_MIN_HEIGHT).find(
+            (k) => name.includes(k) || path.includes(k),
+        );
+        if (!key) return 1;
+        const minPx = KNOWN_MIN_HEIGHT[key];
+        const screenH = window.screen.availHeight;
+        return Math.max(1, Math.ceil((minPx / screenH) * ROWS));
     }
 
     let profiles: WorkspaceProfile[] = [];
@@ -290,18 +332,20 @@
                 Math.min(ROWS - dragStartApp.height, dragStartApp.y + drow),
             );
         } else {
+            const minW = getMinCols(dragging);
+            const minH = getMinRows(dragging);
             // Handle different resize corners
             switch (resizeCorner) {
                 case "se": // bottom-right
                     newW = Math.max(
-                        1,
+                        minW,
                         Math.min(
                             COLS - dragStartApp.x,
                             dragStartApp.width + dcol,
                         ),
                     );
                     newH = Math.max(
-                        1,
+                        minH,
                         Math.min(
                             ROWS - dragStartApp.y,
                             dragStartApp.height + drow,
@@ -312,13 +356,13 @@
                     newX = Math.max(
                         0,
                         Math.min(
-                            dragStartApp.x + dragStartApp.width - 1,
+                            dragStartApp.x + dragStartApp.width - minW,
                             dragStartApp.x + dcol,
                         ),
                     );
                     newW = dragStartApp.width + (dragStartApp.x - newX);
                     newH = Math.max(
-                        1,
+                        minH,
                         Math.min(
                             ROWS - dragStartApp.y,
                             dragStartApp.height + drow,
@@ -329,13 +373,13 @@
                     newY = Math.max(
                         0,
                         Math.min(
-                            dragStartApp.y + dragStartApp.height - 1,
+                            dragStartApp.y + dragStartApp.height - minH,
                             dragStartApp.y + drow,
                         ),
                     );
                     newH = dragStartApp.height + (dragStartApp.y - newY);
                     newW = Math.max(
-                        1,
+                        minW,
                         Math.min(
                             COLS - dragStartApp.x,
                             dragStartApp.width + dcol,
@@ -346,14 +390,14 @@
                     newX = Math.max(
                         0,
                         Math.min(
-                            dragStartApp.x + dragStartApp.width - 1,
+                            dragStartApp.x + dragStartApp.width - minW,
                             dragStartApp.x + dcol,
                         ),
                     );
                     newY = Math.max(
                         0,
                         Math.min(
-                            dragStartApp.y + dragStartApp.height - 1,
+                            dragStartApp.y + dragStartApp.height - minH,
                             dragStartApp.y + drow,
                         ),
                     );
@@ -616,12 +660,27 @@
                                                 openUrlModal(i)}
                                             aria-label="Edit URLs"
                                         >
-                                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-                                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                                            <svg
+                                                width="10"
+                                                height="10"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                stroke-width="2.5"
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                            >
+                                                <path
+                                                    d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"
+                                                />
+                                                <path
+                                                    d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"
+                                                />
                                             </svg>
                                             {#if (app.urls?.length ?? 0) > 0}
-                                                <span class="url-count">{app.urls!.length}</span>
+                                                <span class="url-count"
+                                                    >{app.urls!.length}</span
+                                                >
                                             {/if}
                                         </button>
                                     {/if}
