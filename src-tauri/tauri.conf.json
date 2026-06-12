@@ -99,6 +99,21 @@
         "transparent": true,
         "devtools": false,
         "center": true
+      },
+      {
+        "url": "/onboarding",
+        "label": "onboarding",
+        "width": 720,
+        "height": 380,
+        "decorations": false,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "visible": false,
+        "resizable": false,
+        "shadow": false,
+        "transparent": true,
+        "devtools": false,
+        "center": true
       }
     ],
     "security": {

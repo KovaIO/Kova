@@ -34,3 +34,16 @@ pub fn open_process(app: AppHandle, pid: u32, tab: Option<String>) {
 pub fn exit_app() {
     std::process::exit(0);
 }
+
+#[tauri::command]
+pub fn complete_onboarding(app: AppHandle) -> Result<(), String> {
+    let path = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())?
+        .join(".onboarding_completed");
+
+    std::fs::write(path, b"").map_err(|e| e.to_string())?;
+
+    Ok(())
+}

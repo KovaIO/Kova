@@ -27,15 +27,15 @@ use tauri_plugin_autostart::MacosLauncher;
 use tauri_plugin_positioner::{Position, WindowExt};
 
 use commands::{
-    activate_license, apply_workspace, clear_clipboard_history, copy_clipboard_item,
-    delete_all_disk_items, delete_clipboard_item, delete_disk_items, delete_workspace_profile,
-    exit_app, force_quit_process_cmd, get_apps, get_brightness, get_clipboard_history,
-    get_current_metrics, get_disk_item_detail, get_disk_scan_preview, get_disk_scan_result,
-    get_disk_volume_info, get_license, get_portal_url, get_preferences, get_process_history,
-    get_snapshot, get_workspace_profile, get_workspace_profiles, open_clipboard_url, open_monitor,
-    open_preferences, open_process, paste_clipboard_item, paste_plain_clipboard_item,
-    preview_clipboard_item, quit_process_cmd, reveal_clipboard_item, save_monitor_dim,
-    save_workspace_profile, start_disk_scan, update_appearance_preferences,
+    activate_license, apply_workspace, clear_clipboard_history, complete_onboarding,
+    copy_clipboard_item, delete_all_disk_items, delete_clipboard_item, delete_disk_items,
+    delete_workspace_profile, exit_app, force_quit_process_cmd, get_apps, get_brightness,
+    get_clipboard_history, get_current_metrics, get_disk_item_detail, get_disk_scan_preview,
+    get_disk_scan_result, get_disk_volume_info, get_license, get_portal_url, get_preferences,
+    get_process_history, get_snapshot, get_workspace_profile, get_workspace_profiles,
+    open_clipboard_url, open_monitor, open_preferences, open_process, paste_clipboard_item,
+    paste_plain_clipboard_item, preview_clipboard_item, quit_process_cmd, reveal_clipboard_item,
+    save_monitor_dim, save_workspace_profile, start_disk_scan, update_appearance_preferences,
     update_clipboard_preferences, update_general_preferences, update_shortcuts,
 };
 
@@ -127,6 +127,7 @@ pub fn run() {
             open_monitor,
             open_process,
             exit_app,
+            complete_onboarding,
             get_update,
             dismiss_update,
             install_update
@@ -271,6 +272,16 @@ pub fn run() {
             }
             if let Some(clippy) = app.get_webview_window("profiles") {
                 windows::attach_focus_hide(clippy);
+            }
+
+            let onboarding_done = app
+                .path()
+                .app_data_dir()
+                .map(|p| p.join(".onboarding_completed").exists())
+                .unwrap_or(false);
+
+            if !onboarding_done {
+                windows::open_window(app.handle(), "onboarding");
             }
 
             Ok(())

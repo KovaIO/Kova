@@ -9,7 +9,8 @@
     "process",
     "clipboard",
     "profiles",
-    "update"
+    "update",
+    "onboarding"
   ],
   "permissions": [
     "core:default",
