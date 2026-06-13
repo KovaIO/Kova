@@ -1,5 +1,7 @@
 <script lang="ts">
     import { onMount, onDestroy } from "svelte";
+    import { invoke } from "@tauri-apps/api/core";
+    import { platform } from "@tauri-apps/plugin-os";
     import PreferencesSection from "../PreferencesSection.svelte";
     import PreferenceItem from "../PreferenceItem.svelte";
     import Toggle from "$components/Toggle.svelte";
@@ -7,18 +9,11 @@
     import { updateGeneral } from "$services/preferences";
     import { canUse, license } from "$stores/license";
     import { preferences, refreshBrightness } from "$stores/preferences";
-    import type { GeneralPreferences } from "$types/preferences";
 
-    // const LANGUAGES = [
-    //     { value: "en", label: "English" },
-    //     { value: "es", label: "Spanish" },
-    //     { value: "fr", label: "French" },
-    //     { value: "de", label: "German" },
-    // ] as const;
+    const isMacos = platform() === "macos";
 
     $: general = $preferences?.general;
     $: monitorDim = general?.monitor_dim ?? 100;
-    // $: language = general?.language ?? "en";
     $: monitorDimmingEnabled = canUse("monitor_dimming", $license);
 
     function onFocus() {
@@ -33,10 +28,10 @@
         window.removeEventListener("focus", onFocus);
     });
 
-    // function onLanguageChange(event: Event) {
-    //     const value = (event.target as HTMLSelectElement).value;
-    //     updateGeneral({ language: value });
-    // }
+    async function onMenuBarToggle(show_menu_bar: boolean) {
+        await updateGeneral({ show_menu_bar });
+        await invoke("set_menu_bar_visible", { visible: show_menu_bar });
+    }
 </script>
 
 <PreferencesSection
@@ -56,17 +51,19 @@
         />
     </PreferenceItem>
 
-    <PreferenceItem
-        label="Show in menu bar"
-        description="Display Kova icon in the system menu bar"
-    >
-        <Toggle
-            label=""
-            id="show-menubar"
-            checked={general?.show_menu_bar ?? true}
-            onchange={(show_menu_bar) => updateGeneral({ show_menu_bar })}
-        />
-    </PreferenceItem>
+    {#if isMacos}
+        <PreferenceItem
+            label="Show in menu bar"
+            description="Display Kova icon in the system menu bar"
+        >
+            <Toggle
+                label=""
+                id="show-menubar"
+                checked={general?.show_menu_bar ?? true}
+                onchange={onMenuBarToggle}
+            />
+        </PreferenceItem>
+    {/if}
 
     <div class="monitor-dim-group">
         <PreferenceItem

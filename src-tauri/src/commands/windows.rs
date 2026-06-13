@@ -62,3 +62,18 @@ pub fn check_accessibility() -> bool {
         true
     }
 }
+
+#[tauri::command]
+pub fn set_menu_bar_visible(app: AppHandle, visible: bool) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        let window = app
+            .get_webview_window("home")
+            .ok_or("home window not found")?;
+        window
+            .set_menu_bar_visible(visible)
+            .map_err(|e| e.to_string())?;
+    }
+    let _ = visible;
+    Ok(())
+}

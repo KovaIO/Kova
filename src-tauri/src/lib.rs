@@ -31,13 +31,13 @@ use commands::{
     complete_onboarding, copy_clipboard_item, delete_all_disk_items, delete_clipboard_item,
     delete_disk_items, delete_workspace_profile, exit_app, force_quit_process_cmd, get_apps,
     get_brightness, get_clipboard_history, get_current_metrics, get_disk_item_detail,
-    get_disk_scan_preview, get_disk_scan_result, get_disk_volume_info, get_license, get_portal_url,
-    get_preferences, get_process_history, get_snapshot, get_workspace_profile,
+    get_disk_scan_preview, get_disk_scan_result, get_disk_volume_info, get_license,
+    get_portal_url, get_preferences, get_process_history, get_snapshot, get_workspace_profile,
     get_workspace_profiles, open_clipboard_url, open_monitor, open_preferences, open_process,
     paste_clipboard_item, paste_plain_clipboard_item, preview_clipboard_item, quit_process_cmd,
-    reveal_clipboard_item, save_monitor_dim, save_workspace_profile, start_disk_scan,
-    update_appearance_preferences, update_clipboard_preferences, update_general_preferences,
-    update_shortcuts,
+    reveal_clipboard_item, save_monitor_dim, save_workspace_profile, set_menu_bar_visible,
+    start_disk_scan, update_appearance_preferences, update_clipboard_preferences,
+    update_general_preferences, update_shortcuts,
 };
 
 use clipboard::start_clipboard_watcher;
@@ -130,6 +130,7 @@ pub fn run() {
             exit_app,
             complete_onboarding,
             check_accessibility,
+            set_menu_bar_visible,
             get_update,
             dismiss_update,
             install_update
@@ -146,6 +147,11 @@ pub fn run() {
                     let _ = autostart.enable();
                 } else {
                     let _ = autostart.disable();
+                }
+
+                #[cfg(target_os = "macos")]
+                if let Some(window) = app.get_webview_window("home") {
+                    let _ = window.set_menu_bar_visible(prefs.general.show_menu_bar);
                 }
             }
 
