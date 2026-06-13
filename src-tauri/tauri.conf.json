@@ -103,7 +103,7 @@
       {
         "url": "/onboarding",
         "label": "onboarding",
-        "width": 720,
+        "width": 520,
         "height": 380,
         "decorations": false,
         "alwaysOnTop": true,

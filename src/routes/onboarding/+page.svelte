@@ -1,71 +1,36 @@
 <script lang="ts">
     import { invoke } from "@tauri-apps/api/core";
     import { getCurrentWindow } from "@tauri-apps/api/window";
-    import { platform } from "@tauri-apps/plugin-os";
-    import { onMount } from "svelte";
-    import { ChevronLeft, ChevronRight } from "@lucide/svelte";
+    import {
+        HardDrive,
+        Clipboard,
+        LayoutGrid,
+        Settings,
+        Cpu,
+        ChevronLeft,
+        ChevronRight,
+    } from "@lucide/svelte";
     import WindowAnimation from "$components/WindowAnimation.svelte";
 
     let current = $state(0);
-    let isMacos = $state(false);
-    let accessibilityGranted = $state(false);
 
-    const allPages = [
-        {
-            title: "Kova",
-            desc: "Your system, beautifully managed.",
-            style: "welcome",
-        },
-        {
-            title: "Accessibility",
-            desc: "Kova needs accessibility access to enable keyboard shortcuts.",
-            style: "accessibility",
-        },
-        {
-            title: "Workspaces",
-            desc: "Arrange your apps into workspace layouts.",
-            style: "workspaces",
-        },
-        {
-            title: "Clipboard History",
-            desc: "Never lose what you've copied.",
-            style: "clipboard",
-        },
-        {
-            title: "System Monitor",
-            desc: "Track CPU, RAM, and disk at a glance.",
-            style: "monitor",
-        },
-        {
-            title: "Preferences",
-            desc: "Customize shortcuts and appearance.",
-            style: "preferences",
-        },
-        { title: "You're all set!", desc: "Enjoy Kova.", style: "final" },
+    const pages = [
+        { style: "welcome" },
+        { style: "workspaces" },
+        { style: "clipboard" },
+        { style: "monitor" },
+        { style: "preferences" },
+        { style: "final" },
     ];
-
-    let pages = $derived(
-        isMacos
-            ? allPages
-            : allPages.filter((p) => p.style !== "accessibility"),
-    );
 
     let page = $derived(pages[current]);
 
-    onMount(async () => {
-        const os = platform();
-        isMacos = os === "macos";
-        if (isMacos) {
-            accessibilityGranted = await invoke("check_accessibility");
-        }
-    });
-
-    function prev() {
-        if (current > 0) current--;
+    function goNext() {
+        if (current < pages.length - 1) current++;
     }
 
-    function next() {
-        if (current < pages.length - 1) current++;
+    function goPrev() {
+        if (current > 0) current--;
     }
 
     async function finish() {
@@ -74,13 +39,39 @@
     }
 
     function handleKeydown(e: KeyboardEvent) {
-        if (e.key === "ArrowLeft") prev();
-        if (e.key === "ArrowRight") {
-            if (current === pages.length - 1) finish();
-            else next();
-        }
+        if (e.key === "ArrowLeft") goPrev();
+        if (e.key === "ArrowRight") goNext();
         if (e.key === "Enter" && current === pages.length - 1) finish();
     }
+
+    const pageContent: Record<string, { title: string; desc: string }> = {
+        welcome: {
+            title: "Meet Kova",
+            desc: "Your productivity companion.",
+        },
+        workspaces: {
+            title: "Workspaces",
+            desc: "Save your perfect app layout and restore it with one shortcut.",
+        },
+        clipboard: {
+            title: "Clipboard History",
+            desc: "Never lose what you copied. Search, paste, and manage everything.",
+        },
+        monitor: {
+            title: "System Monitor",
+            desc: "Keep an eye on CPU, memory, and network in real time.",
+        },
+        preferences: {
+            title: "Make It Yours",
+            desc: "Themes, shortcuts, and settings, all configurable.",
+        },
+        final: {
+            title: "All Set",
+            desc: "Enjoy Kova, we are grateful to have you on board",
+        },
+    };
+
+    const fullbleedStyles = ["workspaces", "clipboard", "monitor", "preferences"];
 </script>
 
 <svelte:window on:keydown={handleKeydown} />
@@ -88,216 +79,99 @@
 <WindowAnimation>
     <div class="root">
         <div class="card">
-            <button class="close-btn" onclick={finish} aria-label="Close"
-                >✕</button
-            >
+            <!-- Close button -->
+            <button class="close-btn" onclick={finish} aria-label="Close">
+                ✕
+            </button>
 
+            <!-- Content (integrated illustration + text) -->
             <div class="content">
-                {#if current > 0}
-                    <button
-                        class="nav-arrow left"
-                        onclick={prev}
-                        aria-label="Previous"
-                    >
-                        <ChevronLeft size={18} />
-                    </button>
-                {/if}
-
-                <div class="page">
+                <div
+                    class="illustration"
+                    class:fullbleed={fullbleedStyles.includes(page.style)}
+                >
                     {#if page.style === "welcome"}
-                        <div class="illustration">
+                        <div class="welcome-scene">
                             <img
                                 src="/app-icon.png"
                                 alt="Kova"
                                 class="app-icon"
                             />
                         </div>
-                    {:else if page.style === "accessibility"}
-                        <div class="illustration">
-                            <div class="a11y-window">
-                                <div class="a11y-titlebar">
-                                    <div class="a11y-dot"></div>
-                                    <div class="a11y-dot"></div>
-                                    <div class="a11y-dot"></div>
-                                </div>
-                                <div class="a11y-body">
-                                    <div class="a11y-keyboard">
-                                        {#each Array(3) as _, row}
-                                            <div class="a11y-key-row">
-                                                {#each Array(8 - row) as _}
-                                                    <div class="a11y-key"></div>
-                                                {/each}
-                                            </div>
-                                        {/each}
-                                        <div class="a11y-spacebar"></div>
-                                    </div>
-                                </div>
-                            </div>
-                            {#if accessibilityGranted}
-                                <div class="a11y-granted">
-                                    <div class="a11y-check">✓</div>
-                                    <span>Granted</span>
-                                </div>
-                            {/if}
-                        </div>
+
                     {:else if page.style === "workspaces"}
-                        <div class="illustration">
-                            <div class="ws-window">
-                                <div class="ws-titlebar">
-                                    <div class="ws-dot"></div>
-                                    <div class="ws-dot"></div>
-                                    <div class="ws-dot"></div>
-                                </div>
-                                <div class="ws-body">
-                                    <div class="ws-ring">
-                                        {#each [0, 1, 2, 3, 4, 5] as _, i}
-                                            {@const angle = (360 / 6) * i - 90}
-                                            {@const rad =
-                                                (angle * Math.PI) / 180}
-                                            {@const r = 72}
-                                            {@const x = Math.cos(rad) * r}
-                                            {@const y = Math.sin(rad) * r}
-                                            <div
-                                                class="ws-profile"
-                                                class:ws-active={i === 0}
-                                                style="transform: translate({x}px, {y}px)"
-                                            >
-                                                <div class="ws-grid">
-                                                    <div
-                                                        class="ws-slot ws-s1"
-                                                    ></div>
-                                                    <div
-                                                        class="ws-slot ws-s2"
-                                                    ></div>
-                                                    <div
-                                                        class="ws-slot ws-s3"
-                                                    ></div>
-                                                </div>
-                                            </div>
-                                        {/each}
-                                    </div>
-                                </div>
+                        <div class="workspace-layout">
+                            <div class="ws-main">
+                                <span class="ws-title">{pageContent.workspaces.title}</span>
+                                <span class="ws-desc">{pageContent.workspaces.desc}</span>
+                            </div>
+                            <div class="ws-side">
+                                <div class="ws-top"></div>
+                                <div class="ws-bottom"></div>
                             </div>
                         </div>
+
                     {:else if page.style === "clipboard"}
-                        <div class="illustration">
-                            <div class="cb-clip">
-                                <div class="cb-clip-head"></div>
-                            </div>
-                            <div class="cb-board">
-                                <div class="cb-item cb-i1"></div>
-                                <div class="cb-item cb-i2"></div>
-                                <div class="cb-item cb-i3"></div>
-                                <div class="cb-item cb-i4"></div>
+                        <div class="clipboard-visual">
+                            <div class="clip-clipboard">
+                                <div class="clip-clip"></div>
+                                <div class="clip-body">
+                                    <span class="clip-title">{pageContent.clipboard.title}</span>
+                                    <span class="clip-desc">{pageContent.clipboard.desc}</span>
+                                </div>
                             </div>
                         </div>
+
                     {:else if page.style === "monitor"}
-                        <div class="illustration">
-                            <div class="mon-window">
-                                <div class="mon-tabs">
-                                    <div class="mon-tab mon-active">CPU</div>
-                                    <div class="mon-tab">Memory</div>
-                                    <div class="mon-tab">Network</div>
-                                </div>
-                                <div class="mon-chart">
-                                    <div class="mon-grid">
-                                        <div class="mon-grid-line"></div>
-                                        <div class="mon-grid-line"></div>
-                                        <div class="mon-grid-line"></div>
-                                        <div class="mon-grid-line"></div>
+                        <div class="monitor-vis">
+                            <div class="monitor-text">
+                                <span class="mon-title">{pageContent.monitor.title}</span>
+                                <span class="mon-desc">{pageContent.monitor.desc}</span>
+                            </div>
+                            <div class="vis-bars">
+                                {#each [35, 55, 45, 75, 50, 65, 40, 70, 55, 80, 45, 65, 50, 70, 60, 35, 55, 45, 75, 50, 60, 40, 75, 50, 45, 65, 55, 80, 40, 70, 50, 65, 45, 75, 55, 60, 40, 80, 50, 70] as h, i}
+                                    <div
+                                        class="vis-bar"
+                                        style="height: {h}%; animation-delay: {i *
+                                            30}ms"
+                                    >
+                                        <div class="bar-top"></div>
+                                        <div class="bar-bottom"></div>
                                     </div>
-                                    <div class="mon-bars">
-                                        {#each [35, 52, 45, 68, 42, 55, 73, 60, 48, 80, 65, 50, 70, 58, 44, 75, 62, 53, 67, 56] as h, i}
-                                            <div
-                                                class="mon-bar"
-                                                style="height: {h}%; animation-delay: {i *
-                                                    60}ms"
-                                            >
-                                                <div class="mon-bar-top"></div>
-                                                <div
-                                                    class="mon-bar-bottom"
-                                                ></div>
-                                            </div>
-                                        {/each}
-                                    </div>
-                                </div>
+                                {/each}
                             </div>
                         </div>
+
                     {:else if page.style === "preferences"}
-                        <div class="illustration">
-                            <div class="pref-window">
-                                <div class="pref-titlebar">
-                                    <div class="pref-dot"></div>
-                                    <div class="pref-dot"></div>
-                                    <div class="pref-dot"></div>
-                                </div>
-                                <div class="pref-body">
-                                    <div class="pref-sidebar">
-                                        <div
-                                            class="pref-nav-item pref-nav-active"
-                                        ></div>
-                                        <div class="pref-nav-item"></div>
-                                        <div class="pref-nav-item"></div>
-                                        <div class="pref-nav-item"></div>
-                                        <div class="pref-nav-item"></div>
-                                    </div>
-                                    <div class="pref-content">
-                                        <div
-                                            class="pref-line pref-line-w60"
-                                        ></div>
-                                        <div class="pref-spacer"></div>
-                                        <div class="pref-row">
-                                            <div
-                                                class="pref-line pref-line-w40"
-                                            ></div>
-                                            <div class="pref-toggle"></div>
-                                        </div>
-                                        <div class="pref-row">
-                                            <div
-                                                class="pref-line pref-line-w50"
-                                            ></div>
-                                            <div class="pref-toggle"></div>
-                                        </div>
-                                        <div class="pref-row">
-                                            <div
-                                                class="pref-line pref-line-w35"
-                                            ></div>
-                                            <div class="pref-toggle"></div>
-                                        </div>
-                                    </div>
-                                </div>
+                        <div class="prefs-gears">
+                            <div class="gear gear-tr">
+                                <Settings size={140} strokeWidth={1} />
+                            </div>
+                            <div class="gear gear-bl">
+                                <Settings size={120} strokeWidth={1} />
+                            </div>
+                            <div class="prefs-text">
+                                <span class="prefs-title">{pageContent.preferences.title}</span>
+                                <span class="prefs-desc">{pageContent.preferences.desc}</span>
                             </div>
                         </div>
+
                     {:else if page.style === "final"}
-                        <div class="illustration final-illustration">
-                            <div class="final-sparkle s1">✦</div>
-                            <div class="final-sparkle s2">✦</div>
-                            <div class="final-sparkle s3">✦</div>
-                            <div class="final-check">✓</div>
+                        <div class="final-check">
+                            <div class="check-icon">✓</div>
                         </div>
-                    {/if}
-
-                    <h1 class="title">{page.title}</h1>
-                    <p class="desc">{page.desc}</p>
-
-                    {#if page.style === "final"}
-                        <button class="btn-primary" onclick={finish}
-                            >Let's go</button
-                        >
                     {/if}
                 </div>
 
-                {#if current < pages.length - 1}
-                    <button
-                        class="nav-arrow right"
-                        onclick={next}
-                        aria-label="Next"
-                    >
-                        <ChevronRight size={18} />
-                    </button>
+                {#if !fullbleedStyles.includes(page.style)}
+                    <div class="text">
+                        <h1 class="title">{pageContent[page.style].title}</h1>
+                        <p class="desc">{pageContent[page.style].desc}</p>
+                    </div>
                 {/if}
             </div>
 
+            <!-- Dots (centered) -->
             <div class="dots">
                 {#each pages as _, i}
                     <button
@@ -305,10 +179,35 @@
                         class:active={i === current}
                         class:past={i < current}
                         onclick={() => (current = i)}
-                        aria-label="Go to page {i + 1}"
+                        aria-label="Step {i + 1}"
                     ></button>
                 {/each}
             </div>
+
+            <!-- Navigation arrows -->
+            {#if current > 0}
+                <button
+                    class="nav-arrow left"
+                    onclick={goPrev}
+                    aria-label="Previous"
+                >
+                    <ChevronLeft size={22} />
+                </button>
+            {/if}
+            {#if current < pages.length - 1}
+                <button
+                    class="nav-arrow right"
+                    onclick={goNext}
+                    aria-label="Next"
+                >
+                    <ChevronRight size={22} />
+                </button>
+            {/if}
+
+            <!-- Final button (only on last page) -->
+            {#if current === pages.length - 1}
+                <button class="finish-btn" onclick={finish}> Get Started </button>
+            {/if}
         </div>
     </div>
 </WindowAnimation>
@@ -325,94 +224,112 @@
 
     .card {
         position: relative;
-        width: 560px;
-        height: 480px;
+        width: 520px;
+        height: 380px;
         background: var(--color-main-bg);
-        border: 2px solid var(--color-border-subtle);
-        border-radius: var(--radius-lg);
+        border: 1px solid var(--color-border-subtle);
+        border-radius: 20px;
         display: flex;
         flex-direction: column;
+        align-items: center;
+        justify-content: center;
         overflow: hidden;
         user-select: none;
+        pointer-events: auto;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
     }
 
     .close-btn {
         position: absolute;
         top: 14px;
         left: 14px;
-        width: 26px;
-        height: 26px;
+        width: 28px;
+        height: 28px;
         border-radius: 50%;
         border: none;
-        background: var(--color-button-bg);
+        background: rgba(0, 0, 0, 0.06);
         color: var(--color-text-dim);
-        font-size: 11px;
+        font-size: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        transition: var(--transition-fast);
-        z-index: 2;
+        transition: all 150ms ease;
+        z-index: 10;
     }
 
     .close-btn:hover {
-        background: var(--color-button-bg-hover);
+        background: rgba(0, 0, 0, 0.1);
         color: var(--color-text-secondary);
     }
 
+    /* ── Content (integrated) ── */
     .content {
-        flex: 1;
-        display: flex;
-        align-items: center;
         position: relative;
-        min-height: 0;
-    }
-
-    .page {
-        flex: 1;
+        z-index: 1;
+        width: 100%;
+        height: 100%;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 10px;
-        padding: 30px 50px;
-        text-align: center;
+        gap: 24px;
     }
 
-    /* ── Nav arrows ── */
-    .nav-arrow {
-        position: absolute;
-        top: 50%;
-        transform: translateY(-50%);
-        background: none;
-        border: none;
-        color: var(--color-text-dim);
-        cursor: pointer;
-        padding: 8px;
-        z-index: 2;
-        transition: var(--transition-fast);
+    .illustration {
         display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
     }
 
-    .nav-arrow:hover {
-        color: var(--color-text-secondary);
+    .illustration.fullbleed {
+        width: 100%;
+        height: 100%;
+        flex: 1;
+        position: relative;
     }
 
-    .nav-arrow.left {
-        left: 8px;
-    }
-    .nav-arrow.right {
-        right: 8px;
+    .illustration.fullbleed::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 60px;
+        background: linear-gradient(to top, var(--color-main-bg) 0%, transparent 100%);
+        pointer-events: none;
+        z-index: 5;
     }
 
-    /* ── Dots ── */
+    .text {
+        text-align: center;
+    }
+
+    .title {
+        font-size: 22px;
+        font-weight: 600;
+        color: var(--color-text-primary);
+        margin: 0 0 6px;
+        letter-spacing: -0.02em;
+    }
+
+    .desc {
+        font-size: 14px;
+        color: var(--color-text-tertiary);
+        margin: 0;
+    }
+
+    /* ── Dots (centered at bottom) ── */
     .dots {
+        position: absolute;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%);
         display: flex;
         gap: 8px;
-        justify-content: center;
-        padding: 14px 0 18px;
+        align-items: center;
+        z-index: 10;
     }
 
     .dot {
@@ -420,10 +337,10 @@
         height: 6px;
         border-radius: 50%;
         border: none;
-        background: var(--color-button-bg-hover);
+        background: var(--color-button-bg-active);
         cursor: pointer;
         padding: 0;
-        transition: all 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+        transition: all 250ms cubic-bezier(0.2, 0.8, 0.2, 1);
     }
 
     .dot.past {
@@ -432,521 +349,349 @@
 
     .dot.active {
         background: var(--color-accent);
-        width: 18px;
-        border-radius: 4px;
+        width: 20px;
+        border-radius: 3px;
     }
 
     .dot:hover:not(.active) {
         background: var(--color-text-dim);
     }
 
-    /* ── Typography ── */
-    .title {
-        font-size: 20px;
-        font-weight: 600;
-        color: var(--color-text-primary);
-        margin: 0;
-        line-height: 1.2;
-    }
-
-    .desc {
-        font-size: 13px;
-        color: var(--color-text-tertiary);
-        margin: 0;
-        max-width: 320px;
-        line-height: 1.5;
-    }
-
-    .illustration {
-        width: 100%;
+    /* ── Navigation Arrows ── */
+    .nav-arrow {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: none;
+        background: rgba(0, 0, 0, 0.04);
+        color: var(--color-text-dim);
         display: flex;
         align-items: center;
         justify-content: center;
-        margin-bottom: 12px;
-        position: relative;
-        height: 200px;
+        cursor: pointer;
+        transition: all 150ms ease;
+        z-index: 10;
+        opacity: 0;
     }
 
-    .btn-primary {
-        margin-top: 12px;
-        padding: 10px 28px;
+    .card:hover .nav-arrow {
+        opacity: 1;
+    }
+
+    .nav-arrow:hover {
+        background: rgba(0, 0, 0, 0.08);
+        color: var(--color-text-secondary);
+    }
+
+    .nav-arrow.left {
+        left: 16px;
+    }
+
+    .nav-arrow.right {
+        right: 16px;
+    }
+
+    /* ── Finish Button ── */
+    .finish-btn {
+        position: absolute;
+        bottom: 24px;
+        right: 24px;
+        padding: 10px 24px;
         border-radius: 10px;
         border: none;
         background: var(--color-accent);
         color: #fff;
         font-size: 13px;
-        font-weight: 500;
+        font-weight: 600;
         font-family: inherit;
         cursor: pointer;
-        transition: var(--transition-fast);
+        transition: all 150ms ease;
+        z-index: 10;
     }
 
-    .btn-primary:hover {
+    .finish-btn:hover {
         background: var(--color-accent-hover);
     }
 
-    /* ═══════════════════════════════════════════════
-       WELCOME
-       ═══════════════════════════════════════════════ */
-    .app-icon {
-        width: 80px;
-        height: 80px;
-        border-radius: 18px;
-    }
+    /* ════════════════════════════════
+       ILLUSTRATIONS
+    ════════════════════════════════ */
 
-    /* ═══════════════════════════════════════════════
-       ACCESSIBILITY
-       ═══════════════════════════════════════════════ */
-    .a11y-window {
-        width: 220px;
-        background: var(--color-surface-elevated);
-        border-radius: 10px;
-        border: 1px solid var(--color-border-medium);
-        overflow: hidden;
-    }
-
-    .a11y-titlebar {
+    /* Welcome */
+    .welcome-scene {
+        position: relative;
+        width: 120px;
+        height: 120px;
         display: flex;
-        gap: 5px;
-        padding: 8px 10px;
-        border-bottom: 1px solid var(--color-border-subtle);
+        align-items: center;
+        justify-content: center;
     }
 
-    .a11y-dot {
-        width: 7px;
-        height: 7px;
-        border-radius: 50%;
-        background: var(--color-button-bg-hover);
+    .app-icon {
+        width: 72px;
+        height: 72px;
+        border-radius: 16px;
+        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
     }
 
-    .a11y-body {
+    /* Workspaces — image is the subject, text lives inside the main pane */
+    .workspace-layout {
+        display: flex;
+        gap: 8px;
+        width: 85%;
+        height: 85%;
+        padding: 24px;
+        margin-top: 16px;
+        transform: translateY(44px);
+    }
+
+    .ws-main {
+        flex: 1.4;
+        background: var(--color-surface-elevated);
+        border: 1px solid var(--color-border-medium);
+        border-radius: 12px;
         padding: 16px;
         display: flex;
-        justify-content: center;
+        flex-direction: column;
+        gap: 6px;
     }
 
-    .a11y-keyboard {
+    .ws-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--color-text-primary);
+        letter-spacing: -0.02em;
+    }
+
+    .ws-desc {
+        font-size: 11px;
+        color: var(--color-text-tertiary);
+    }
+
+    .ws-side {
+        flex: 1;
         display: flex;
         flex-direction: column;
-        gap: 4px;
-        align-items: center;
+        gap: 8px;
     }
 
-    .a11y-key-row {
-        display: flex;
-        gap: 3px;
-    }
-
-    .a11y-key {
-        width: 18px;
-        height: 14px;
-        border-radius: 3px;
-        background: var(--color-button-bg);
-        border: 1px solid var(--color-border-medium);
-    }
-
-    .a11y-spacebar {
-        width: 80px;
-        height: 12px;
-        border-radius: 3px;
-        background: var(--color-button-bg);
-        border: 1px solid var(--color-border-medium);
-    }
-
-    .a11y-granted {
-        position: absolute;
-        bottom: 0;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        padding: 6px 14px;
-        border-radius: 20px;
-        background: var(--color-success-soft);
-        color: var(--color-success);
-        font-size: 12px;
-        font-weight: 500;
-    }
-
-    .a11y-check {
-        font-weight: 700;
-    }
-
-    /* ═══════════════════════════════════════════════
-       WORKSPACES
-       ═══════════════════════════════════════════════ */
-    .ws-window {
-        width: 240px;
-        height: 160px;
+    .ws-top,
+    .ws-bottom {
+        flex: 1;
         background: var(--color-surface-elevated);
-        border-radius: 10px;
         border: 1px solid var(--color-border-medium);
-        overflow: hidden;
+        border-radius: 10px;
     }
 
-    .ws-titlebar {
-        display: flex;
-        gap: 5px;
-        padding: 7px 10px;
-        border-bottom: 1px solid var(--color-border-subtle);
-    }
-
-    .ws-dot {
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-        background: var(--color-button-bg-hover);
-    }
-
-    .ws-body {
+    /* Clipboard — clipboard shape as subject, text inside body */
+    .clipboard-visual {
+        position: relative;
+        width: 100%;
+        height: 100%;
         display: flex;
         align-items: center;
         justify-content: center;
-        height: calc(100% - 28px);
+        padding: 32px;
     }
 
-    .ws-ring {
+    .clip-clipboard {
         position: relative;
-        width: 180px;
-        height: 130px;
+        width: 50%;
+        height: 90%;
+        transform: translateY(44px);
     }
 
-    .ws-profile {
+    .clip-clip {
         position: absolute;
-        top: 50%;
+        top: -8px;
         left: 50%;
-        width: 52px;
-        height: 36px;
-        margin: -18px 0 0 -26px;
-        background: var(--color-main-bg);
-        border-radius: 5px;
-        border: 1px solid var(--color-border-strong);
-        overflow: hidden;
-        transition: all 360ms cubic-bezier(0.2, 0.8, 0.2, 1);
-    }
-
-    .ws-profile.ws-active {
-        border-color: var(--color-accent);
-        transform-origin: center;
-        z-index: 1;
-    }
-
-    .ws-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        grid-template-rows: 1fr 1fr;
-        gap: 2px;
-        padding: 3px;
-        height: 100%;
-    }
-
-    .ws-slot {
-        background: rgba(255, 255, 255, 0.08);
-        border-radius: 2px;
-    }
-
-    .ws-s1 {
-        grid-column: 1 / 3;
-    }
-    .ws-s2 {
-        grid-row: 2;
-    }
-    .ws-s3 {
-        grid-row: 2;
-    }
-
-    /* ═══════════════════════════════════════════════
-       CLIPBOARD
-       ═══════════════════════════════════════════════ */
-    .cb-clip {
-        position: relative;
-        display: flex;
-        justify-content: center;
+        transform: translateX(-50%);
+        width: 80px;
+        height: 20px;
+        background: var(--color-button-bg);
+        border: 1px solid var(--color-border-medium);
+        border-radius: 6px 6px 0 0;
         z-index: 2;
     }
 
-    .cb-clip-head {
-        width: 48px;
-        height: 18px;
-        border: 3px solid var(--color-text-dim);
-        border-bottom: none;
-        border-radius: 8px 8px 0 0;
-        position: relative;
-        top: 2px;
+    .clip-clip::before {
+        content: "";
+        position: absolute;
+        top: 6px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 24px;
+        height: 8px;
+        border-radius: 4px;
+        background: var(--color-border-medium);
     }
 
-    .cb-board {
-        position: relative;
-        width: 160px;
-        height: 140px;
+    .clip-body {
+        width: 100%;
+        height: 100%;
         background: var(--color-surface-elevated);
-        border-radius: 10px;
         border: 1px solid var(--color-border-medium);
-        padding: 14px 12px;
+        border-radius: 12px;
+        padding: 32px 20px 20px;
         display: flex;
         flex-direction: column;
+        align-items: center;
+        justify-content: center;
         gap: 6px;
-        z-index: 1;
-        margin-top: -8px;
+        text-align: center;
     }
 
-    .cb-item {
-        height: 22px;
-        border-radius: 5px;
-        background: var(--color-button-bg);
+    .clip-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--color-text-primary);
+        letter-spacing: -0.02em;
     }
 
-    .cb-i1 {
-        width: 90%;
-    }
-    .cb-i2 {
-        width: 75%;
-    }
-    .cb-i3 {
-        width: 85%;
-    }
-    .cb-i4 {
-        width: 60%;
+    .clip-desc {
+        font-size: 12px;
+        color: var(--color-text-tertiary);
     }
 
-    /* ═══════════════════════════════════════════════
-       SYSTEM MONITOR
-       ═══════════════════════════════════════════════ */
-    .mon-window {
-        width: 260px;
-        background: var(--color-surface-elevated);
-        border-radius: 10px;
-        border: 1px solid var(--color-border-medium);
-        overflow: hidden;
-    }
-
-    .mon-tabs {
-        display: flex;
-        gap: 4px;
-        padding: 8px 10px;
-        border-bottom: 1px solid var(--color-border-subtle);
-    }
-
-    .mon-tab {
-        padding: 3px 10px;
-        border-radius: 999px;
-        font-size: 9px;
-        font-weight: 500;
-        color: var(--color-text-dim);
-        background: transparent;
-    }
-
-    .mon-active {
-        background: var(--color-accent-soft);
-        color: var(--color-accent);
-    }
-
-    .mon-chart {
+    /* Monitor — bars span the full bottom like a waveform, text overlaid */
+    .monitor-vis {
         position: relative;
-        height: 120px;
-        padding: 8px 10px;
-    }
-
-    .mon-grid {
-        position: absolute;
-        inset: 8px 10px;
+        width: 100%;
+        height: 100%;
         display: flex;
         flex-direction: column;
-        justify-content: space-between;
+        justify-content: flex-end;
     }
 
-    .mon-grid-line {
-        height: 1px;
-        background: var(--color-border-subtle);
-    }
-
-    .mon-bars {
-        position: absolute;
-        inset: 8px 10px;
+    .vis-bars {
         display: flex;
         align-items: flex-end;
         gap: 2px;
+        height: 50%;
+        width: 100%;
     }
 
-    .mon-bar {
+    .vis-bar {
         flex: 1;
         display: flex;
         flex-direction: column;
         border-radius: 2px 2px 0 0;
         overflow: hidden;
-        animation: mon-grow 800ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+        animation: bar-grow 500ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
     }
 
-    @keyframes mon-grow {
+    .vis-bar .bar-top {
+        background: var(--color-accent-border);
+        flex-shrink: 0;
+        height: 30%;
+    }
+
+    .vis-bar .bar-bottom {
+        background: var(--color-accent-soft);
+        flex: 1;
+    }
+
+    @keyframes bar-grow {
         from {
             height: 0 !important;
         }
     }
 
-    .mon-bar-top {
-        background: var(--color-accent);
-        flex-shrink: 0;
-        height: 30%;
+    .monitor-text {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -70%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
     }
 
-    .mon-bar-bottom {
-        background: var(--color-accent-soft);
-        flex: 1;
+    .mon-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--color-text-primary);
+        letter-spacing: -0.02em;
     }
 
-    /* ═══════════════════════════════════════════════
-       PREFERENCES
-       ═══════════════════════════════════════════════ */
-    .pref-window {
-        width: 260px;
-        height: 160px;
-        background: var(--color-surface-elevated);
-        border-radius: 10px;
-        border: 1px solid var(--color-border-medium);
+    .mon-desc {
+        font-size: 13px;
+        color: var(--color-text-tertiary);
+    }
+
+    /* Preferences */
+    .prefs-gears {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
         overflow: hidden;
-        display: flex;
-        flex-direction: column;
     }
 
-    .pref-titlebar {
-        display: flex;
-        gap: 5px;
-        padding: 7px 10px;
-        border-bottom: 1px solid var(--color-border-subtle);
+    .gear {
+        position: absolute;
+        color: var(--color-text-dim);
+        opacity: 0.3;
     }
 
-    .pref-dot {
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-        background: var(--color-button-bg-hover);
+    .gear-tr {
+        top: -40px;
+        right: -40px;
     }
 
-    .pref-body {
-        display: flex;
-        flex: 1;
-        min-height: 0;
+    .gear-bl {
+        bottom: -30px;
+        left: -30px;
     }
 
-    .pref-sidebar {
-        width: 70px;
-        border-right: 1px solid var(--color-border-subtle);
-        padding: 8px 6px;
-        display: flex;
-        flex-direction: column;
-        gap: 3px;
-    }
-
-    .pref-nav-item {
-        height: 14px;
-        border-radius: 4px;
-        background: var(--color-button-bg);
-    }
-
-    .pref-nav-active {
-        background: var(--color-accent-soft);
-    }
-
-    .pref-content {
-        flex: 1;
-        padding: 12px;
+    .prefs-text {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
         display: flex;
         flex-direction: column;
         gap: 6px;
     }
 
-    .pref-line {
-        height: 8px;
-        border-radius: 4px;
-        background: var(--color-button-bg);
+    .prefs-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--color-text-primary);
+        letter-spacing: -0.02em;
     }
 
-    .pref-line-w35 {
-        width: 35%;
-    }
-    .pref-line-w40 {
-        width: 40%;
-    }
-    .pref-line-w50 {
-        width: 50%;
-    }
-    .pref-line-w60 {
-        width: 60%;
+    .prefs-desc {
+        font-size: 13px;
+        color: var(--color-text-tertiary);
     }
 
-    .pref-spacer {
-        height: 4px;
-    }
-
-    .pref-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-    }
-
-    .pref-toggle {
-        width: 22px;
-        height: 12px;
-        border-radius: 6px;
-        background: var(--color-track-fill);
-        flex-shrink: 0;
-    }
-
-    /* ═══════════════════════════════════════════════
-       FINAL
-       ═══════════════════════════════════════════════ */
-    .final-illustration {
-        align-items: center;
-    }
-
+    /* Final */
     .final-check {
-        width: 64px;
-        height: 64px;
-        border-radius: 50%;
-        background: var(--color-success-soft);
-        color: var(--color-success);
-        font-size: 28px;
-        font-weight: 700;
+        position: relative;
+        width: 90px;
+        height: 90px;
         display: flex;
         align-items: center;
         justify-content: center;
     }
 
-    .final-sparkle {
-        position: absolute;
-        color: var(--color-accent);
-        font-size: 14px;
-        opacity: 0.5;
-        animation: sparkle-pulse 2s ease-in-out infinite;
-    }
-
-    .s1 {
-        top: 30px;
-        right: 60px;
-        animation-delay: 0s;
-    }
-    .s2 {
-        top: 60px;
-        left: 55px;
-        animation-delay: 0.7s;
-        font-size: 10px;
-    }
-    .s3 {
-        bottom: 40px;
-        right: 80px;
-        animation-delay: 1.4s;
-        font-size: 11px;
-    }
-
-    @keyframes sparkle-pulse {
-        0%,
-        100% {
-            opacity: 0.3;
-            transform: scale(1);
-        }
-        50% {
-            opacity: 0.8;
-            transform: scale(1.3);
-        }
+    .check-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: var(--color-success-soft);
+        border: 1px solid rgba(87, 211, 140, 0.3);
+        color: var(--color-success);
+        font-size: 24px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 </style>
