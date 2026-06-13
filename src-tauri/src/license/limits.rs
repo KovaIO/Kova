@@ -1,7 +1,7 @@
 use crate::license::{LicenseLimits, LicenseTier};
 
 const UNLIMITED_HISTORY_VALUE: i32 = 0;
-const MAX_FINITE_HISTORY: i32 = 100;
+const MAX_FINITE_HISTORY: i32 = 50;
 
 pub fn limits_for_tier(tier: &LicenseTier) -> LicenseLimits {
     match tier {

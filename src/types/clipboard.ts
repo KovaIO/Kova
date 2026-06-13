@@ -3,8 +3,8 @@ export const CLIPBOARD_HISTORY_UNLIMITED = 0;
 export const CLIPBOARD_HISTORY_OPTIONS = [
   { value: 10, label: "10 items" },
   { value: 25, label: "25 items" },
-  { value: 50, label: "50 items" },
-  { value: 100, label: "100 items" },
+  { value: 50, label: "50 items", maxFree: true },
+  { value: 100, label: "100 items", proOnly: true },
   {
     value: CLIPBOARD_HISTORY_UNLIMITED,
     label: "Unlimited",
@@ -55,9 +55,7 @@ export function previewText(item: ClipboardItem, maxLen = 220): string {
   return `${normalized.slice(0, maxLen)}…`;
 }
 
-export function isRasterIcon(
-  icon: string | null | undefined,
-): icon is string {
+export function isRasterIcon(icon: string | null | undefined): icon is string {
   return !!icon && icon !== "system" && icon !== "terminal";
 }
 

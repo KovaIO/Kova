@@ -17,11 +17,12 @@
     $: clipboard = $preferences?.clipboard;
     $: historyLimit = clipboard?.history_limit ?? 25;
     $: ignoredApps = clipboard?.ignored_apps ?? [];
-    $: historyOptions = CLIPBOARD_HISTORY_OPTIONS.filter(
-        (option) =>
-            !("proOnly" in option && option.proOnly) ||
-            $license?.limits.clipboard_history_unlimited,
-    );
+    $: historyOptions = CLIPBOARD_HISTORY_OPTIONS.filter((option) => {
+        if ("proOnly" in option && option.proOnly) {
+            return $license?.limits.clipboard_history_unlimited;
+        }
+        return true;
+    });
 
     async function clearHistory() {
         clearing = true;
