@@ -68,14 +68,14 @@ pub fn update_clipboard_preferences(
 pub fn update_shortcuts(
     shortcuts: Vec<Shortcut>,
     state: State<AppState>,
-    app: tauri::AppHandle,
+    _app: tauri::AppHandle,
     map: State<ShortcutMap>,
 ) -> Result<(), String> {
     with_emit(&state, || {
         state.preferences.update_shortcuts(shortcuts.clone())?;
 
         #[cfg(target_os = "windows")]
-        crate::shortcuts::reload_shortcuts(&app, &map, &shortcuts)?;
+        crate::shortcuts::reload_shortcuts(&_app, &map, &shortcuts)?;
 
         #[cfg(target_os = "macos")]
         crate::shortcuts::reload_shortcuts(&map, &shortcuts)?;

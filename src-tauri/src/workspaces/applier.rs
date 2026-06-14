@@ -8,7 +8,7 @@ use tauri::AppHandle;
 pub fn apply_window(
     app_handle: &AppHandle,
     workspace_app: &WorkspaceApp,
-    matched: &MatchedWindow,
+    _matched: &MatchedWindow,
     gap: u32,
 ) {
     let Some(rect) = resolve_rect(
@@ -23,7 +23,7 @@ pub fn apply_window(
     };
 
     #[cfg(target_os = "windows")]
-    move_window(matched.handle, &rect);
+    move_window(_matched.handle, &rect);
 
     #[cfg(target_os = "macos")]
     move_window(&workspace_app.name, &rect);
@@ -166,10 +166,10 @@ pub fn move_window(app_name: &str, rect: &WindowRect) {
     }
 }
 
-pub fn minimize_other_windows(keep_handles: &HashSet<usize>) {
+pub fn minimize_other_windows(_keep_handles: &HashSet<usize>) {
     #[cfg(target_os = "windows")]
     {
-        minimize_other_windows_windows(keep_handles);
+        minimize_other_windows_windows(_keep_handles);
     }
 
     #[cfg(target_os = "macos")]

@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use tauri::AppHandle;
 
 use super::{handle_action, normalize_keys, ShortcutMap};
@@ -21,11 +22,7 @@ fn macos_hook(app: AppHandle, map: ShortcutMap) {
         map: ShortcutMap,
     }
 
-    struct TapStatePtr(*mut TapState);
-    unsafe impl Send for TapStatePtr {}
-
-    let state = Box::new(TapState { app, map });
-    let state_ptr = TapStatePtr(Box::into_raw(state));
+    let state = Arc::new(TapState { app, map });
 
     let tap = CGEventTap::new(
         CGEventTapLocation::HID,
@@ -40,7 +37,6 @@ fn macos_hook(app: AppHandle, map: ShortcutMap) {
                 return CallbackResult::Keep;
             }
 
-            let state = unsafe { &*state_ptr.0 };
             let key_str = cg_event_to_key_string(event);
             if key_str.is_empty() {
                 return CallbackResult::Keep;

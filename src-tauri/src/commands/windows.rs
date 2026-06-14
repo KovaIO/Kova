@@ -67,13 +67,13 @@ pub fn check_accessibility() -> bool {
 pub fn set_menu_bar_visible(_app: AppHandle, visible: bool) -> Result<(), String> {
     #[cfg(target_os = "macos")]
     {
-        use cocoa::base::{id, nil};
+        use objc::runtime::Object;
         use objc::{class, msg_send, sel, sel_impl};
 
         unsafe {
-            let app: id = msg_send![class!(NSApplication), sharedApplication];
-            let main_menu: id = msg_send![app, mainMenu];
-            if main_menu != nil {
+            let app: *mut Object = msg_send![class!(NSApplication), sharedApplication];
+            let main_menu: *mut Object = msg_send![app, mainMenu];
+            if !main_menu.is_null() {
                 let _: () = msg_send![main_menu, setHidden: !visible];
             }
         }

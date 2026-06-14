@@ -373,27 +373,32 @@ mod platform {
 mod platform {
     use super::*;
 
-    use cocoa::base::{id, nil};
-    use cocoa::foundation::NSString;
-
-    use objc::class;
+    use objc::runtime::{Class, Object};
     use objc::{msg_send, sel, sel_impl};
+
+    fn nsstring_from_str(s: &str) -> *mut Object {
+        unsafe {
+            let cls = Class::get("NSString").unwrap();
+            let obj: *mut Object = msg_send![cls, alloc];
+            msg_send![obj, initWithUTF8String: s.as_ptr() as *const std::ffi::c_char]
+        }
+    }
 
     pub fn get_process_icon_base64(path: &str) -> Option<String> {
         unsafe {
-            let workspace: id = msg_send![class!(NSWorkspace), sharedWorkspace];
+            let workspace: *mut Object = msg_send![class!(NSWorkspace), sharedWorkspace];
 
-            let ns_path = NSString::alloc(nil).init_str(path);
+            let ns_path = nsstring_from_str(path);
 
-            let icon: id = msg_send![workspace, iconForFile: ns_path];
+            let icon: *mut Object = msg_send![workspace, iconForFile: ns_path];
 
-            if icon == nil {
+            if icon.is_null() {
                 return None;
             }
 
-            let tiff_data: id = msg_send![icon, TIFFRepresentation];
+            let tiff_data: *mut Object = msg_send![icon, TIFFRepresentation];
 
-            if tiff_data == nil {
+            if tiff_data.is_null() {
                 return None;
             }
 
@@ -402,6 +407,8 @@ mod platform {
             let len: usize = msg_send![tiff_data, length];
 
             let slice = std::slice::from_raw_parts(bytes, len);
+
+            let _: () = msg_send![ns_path, release];
 
             Some(general_purpose::STANDARD.encode(slice))
         }

@@ -38,15 +38,8 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
-      - name: Build frontend
-        run: npm run build
-
-      - name: Install Tauri dependencies
-        run: |
-          cargo install tauri-cli --locked
-
       - name: Build Tauri
-        run: cargo tauri build
+        run: npm run tauri build
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v7

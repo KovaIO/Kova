@@ -101,30 +101,30 @@ fn get_foreground_app_windows() -> Option<SourceApp> {
 
 #[cfg(target_os = "macos")]
 fn get_foreground_app_macos() -> Option<SourceApp> {
-    use cocoa::base::{id, nil};
+    use objc::runtime::Object;
     use objc::{class, msg_send, sel, sel_impl};
 
     unsafe {
-        let workspace: id = msg_send![class!(NSWorkspace), sharedWorkspace];
-        if workspace == nil {
+        let workspace: *mut Object = msg_send![class!(NSWorkspace), sharedWorkspace];
+        if workspace.is_null() {
             return None;
         }
 
-        let app: id = msg_send![workspace, frontmostApplication];
-        if app == nil {
+        let app: *mut Object = msg_send![workspace, frontmostApplication];
+        if app.is_null() {
             return None;
         }
 
-        let name_ns: id = msg_send![app, localizedName];
-        let path_ns: id = msg_send![app, bundlePath];
+        let name_ns: *mut Object = msg_send![app, localizedName];
+        let path_ns: *mut Object = msg_send![app, bundlePath];
 
-        let name = if name_ns != nil {
+        let name = if !name_ns.is_null() {
             nsstring_to_string(name_ns)
         } else {
             "Unknown".to_string()
         };
 
-        let path = if path_ns != nil {
+        let path = if !path_ns.is_null() {
             nsstring_to_string(path_ns)
         } else {
             String::new()
@@ -133,8 +133,9 @@ fn get_foreground_app_macos() -> Option<SourceApp> {
         Some(SourceApp { name, path })
     }
 }
+
 #[cfg(target_os = "macos")]
-unsafe fn nsstring_to_string(ns: cocoa::base::id) -> String {
+unsafe fn nsstring_to_string(ns: *mut objc::runtime::Object) -> String {
     use std::ffi::CStr;
 
     use objc::{msg_send, sel, sel_impl};
