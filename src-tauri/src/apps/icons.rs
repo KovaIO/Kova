@@ -1,11 +1,15 @@
 use base64::{engine::general_purpose, Engine};
+
+#[cfg(target_os = "windows")]
 use image::{ImageBuffer, ImageFormat, Rgba};
 
 use std::{
     collections::HashMap,
-    io::Cursor,
     sync::{LazyLock, Mutex},
 };
+
+#[cfg(target_os = "windows")]
+use std::io::Cursor;
 
 const MAX_ICON_CACHE: usize = 256;
 

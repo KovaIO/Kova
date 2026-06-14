@@ -74,7 +74,7 @@ fn app_score(app: &InstalledApp) -> u32 {
 }
 
 #[cfg(target_os = "macos")]
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 #[cfg(target_os = "macos")]
 fn get_macos_apps() -> Vec<InstalledApp> {
