@@ -17,7 +17,7 @@
 
     const sections = [
         { id: "general", label: "General" },
-        { id: "appearance", label: "Appareance" },
+        { id: "appearance", label: "Appearance" },
         { id: "workspace-profiles", label: "Workspace Profiles" },
         { id: "clipboard-history", label: "Clipboard History" },
         { id: "keyboard-shortcuts", label: "Keyboard Shortcuts" },
