@@ -374,7 +374,7 @@ mod platform {
     use super::*;
 
     use objc::runtime::{Class, Object};
-    use objc::{msg_send, sel, sel_impl};
+    use objc::{class, msg_send, sel, sel_impl};
 
     fn nsstring_from_str(s: &str) -> *mut Object {
         unsafe {
