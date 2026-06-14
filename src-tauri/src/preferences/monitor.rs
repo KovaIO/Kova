@@ -194,16 +194,26 @@ fn set_windows_external(percent: u8) -> bool {
 pub fn set_brightness(percent: u8) -> Result<(), String> {
     use core_graphics::display::CGMainDisplayID;
 
-    let percent = percent.clamp(0, 100);
-    let value = percent as f32 / 100.0;
+    let value = percent.clamp(0, 100) as f64 / 100.0;
 
-    #[link(name = "DisplayServices", kind = "framework")]
     extern "C" {
-        fn DisplayServicesSetBrightness(display: u32, brightness: f32) -> i32;
+        fn CGDisplayIOServicePort(display: u32) -> u32;
+    }
+
+    #[link(name = "IOKit", kind = "framework")]
+    extern "C" {
+        fn IODisplaySetFloatParameter(
+            service: u32,
+            options: u32,
+            key: *const std::ffi::c_char,
+            value: f64,
+        ) -> i32;
     }
 
     unsafe {
-        let _ = DisplayServicesSetBrightness(CGMainDisplayID(), value);
+        let service = CGDisplayIOServicePort(CGMainDisplayID());
+        let key = c"brightness";
+        IODisplaySetFloatParameter(service, 0, key.as_ptr(), value);
     }
 
     Ok(())
@@ -324,14 +334,25 @@ pub fn get_brightness() -> Result<u8, String> {
 pub fn get_brightness() -> Result<u8, String> {
     use core_graphics::display::CGMainDisplayID;
 
-    #[link(name = "DisplayServices", kind = "framework")]
     extern "C" {
-        fn DisplayServicesGetBrightness(display: u32, brightness: *mut f32) -> i32;
+        fn CGDisplayIOServicePort(display: u32) -> u32;
     }
 
-    let mut value: f32 = 0.0;
+    #[link(name = "IOKit", kind = "framework")]
+    extern "C" {
+        fn IODisplayGetFloatParameter(
+            service: u32,
+            options: u32,
+            key: *const std::ffi::c_char,
+            value: *mut f64,
+        ) -> i32;
+    }
+
+    let mut value: f64 = 0.0;
     unsafe {
-        let _ = DisplayServicesGetBrightness(CGMainDisplayID(), &mut value);
+        let service = CGDisplayIOServicePort(CGMainDisplayID());
+        let key = c"brightness";
+        IODisplayGetFloatParameter(service, 0, key.as_ptr(), &mut value);
     }
 
     Ok((value * 100.0).round() as u8)
