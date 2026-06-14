@@ -72,7 +72,7 @@ pub fn initialize_app_state(app: &tauri::App) -> Result<AppState, Box<dyn std::e
     let storage = PreferencesStorage::new(db_path.clone())?;
     run_migrations(storage.connection())?;
 
-    let license_client = LicenseClient::new("https://api.appkova.com/");
+    let license_client = LicenseClient::new("https://api.appkova.com");
 
     let license = Arc::new(LicenseService::new(
         LicenseStorage::new(db_path.clone())?,
