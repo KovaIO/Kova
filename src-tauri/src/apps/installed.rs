@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-#[cfg(target_os = "windows")]
 use crate::apps::get_app_icon;
 use crate::apps::InstalledApp;
 

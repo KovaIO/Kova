@@ -197,8 +197,8 @@ pub fn set_brightness(percent: u8) -> Result<(), String> {
     let percent = percent.clamp(0, 100);
     let value = percent as f32 / 100.0;
 
+    #[link(name = "DisplayServices", kind = "framework")]
     extern "C" {
-        #[link(name = "DisplayServices", kind = "framework")]
         fn DisplayServicesSetBrightness(display: u32, brightness: f32) -> i32;
     }
 
@@ -324,8 +324,8 @@ pub fn get_brightness() -> Result<u8, String> {
 pub fn get_brightness() -> Result<u8, String> {
     use core_graphics::display::CGMainDisplayID;
 
+    #[link(name = "DisplayServices", kind = "framework")]
     extern "C" {
-        #[link(name = "DisplayServices", kind = "framework")]
         fn DisplayServicesGetBrightness(display: u32, brightness: *mut f32) -> i32;
     }
 

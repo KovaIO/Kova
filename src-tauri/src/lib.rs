@@ -31,8 +31,8 @@ use commands::{
     complete_onboarding, copy_clipboard_item, delete_all_disk_items, delete_clipboard_item,
     delete_disk_items, delete_workspace_profile, exit_app, force_quit_process_cmd, get_apps,
     get_brightness, get_clipboard_history, get_current_metrics, get_disk_item_detail,
-    get_disk_scan_preview, get_disk_scan_result, get_disk_volume_info, get_license,
-    get_portal_url, get_preferences, get_process_history, get_snapshot, get_workspace_profile,
+    get_disk_scan_preview, get_disk_scan_result, get_disk_volume_info, get_license, get_portal_url,
+    get_preferences, get_process_history, get_snapshot, get_workspace_profile,
     get_workspace_profiles, open_clipboard_url, open_monitor, open_preferences, open_process,
     paste_clipboard_item, paste_plain_clipboard_item, preview_clipboard_item, quit_process_cmd,
     reveal_clipboard_item, save_monitor_dim, save_workspace_profile, set_menu_bar_visible,
@@ -80,6 +80,14 @@ pub fn run() {
                         return;
                     };
 
+                    #[cfg(target_os = "macos")]
+                    {
+                        let key = shortcut.to_string().to_lowercase();
+                        if let Some(action) = guard.get(&key) {
+                            handle_action(app, action);
+                        }
+                    }
+                    #[cfg(target_os = "windows")]
                     if let Some(action) = guard.get(&shortcut) {
                         handle_action(app, action);
                     }
@@ -150,8 +158,8 @@ pub fn run() {
                 }
 
                 #[cfg(target_os = "macos")]
-                if let Some(window) = app.get_webview_window("home") {
-                    let _ = window.set_menu_bar_visible(prefs.general.show_menu_bar);
+                if let Some(_window) = app.get_webview_window("home") {
+                    let _ = set_menu_bar_visible(app.handle().clone(), prefs.general.show_menu_bar);
                 }
             }
 

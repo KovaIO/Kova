@@ -134,15 +134,15 @@ fn get_foreground_app_macos() -> Option<SourceApp> {
     }
 }
 #[cfg(target_os = "macos")]
-unsafe fn nsstring_to_string(ns: id) -> String {
+unsafe fn nsstring_to_string(ns: cocoa::base::id) -> String {
     use std::ffi::CStr;
 
-    let utf8: id = msg_send![ns, UTF8String];
+    use objc::{msg_send, sel, sel_impl};
+
+    let utf8: *const std::ffi::c_char = msg_send![ns, UTF8String];
     if utf8.is_null() {
         return String::new();
     }
 
-    CStr::from_ptr(utf8 as *const i8)
-        .to_string_lossy()
-        .into_owned()
+    CStr::from_ptr(utf8).to_string_lossy().into_owned()
 }

@@ -13,6 +13,7 @@ fn macos_hook(app: AppHandle, map: ShortcutMap) {
     use core_foundation::runloop::{kCFRunLoopCommonModes, CFRunLoop};
     use core_graphics::event::{
         CGEventTap, CGEventTapLocation, CGEventTapOptions, CGEventTapPlacement, CGEventType,
+        CallbackResult,
     };
 
     struct TapState {
@@ -33,27 +34,27 @@ fn macos_hook(app: AppHandle, map: ShortcutMap) {
                 core_graphics::event::EventField::KEYBOARD_EVENT_AUTOREPEAT,
             ) != 0
             {
-                return Some(event.to_owned());
+                return CallbackResult::Keep;
             }
 
             let state = unsafe { &*state_ptr };
             let key_str = cg_event_to_key_string(event);
             if key_str.is_empty() {
-                return Some(event.to_owned());
+                return CallbackResult::Keep;
             }
             if let Ok(guard) = state.map.lock() {
                 if let Some(action) = guard.get(&key_str) {
                     handle_action(&state.app, action);
-                    return None;
+                    return CallbackResult::Drop;
                 }
             }
-            Some(event.to_owned())
+            CallbackResult::Keep
         },
     )
     .expect("CGEventTap::new failed — grant Accessibility permission in System Settings");
 
     let source = tap
-        .mach_port
+        .mach_port()
         .create_runloop_source(0)
         .expect("failed to create runloop source");
 

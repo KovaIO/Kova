@@ -47,19 +47,21 @@ pub async fn check_for_updates(app: AppHandle) {
     }
 
     if app.get_webview_window("update").is_none() {
-        if let Ok(w) = WebviewWindowBuilder::new(&app, "update", WebviewUrl::App("/update".into()))
+        let builder = WebviewWindowBuilder::new(&app, "update", WebviewUrl::App("/update".into()))
             .title("Update Available")
             .inner_size(400.0, 300.0)
             .decorations(false)
             .shadow(false)
-            .transparent(true)
             .always_on_top(true)
             .skip_taskbar(true)
             .resizable(false)
             .devtools(false)
-            .center()
-            .build()
-        {
+            .center();
+
+        #[cfg(not(target_os = "macos"))]
+        let builder = builder.transparent(true);
+
+        if let Ok(w) = builder.build() {
             crate::windows::attach_focus_hide(w);
         }
     }

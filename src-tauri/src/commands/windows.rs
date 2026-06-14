@@ -64,16 +64,24 @@ pub fn check_accessibility() -> bool {
 }
 
 #[tauri::command]
-pub fn set_menu_bar_visible(app: AppHandle, visible: bool) -> Result<(), String> {
+pub fn set_menu_bar_visible(_app: AppHandle, visible: bool) -> Result<(), String> {
     #[cfg(target_os = "macos")]
     {
-        let window = app
-            .get_webview_window("home")
-            .ok_or("home window not found")?;
-        window
-            .set_menu_bar_visible(visible)
-            .map_err(|e| e.to_string())?;
+        use cocoa::base::{id, nil};
+        use objc::{class, msg_send, sel, sel_impl};
+
+        unsafe {
+            let app: id = msg_send![class!(NSApplication), sharedApplication];
+            let main_menu: id = msg_send![app, mainMenu];
+            if main_menu != nil {
+                let _: () = msg_send![main_menu, setHidden: !visible];
+            }
+        }
     }
-    let _ = visible;
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = _app;
+        let _ = visible;
+    }
     Ok(())
 }
