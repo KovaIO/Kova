@@ -7,59 +7,74 @@ Kova is a desktop utility that lives in your system tray and puts a few useful t
 Instead of having a separate app for each of these things, Kova keeps them together in one small menu.
 
 ## ✨ Features
-<table> <tr> <td width="40%" valign="top">
-System Monitor
+
+<table>
+<tr>
+<td width="50%" valign="middle" style="border: 1px solid #30363d; padding: 20px;">
+
+<h3>System Monitor</h3>
 
 See CPU, memory, disk, and network usage, including usage by individual processes.
 
 </td>
-<td width="60%" align="center">
-  <img src="./media/Metrics.gif" alt="Kova System Monitor" width="520">
-</td>
+<td width="50%" valign="middle" align="center" style="border: 1px solid #30363d; padding: 20px;">
 
-</tr> <tr> <td width="40%" valign="top">
-Clipboard History
+<img src="./media/Metrics.gif" alt="Kova System Monitor" width="400">
+
+</td>
+</tr>
+
+<tr>
+<td width="50%" valign="middle" align="center" style="border: 1px solid #30363d; padding: 20px;">
+
+<img src="./media/Clipboard.gif" alt="Kova Clipboard History" width="400">
+
+</td>
+<td width="50%" valign="middle" style="border: 1px solid #30363d; padding: 20px;">
+
+<h3>Clipboard History</h3>
 
 Keep a searchable history of copied text and images. Search, preview, copy, or paste previous items when you need them.
 
 </td>
-<td width="60%" align="center">
-  <img src="./media/Clipboard.gif" alt="Kova Clipboard History" width="520">
-</td>
+</tr>
 
-</tr> <tr> <td width="40%" valign="top">
-Workspace Profiles
+<tr>
+<td width="50%" valign="middle" style="border: 1px solid #30363d; padding: 20px;">
+
+<h3>Workspace Profiles</h3>
 
 Save window layouts and restore them when switching between different work setups.
 
 </td>
-<td width="60%" align="center">
-  <img src="./media/Workspaces.gif" alt="Kova Workspaces" width="520">
-</td>
+<td width="50%" valign="middle" align="center" style="border: 1px solid #30363d; padding: 20px;">
 
-</tr> <tr> <td width="40%" valign="top">
-Disk Cleanup
+<img src="./media/Workspaces.gif" alt="Kova Workspaces" width="480">
+
+</td>
+</tr>
+
+<tr>
+<td width="50%" valign="middle" align="center" style="border: 1px solid #30363d; padding: 20px;">
+
+<img src="./media/Disk.gif" alt="Kova Disk Cleanup" width="400">
+
+</td>
+<td width="50%" valign="middle" style="border: 1px solid #30363d; padding: 20px;">
+
+<h3>Disk Cleanup</h3>
 
 Find browser caches, development artifacts, large files, and other files taking up space.
 
 </td>
-<td width="60%" align="center">
-  <img src="./media/Disk.gif" alt="Kova Disk Cleanup" width="520">
-</td>
+</tr>
+</table>
 
-</tr> </table>
+### Other Features
 
-### Brightness Control
-
-Change your display brightness directly from Kova.
-
-### Global Shortcuts
-
-Open Kova and its features using configurable keyboard shortcuts.
-
-### Auto Updates
-
-Keep Kova up to date with built-in signed updates.
+* **Brightness Control** — Change your display brightness directly from Kova.
+* **Global Shortcuts** — Open Kova and its features using configurable keyboard shortcuts.
+* **Auto Updates** — Keep Kova up to date with built-in signed updates.
 
 ## Why Kova?
 
@@ -80,7 +95,7 @@ Linux support is planned.
 
 ## 🚀 Getting Started
 
-Download the latest version from the [website](https://appkova.com/) page.
+Download the latest version from the [Website](https://appkova.com/).
 
 Kova runs in the system tray. From there you can access its tools or configure keyboard shortcuts for quick access.
 
