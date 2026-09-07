@@ -1,143 +1,55 @@
 # Kova
 
-Your workspace, one menu away.
+**Your workspace, one menu away.**
 
-Kova is a lightweight desktop utility that lives in your system tray, giving you instant access to system metrics, clipboard history, workspace profiles, disk cleanup, and display brightness — all from a single menu.
+Kova is a desktop utility that lives in your system tray and puts a few useful tools in one place: system monitoring, clipboard history, workspace profiles, disk cleanup, and brightness control.
 
-## Features
+Instead of having a separate app for each of these things, Kova keeps them together in one small menu.
 
-- **System Monitor** — Live CPU, RAM, disk, and network metrics with per-process tree view and historical bar charts
-- **Clipboard History** — Automatically captures text and image clipboard entries with search, paste, copy, and image preview
-- **Workspace Profiles** — Save and restore app window layouts; position apps on a grid and restore them with one click
-- **Disk Cleanup** — Scan for browser caches, dev artifacts, and large folders, categorized by safety level
-- **Brightness Control** — Adjust display brightness directly from the app
-- **Global Shortcuts** — Configurable keyboard shortcuts for quick access to any feature
-- **Auto-Updates** — Built-in updater checks for new versions on startup
+## ✨ Features
 
-## Tech Stack
+* **System Monitor**: See CPU, memory, disk, and network usage, including per-process usage.
+* **Clipboard History**: Keep a searchable history of copied text and images.
+* **Workspace Profiles**: Save and restore window layouts for different setups.
+* **Disk Cleanup**: Find browser caches, development artifacts, large files, and other things taking up space.
+* **Brightness Control**: Change your display brightness directly from Kova.
+* **Global Shortcuts**: Open Kova and its features using configurable keyboard shortcuts.
+* **Auto Updates**: Keep Kova up to date with built-in signed updates.
 
-| Layer | Technology |
-|---|---|
-| Desktop Runtime | [Tauri](https://tauri.app) v2 |
-| Frontend | [SvelteKit](https://kit.svelte.dev) v2 + [Svelte](https://svelte.dev) v5 |
-| Backend | [Rust](https://www.rust-lang.org/) (2021 edition) |
-| Build Tool | [Vite](https://vite.dev/) v6 |
-| Language | TypeScript ~5.6, Rust |
-| Local Database | SQLite (via `rusqlite`) |
-| Icons | [Lucide](https://lucide.dev/) for Svelte |
+## Why Kova?
 
-## Prerequisites
+There are plenty of small utilities that solve individual problems.
 
-- [Node.js](https://nodejs.org/) v22+
-- [Rust](https://www.rust-lang.org/tools/install) (stable)
-- [Tauri Prerequisites](https://tauri.app/start/prerequisites/):
-  - **Windows**: Microsoft Visual Studio C++ Build Tools, WebView2
-  - **macOS**: Xcode Command Line Tools
+Kova is an attempt to put some of them together without turning the desktop into a collection of separate apps and menus.
 
-## Getting Started
+It stays in the system tray until you need it.
 
-```bash
-# Clone the repository
-git clone https://github.com/KovaIO/Kova.git
-cd Kova/app
+## 🖥️ Supported Platforms
 
-# Install frontend dependencies
-npm install
+Kova currently supports:
 
-# Start the dev server (runs both Vite + Tauri)
-npm run tauri dev
-```
+* Windows
+* macOS
 
-## Scripts
+Linux support is planned.
 
-| Command | Description |
-|---|---|
-| `npm run dev` | Start Vite dev server only |
-| `npm run build` | Build frontend for production |
-| `npm run preview` | Preview production build |
-| `npm run check` | Type-check the project |
-| `npm run check:watch` | Type-check in watch mode |
-| `npm run tauri` | Run Tauri CLI (e.g. `npm run tauri dev`, `npm run tauri build`) |
+## 🚀 Getting Started
 
-## Project Structure
+Download the latest version from the [website](https://appkova.com/) page.
 
-```
-app/
-├── src/                        # Frontend (Svelte/TypeScript)
-│   ├── routes/                 # SvelteKit routes (one per window)
-│   │   ├── home/               # Tray popover — metrics cards, toggles
-│   │   ├── monitor/            # System monitor with graphs + process tree
-│   │   ├── clipboard/          # Clipboard history panel
-│   │   ├── prefs/              # Preferences window (sidebar + sections)
-│   │   ├── profiles/           # Workspace profile ring selector
-│   │   ├── onboarding/         # First-run wizard
-│   │   └── update/             # Update notification dialog
-│   ├── components/             # Reusable Svelte components
-│   ├── stores/                 # Svelte writable stores (preferences, license)
-│   ├── services/               # Tauri invoke wrappers (IPC layer)
-│   ├── types/                  # TypeScript type definitions
-│   └── utils/                  # Utility functions
-├── src-tauri/                  # Backend (Rust)
-│   ├── src/
-│   │   ├── commands/           # Tauri command handlers (IPC boundary)
-│   │   ├── clipboard/          # Clipboard subsystem (watcher, storage, service)
-│   │   ├── metrics/            # System metrics collection
-│   │   ├── processes/          # Process enumeration and management
-│   │   ├── workspaces/         # Workspace profile logic
-│   │   ├── disk/               # Disk cleanup scanner
-│   │   ├── preferences/        # User preferences + monitor dimming
-│   │   ├── license/            # License verification and activation
-│   │   ├── shortcuts/          # Global keyboard shortcuts
-│   │   ├── windows/            # Window management utilities
-│   │   ├── apps/               # Installed app detection
-│   │   └── update/             # Auto-update logic
-│   ├── migrations.rs           # SQLite schema creation
-│   ├── app_state.rs            # Central application state
-│   ├── lib.rs                  # Plugin setup, tray icon, window management
-│   └── main.rs                 # Entry point
-├── static/                     # Static assets (favicon, icons)
-├── tauri.conf.json             # Tauri configuration
-├── svelte.config.js            # SvelteKit config (adapter-static, SPA mode)
-├── vite.config.js              # Vite config
-└── package.json
-```
+Kova runs in the system tray. From there you can access its tools or configure keyboard shortcuts for quick access.
 
-## Architecture
+## 🤝 Contributing
 
-Kova uses a **multi-window architecture**. Each feature runs in its own frameless, transparent window that shows/hides on demand from the system tray:
+We welcome contributions!
 
-| Window | Size | Purpose |
-|---|---|---|
-| `home` | 280x330 | Tray popover — metrics, toggles, brightness |
-| `monitor` | 380x720 | System monitor with graphs and process list |
-| `process` | 380x720 | Process detail view |
-| `clipboard` | 380x720 | Clipboard history panel |
-| `profiles` | 380x380 | Workspace profile selector |
-| `prefs` | 980x720 | Full preferences window |
-| `onboarding` | 520x380 | First-run wizard |
+You can help by:
 
-All windows are **frameless**, **transparent**, and **hidden by default** — they appear/disappear via the tray icon.
+* Reporting bugs
+* Suggesting features
+* Improving the UI
+* Improving platform support
+* Fixing issues
+* Improving documentation
 
-## Licensing
-
-Kova uses a freemium model:
-
-| Tier | Price | Clipboard | Disk Cleanup | Workspaces | Monitor Dimming |
-|---|---|---|---|---|---|
-| **Free** | $0 | 50 items | - | - | - |
-| **Pro Monthly** | $2.99/mo | Unlimited | Yes | Yes | Yes |
-| **Pro Yearly** | $24/yr | Unlimited | Yes | Yes | Yes |
-| **Lifetime** | $59 | Unlimited | Yes | Yes | Yes |
-
-Payments are handled via [Polar](https://polar.sh/).
-
-## Platform Support
-
-| Platform | Status |
-|---|---|
-| Windows | Supported |
-| macOS | Supported |
-
-Platform-specific implementations:
-- **Windows**: Native clipboard listener (`WM_CLIPBOARDUPDATE`), Win32 APIs for window management, `sysinfo` for process enumeration
-- **macOS**: Clipboard polling (450ms), `CGEvent` keyboard hook, Cocoa for window management, LaunchAgent for autostart
+If you find a bug or have an idea, open an [issue](../../issues).
