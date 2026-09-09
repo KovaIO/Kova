@@ -3,12 +3,10 @@
     import "../global.css";
     import { listen, type UnlistenFn } from "@tauri-apps/api/event";
     import { loadPreferences, setPreferences } from "$stores/preferences";
-    import { license, loadLicense } from "$stores/license";
-    import type { LicenseInfo } from "$types/license";
     import type { Preferences } from "$types/preferences";
 
     onMount(async () => {
-        await Promise.all([loadPreferences(), loadLicense()]);
+        await loadPreferences();
     });
 
     onMount(() => {
@@ -18,9 +16,6 @@
             unlisteners = await Promise.all([
                 listen<Preferences>("preferences-updated", (e) =>
                     setPreferences(e.payload),
-                ),
-                listen<LicenseInfo>("license-updated", (e) =>
-                    license.set(e.payload),
                 ),
             ]);
         })();

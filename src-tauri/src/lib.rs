@@ -3,7 +3,6 @@ mod apps;
 mod clipboard;
 mod commands;
 mod disk;
-mod license;
 mod metrics;
 mod migration;
 mod preferences;
@@ -21,23 +20,22 @@ use std::sync::{
 use tauri::WindowEvent;
 use tauri::{
     tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent},
-    Emitter, Manager,
+    Manager,
 };
 use tauri_plugin_autostart::MacosLauncher;
 use tauri_plugin_positioner::{Position, WindowExt};
 
 use commands::{
-    activate_license, apply_workspace, check_accessibility, clear_clipboard_history,
-    complete_onboarding, copy_clipboard_item, delete_all_disk_items, delete_clipboard_item,
-    delete_disk_items, delete_workspace_profile, exit_app, force_quit_process_cmd, get_apps,
-    get_brightness, get_clipboard_history, get_current_metrics, get_disk_item_detail,
-    get_disk_scan_preview, get_disk_scan_result, get_disk_volume_info, get_license, get_portal_url,
-    get_preferences, get_process_history, get_snapshot, get_workspace_profile,
-    get_workspace_profiles, open_clipboard_url, open_monitor, open_preferences, open_process,
-    paste_clipboard_item, paste_plain_clipboard_item, preview_clipboard_item, quit_process_cmd,
-    reveal_clipboard_item, save_monitor_dim, save_workspace_profile, set_menu_bar_visible,
-    start_disk_scan, update_appearance_preferences, update_clipboard_preferences,
-    update_general_preferences, update_shortcuts,
+    apply_workspace, check_accessibility, clear_clipboard_history, complete_onboarding,
+    copy_clipboard_item, delete_all_disk_items, delete_clipboard_item, delete_disk_items,
+    delete_workspace_profile, exit_app, force_quit_process_cmd, get_apps, get_brightness,
+    get_clipboard_history, get_current_metrics, get_disk_item_detail, get_disk_scan_preview,
+    get_disk_scan_result, get_disk_volume_info, get_preferences, get_process_history, get_snapshot,
+    get_workspace_profile, get_workspace_profiles, open_clipboard_url, open_monitor,
+    open_preferences, open_process, paste_clipboard_item, paste_plain_clipboard_item,
+    preview_clipboard_item, quit_process_cmd, reveal_clipboard_item, save_monitor_dim,
+    save_workspace_profile, set_menu_bar_visible, start_disk_scan, update_appearance_preferences,
+    update_clipboard_preferences, update_general_preferences, update_shortcuts,
 };
 
 use clipboard::start_clipboard_watcher;
@@ -96,9 +94,6 @@ pub fn run() {
         )
         .invoke_handler(tauri::generate_handler![
             get_preferences,
-            get_license,
-            get_portal_url,
-            activate_license,
             update_general_preferences,
             update_clipboard_preferences,
             update_appearance_preferences,
@@ -162,21 +157,6 @@ pub fn run() {
                     let _ = set_menu_bar_visible(app.handle().clone(), prefs.general.show_menu_bar);
                 }
             }
-
-            let app_handle = app.handle().clone();
-            let license_service = app_state.license.clone();
-
-            tauri::async_runtime::spawn(async move {
-                match license_service.verify_if_needed().await {
-                    Ok(Some(info)) => {
-                        app_handle.emit("license-updated", &info).ok();
-                    }
-                    Ok(None) => {}
-                    Err(err) => {
-                        eprintln!("license verification failed: {}", err);
-                    }
-                }
-            });
 
             app.manage(UpdateState::new());
 

@@ -6,7 +6,6 @@
     import AppPickerModal from "$components/clipboard/AppPickerModal.svelte";
     import { clearClipboardHistory } from "$services/clipboard";
     import { updateClipboard } from "$services/preferences";
-    import { license } from "$stores/license";
     import { preferences } from "$stores/preferences";
     import type { IgnoredApp } from "$types/preferences";
     import { CLIPBOARD_HISTORY_OPTIONS } from "$types/clipboard";
@@ -17,12 +16,6 @@
     $: clipboard = $preferences?.clipboard;
     $: historyLimit = clipboard?.history_limit ?? 25;
     $: ignoredApps = clipboard?.ignored_apps ?? [];
-    $: historyOptions = CLIPBOARD_HISTORY_OPTIONS.filter((option) => {
-        if ("proOnly" in option && option.proOnly) {
-            return $license?.limits.clipboard_history_unlimited;
-        }
-        return true;
-    });
 
     async function clearHistory() {
         clearing = true;
@@ -73,14 +66,10 @@
         >
             <Select
                 bind:value={historyLimit}
-                options={historyOptions}
+                options={CLIPBOARD_HISTORY_OPTIONS}
                 onchange={(v) => updateClipboard({ history_limit: Number(v) })}
             />
         </PreferenceItem>
-
-        {#if $license?.tier === "free"}
-            <p class="tier-hint">Upgrade to Pro for unlimited history.</p>
-        {/if}
     </div>
 
     <PreferenceItem
@@ -200,14 +189,6 @@
         display: flex;
         flex-direction: column;
         gap: 6px;
-    }
-
-    .tier-hint {
-        margin: 0;
-        padding: 0 16px 4px;
-        font-size: 12px;
-        color: var(--color-accent);
-        line-height: 1.4;
     }
 
     .clear-btn {

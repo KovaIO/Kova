@@ -12,7 +12,6 @@ use std::{
 
 use crate::{
     app_state::AppState,
-    license::LicenseTier,
     preferences::ShortcutAction,
     windows::{apply_window_density, hide_window, open_window, toggle_window},
     AppTrayIcon, IsOpen,
@@ -67,21 +66,12 @@ pub fn load_shortcuts(
 }
 
 pub fn handle_action(app: &tauri::AppHandle, action: &ShortcutAction) {
-    let state = app.state::<AppState>();
     match action {
         ShortcutAction::OpenClipboardHistory => {
             apply_window_density(app, "clipboard");
             toggle_window(app, "clipboard");
         }
         ShortcutAction::ApplyWorkspace => {
-            let tier = match state.license.tier() {
-                Ok(t) => t,
-                Err(_) => return,
-            };
-            if tier != LicenseTier::Pro {
-                return;
-            }
-
             let app_handle = app.clone();
 
             tauri::async_runtime::spawn(async move {

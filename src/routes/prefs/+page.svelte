@@ -5,7 +5,6 @@
     import PreferencesLayout from "$components/preferences/PreferencesLayout.svelte";
     import PreferencesSidebar from "$components/preferences/PreferencesSidebar.svelte";
     import GeneralSection from "$components/preferences/sections/GeneralSection.svelte";
-    import LicenseSection from "$components/preferences/sections/LicenseSection.svelte";
     import ClipboardHistorySection from "$components/preferences/sections/ClipboardHistorySection.svelte";
     import KeyboardShortcutsSection from "$components/preferences/sections/KeyboardShortcutsSection.svelte";
     // import PowerManagementSection from "$components/preferences/sections/PowerManagementSection.svelte";
@@ -23,7 +22,6 @@
         { id: "keyboard-shortcuts", label: "Keyboard Shortcuts" },
         // { id: "power-management", label: "Power Management" },
         { id: "help-feedback", label: "Help & Feedback" },
-        { id: "license", label: "License" },
     ];
 
     function handleSectionChange(sectionId: string) {
@@ -68,8 +66,6 @@
                 <PowerManagementSection /> -->
             {:else if activeSection === "help-feedback"}
                 <HelpFeedbackSection />
-            {:else if activeSection === "license"}
-                <LicenseSection />
             {/if}
         {/snippet}
         <PreferencesLayout {sidebar} {content} />

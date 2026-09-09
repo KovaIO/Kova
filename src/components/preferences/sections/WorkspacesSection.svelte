@@ -3,7 +3,6 @@
     import PreferencesSection from "../PreferencesSection.svelte";
     import AppPickerModal from "$components/clipboard/AppPickerModal.svelte";
     import BrowserUrlModal from "$components/workspaces/BrowserUrlModal.svelte";
-    import { canUse, license } from "$stores/license";
     import type { WorkspaceApp, WorkspaceProfile } from "$types/preferences";
     import type { IgnoredApp } from "$types/preferences";
     import {
@@ -11,9 +10,6 @@
         saveWorkspaceProfile,
         deleteWorkspaceProfile,
     } from "$services/workspaces";
-    import { openUrl } from "@tauri-apps/plugin-opener";
-
-    $: isPro = canUse("workspace_profiles", $license);
 
     const COLS = 12;
     const ROWS = 8;
@@ -93,10 +89,6 @@
     let dragStartCell = { col: 0, row: 0 };
     let dragStartApp = { x: 0, y: 0, width: 0, height: 0 };
     let canvasEl: HTMLDivElement;
-
-    async function upgrade() {
-        openUrl("https://appkova.com/#pricing");
-    }
 
     onMount(async () => {
         try {
@@ -295,7 +287,7 @@
         mode: "move" | "resize",
         corner: "nw" | "ne" | "sw" | "se" = "se",
     ) {
-        if (!isPro || !canvasEl) return;
+        if (!canvasEl) return;
         e.preventDefault();
         dragging = app;
         dragMode = mode;
@@ -439,39 +431,10 @@
     }
 </script>
 
-{#if !isPro}
-    <PreferencesSection
-        title="Workspace Profiles"
-        description="Save and restore complete app layouts"
-    >
-        <div class="pro-gate">
-            <svg
-                width="32"
-                height="32"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.5"
-                stroke-linecap="round"
-            >
-                <rect x="3" y="11" width="18" height="11" rx="2" />
-                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-            </svg>
-            <p class="pro-title">Pro feature</p>
-            <p class="pro-desc">
-                Workspace Profiles let you save app arrangements and restore
-                them instantly. Upgrade to Pro to unlock.
-            </p>
-            <button class="upgrade-btn" on:click={upgrade}
-                >Upgrade to Pro</button
-            >
-        </div>
-    </PreferencesSection>
-{:else}
-    <PreferencesSection
-        title="Workspace Profiles"
-        description="Save and restore complete app layouts with one click"
-    >
+<PreferencesSection
+    title="Workspace Profiles"
+    description="Save and restore complete app layouts with one click"
+>
         <div class="workspaces-root">
             <!-- Sidebar -->
             <div class="profile-list">
@@ -729,7 +692,6 @@
             {/if}
         </div>
     </PreferencesSection>
-{/if}
 
 {#if showAppPicker}
     <AppPickerModal
@@ -1154,45 +1116,6 @@
         color: var(--color-text-dim);
         padding: 32px;
         text-align: center;
-    }
-
-    /* Pro gate */
-    .pro-gate {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 10px;
-        padding: 40px 24px;
-        text-align: center;
-        color: var(--color-text-dim);
-    }
-    .pro-title {
-        font-size: 15px;
-        font-weight: 600;
-        color: var(--color-text-primary);
-        margin: 0;
-    }
-    .pro-desc {
-        font-size: 13px;
-        color: var(--color-text-secondary);
-        max-width: 320px;
-        margin: 0;
-        line-height: 1.5;
-    }
-    .upgrade-btn {
-        margin-top: 6px;
-        padding: 8px 20px;
-        border-radius: var(--radius-sm);
-        border: none;
-        background: var(--color-accent);
-        color: #fff;
-        font-size: 13px;
-        font-weight: 600;
-        font-family: inherit;
-        transition: opacity var(--transition-fast);
-    }
-    .upgrade-btn:hover {
-        opacity: 0.85;
     }
 
     .no-space-msg {

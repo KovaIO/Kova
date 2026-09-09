@@ -7,7 +7,6 @@
     import BrightnessSlider from "$components/BrightnessSlider.svelte";
     import { Cpu, MemoryStick, HardDrive } from "@lucide/svelte";
     import { updateClipboard, updateGeneral } from "$services/preferences";
-    import { canUse, license } from "$stores/license";
     import { preferences, refreshBrightness } from "$stores/preferences";
     import WindowAnimation from "$components/WindowAnimation.svelte";
 
@@ -65,7 +64,6 @@
 
     $: clipboardEnabled = $preferences?.clipboard.enabled ?? true;
     $: monitorDim = $preferences?.general.monitor_dim ?? 100;
-    $: monitorDimmingEnabled = canUse("monitor_dimming", $license);
 
     async function openPreferences() {
         await invoke("open_preferences");
@@ -114,16 +112,14 @@
                 />
             </section>
 
-            {#if monitorDimmingEnabled}
-                <div class="divider"></div>
+            <div class="divider"></div>
 
-                <section class="brightness-section">
-                    <BrightnessSlider
-                        value={monitorDim}
-                        onchange={(v) => updateGeneral({ monitor_dim: v })}
-                    />
-                </section>
-            {/if}
+            <section class="brightness-section">
+                <BrightnessSlider
+                    value={monitorDim}
+                    onchange={(v) => updateGeneral({ monitor_dim: v })}
+                />
+            </section>
         </div>
 
         <div class="actions">

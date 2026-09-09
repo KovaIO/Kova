@@ -7,14 +7,12 @@
     import Toggle from "$components/Toggle.svelte";
     import BrightnessSlider from "$components/BrightnessSlider.svelte";
     import { updateGeneral } from "$services/preferences";
-    import { canUse, license } from "$stores/license";
     import { preferences, refreshBrightness } from "$stores/preferences";
 
     const isMacos = platform() === "macos";
 
     $: general = $preferences?.general;
     $: monitorDim = general?.monitor_dim ?? 100;
-    $: monitorDimmingEnabled = canUse("monitor_dimming", $license);
 
     function onFocus() {
         refreshBrightness();
@@ -73,15 +71,10 @@
             <div class="slider-wrap">
                 <BrightnessSlider
                     value={monitorDim}
-                    disabled={!monitorDimmingEnabled}
                     onchange={(v) => updateGeneral({ monitor_dim: v })}
                 />
             </div>
         </PreferenceItem>
-
-        {#if !monitorDimmingEnabled}
-            <p class="tier-hint">Upgrade to Pro to adjust monitor dimming.</p>
-        {/if}
     </div>
 
     <!-- <PreferenceItem
@@ -101,14 +94,6 @@
         display: flex;
         flex-direction: column;
         gap: 6px;
-    }
-
-    .tier-hint {
-        margin: 0;
-        padding: 0 16px 4px;
-        font-size: 12px;
-        color: var(--color-accent);
-        line-height: 1.4;
     }
 
     .slider-wrap {

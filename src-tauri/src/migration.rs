@@ -1,6 +1,5 @@
 use crate::preferences::Preferences;
 use rusqlite::{params, Connection, Result};
-use uuid::Uuid;
 
 pub fn run_migrations(conn: &Connection) -> Result<()> {
     conn.execute_batch(
@@ -73,14 +72,6 @@ pub fn run_migrations(conn: &Connection) -> Result<()> {
             height REAL NOT NULL DEFAULT 0.5,
             urls TEXT DEFAULT '[]'
         );
-
-        CREATE TABLE IF NOT EXISTS license (
-            device_id TEXT NOT NULL,
-            email TEXT,
-            tier TEXT NOT NULL DEFAULT 'free',
-            activated_at INTEGER,
-            last_verified_at INTEGER
-        );
         ",
     )?;
 
@@ -143,19 +134,6 @@ fn seed_defaults(conn: &Connection) -> Result<()> {
             rusqlite::params![shortcut.action, shortcut.keys],
         )?;
     }
-
-    let device_id = Uuid::new_v4().to_string();
-
-    conn.execute(
-        "
-        INSERT INTO license (device_id, tier)
-        SELECT ?1, 'free'
-        WHERE NOT EXISTS (
-            SELECT 1 FROM license
-        )
-        ",
-        params![device_id],
-    )?;
 
     Ok(())
 }
